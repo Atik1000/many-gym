@@ -1,0 +1,130 @@
+"use client";
+
+import { MotionButton } from "@/components/ui/Motion";
+import { useState } from "react";
+import { LuChevronRight as ChevronRight, LuPlus as Plus, LuSearch as Search, LuTrash2 as Trash2, LuX as X } from "react-icons/lu";
+import { useToast } from "@/components/ui/Toast";
+import { ConfirmModal, MultiSelect, Pagination, Pill, Select, usePaged } from "@/components/ui/parts";
+import { useResource } from "@/lib/api";
+import { btnGhost, btnPrimary, card, errorText, input, label } from "@/lib/ui";
+import { GOALS, LEVELS, blankDays, blankRoutine, cleanRoutine, newSession, validateRoutine, type Routine } from "@/lib/routines";
+import { uid } from "@/lib/id";
+import RoutineEditor from "./RoutineEditor";
+import { Can, EditableIf, useAuth } from "@/components/AuthProvider";
+
+export const ROUTINES_KEY = "routines";
+const levelTone = { Beginner: "green", Intermediate: "blue", Advanced: "amber" } as const;
+
+export default function TemplatesPage() {
+  const toast = useToast();
+  const { can } = useAuth();
+  const [templates, setTemplates, ready] = useResource<Routine>(ROUTINES_KEY);
+  const [q, setQ] = useState("");
+  const [format, setFormat] = useState("all");
+  const [draft, setDraft] = useState<Routine | null>(null); // null = nothing open
+  const [errors, setErrors] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
+  const [editorKey, setEditorKey] = useState(0); // remount editor so its day/session tab resets
+
+  const shownAll = templates.filter((t) => (format === "all" || t.format === format) && t.name.toLowerCase().includes(q.trim().toLowerCase()));
+  const pg = usePaged(shownAll, 6, `${format}|${q}`);
+  const shown = pg.view;
+  const open = (t: Routine) => { setDraft(structuredClone(t)); setErrors([]); setEditorKey((k) => k + 1); };
+  const create = () => { setDraft(blankRoutine("weekly")); setErrors([]); setEditorKey((k) => k + 1); };
+  const isNew = draft !== null && !templates.some((t) => t.id === draft.id);
+
+  const setFormatOf = (f: Routine["format"]) => setDraft((d) => d && ({
+    ...d, format: f,
+    days: f === "weekly" && d.days.length === 0 ? blankDays() : d.days,
+    sessions: f === "session" && d.sessions.length === 0 ? [newSession()] : d.sessions,
+  }));
+
+  const save = () => {
+    if (!draft) return;
+    const errs = validateRoutine(draft);
+    setErrors(errs);
+    if (errs.length) return;
+    const clean = cleanRoutine({ ...draft, id: draft.id || uid() });
+    setTemplates((l) => (l.some((t) => t.id === clean.id) ? l.map((t) => (t.id === clean.id ? clean : t)) : [clean, ...l]));
+    setDraft(clean);
+    toast(isNew ? "Template created" : "Template saved");
+  };
+
+  return (
+    <>
+      <div className="mb-5 flex items-center justify-between">
+        <h2 className="text-[28px] font-bold tracking-tight">Routine Templates</h2>
+        <Can perm="Create templates"><MotionButton className={btnPrimary} onClick={create}><Plus size={18} />Create Template</MotionButton></Can>
+      </div>
+
+      <div className="grid items-start gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
+        <aside className={`${card} p-4`}>
+          <label className="relative block">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <input className={`${input} pl-10`} placeholder="Search templates…" value={q} onChange={(e) => setQ(e.target.value)} />
+          </label>
+          <label className="mt-4 block"><span className={label}>Format</span>
+            <Select value={format} onChange={(e) => setFormat(e.target.value)}><option value="all">All Formats</option><option value="weekly">Weekly</option><option value="session">Session-Based</option></Select>
+          </label>
+          <ul className="-mx-4 mt-4 border-t border-line">
+            {!ready && <li className="px-4 py-8 text-center text-muted">Loading…</li>}
+            {ready && shown.length === 0 && <li className="px-4 py-8 text-center text-muted">{templates.length ? "No templates match." : "No templates yet."}</li>}
+            {shown.map((t) => (
+              <li key={t.id}>
+                <button onClick={() => open(t)} className={`flex w-full items-center gap-3 border-b border-l-4 border-b-line px-4 py-4 text-left ${draft?.id === t.id ? "border-l-primary bg-primary-50" : "border-l-transparent hover:bg-background"}`}>
+                  <span className="flex-1">
+                    <b className="mb-1.5 block text-[15px]">{t.name}</b>
+                    <span className="flex gap-2"><Pill tone="purple">{t.format === "weekly" ? "Weekly" : "Session-Based"}</Pill><Pill tone={levelTone[t.level]}>{t.level}</Pill></span>
+                  </span>
+                  <ChevronRight className="text-muted" size={18} />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="-mx-4 border-t border-line"><Pagination {...pg} noun="templates" /></div>
+        </aside>
+
+        {!draft ? (
+          <section className={`${card} grid min-h-[320px] place-items-center p-10 text-center text-muted`}>
+            <div><p className="text-base font-semibold text-foreground">Select a template to edit</p><p>or create a new one to get started.</p></div>
+          </section>
+        ) : (
+          <section className={`${card} p-6`}>
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-2xl font-bold">{isNew ? "New Template" : "Edit Template"}</h3>
+              <button aria-label="Close editor" onClick={() => setDraft(null)} className="text-muted"><X size={22} /></button>
+            </div>
+            <EditableIf perm={isNew ? "Create templates" : "Edit templates"}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div><label htmlFor="tn" className={label}>Template Name <span className="text-bad">*</span></label>
+                <input id="tn" className={input} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="e.g. Beginner Full Body" /></div>
+              <div><label htmlFor="tf" className={label}>Routine Format <span className="text-bad">*</span></label>
+                <Select id="tf" value={draft.format} onChange={(e) => setFormatOf(e.target.value as Routine["format"])}><option value="weekly">Weekly</option><option value="session">Session-Based</option></Select></div>
+              <div><span className={label}>Goal <span className="font-normal text-muted">(optional)</span></span>
+                <MultiSelect value={draft.goals} options={GOALS} onChange={(goals) => setDraft({ ...draft, goals })} placeholder="Select goals" /></div>
+              <div><label htmlFor="tl" className={label}>Level</label>
+                <Select id="tl" value={draft.level} onChange={(e) => setDraft({ ...draft, level: e.target.value as Routine["level"] })}>{LEVELS.map((l) => <option key={l}>{l}</option>)}</Select></div>
+              <div className="md:col-span-2"><label htmlFor="tnotes" className={label}>Notes <span className="font-normal text-muted">(optional)</span></label>
+                <textarea id="tnotes" rows={2} className={`${input} resize-y`} value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} /></div>
+            </div>
+            <hr className="my-5 border-line" />
+            <RoutineEditor key={editorKey + draft.format} routine={draft} onChange={setDraft} />
+            </EditableIf>
+            {errors.length > 0 && <ul className="mt-4 rounded-xl bg-bad-bg px-4 py-3">{errors.map((e) => <li key={e} className={`${errorText} !mt-0 text-[13px]`}>• {e}</li>)}</ul>}
+            <div className="mt-6 flex items-center justify-between border-t border-line pt-4">
+              {!isNew && can("Delete templates") ? <button className="inline-flex items-center gap-1.5 font-semibold text-bad" onClick={() => setDeleting(true)}><Trash2 size={16} />Delete template</button> : <span />}
+              <div className="flex gap-3">
+                <MotionButton className={btnGhost} onClick={() => setDraft(null)}>Cancel</MotionButton>
+                <MotionButton className={btnPrimary} disabled={!can(isNew ? "Create templates" : "Edit templates")} onClick={save}>Save Template</MotionButton>
+              </div>
+            </div>
+          </section>
+        )}
+      </div>
+
+      <ConfirmModal open={deleting} title="Delete template?" onClose={() => setDeleting(false)}
+        body={<>“{draft?.name}” will be removed. Routines already assigned to members keep their own copy.</>}
+        onConfirm={() => { setTemplates((l) => l.filter((t) => t.id !== draft?.id)); setDraft(null); setDeleting(false); toast("Template deleted"); }} />
+    </>
+  );
+}
