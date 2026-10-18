@@ -3,7 +3,7 @@
 import { MotionButton } from "@/components/ui/Motion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LuChevronRight as ChevronRight, LuPlus as Plus, LuSearch as Search, LuTrash2 as Trash2, LuUserCheck as UserCheck, LuX as X } from "react-icons/lu";
+import { LuChevronRight as ChevronRight, LuPlus as Plus, LuSearch as Search, LuTrash2 as Trash2, LuUserCheck as UserCheck, LuX as X, LuSave, LuX } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmModal, MultiSelect, Pagination, Pill, Select, usePaged } from "@/components/ui/parts";
 import { fmtDate, today } from "@/lib/dates";
@@ -77,7 +77,7 @@ export default function LeadsPage() {
               <input className={`${input} pl-10`} placeholder="Search name, phone or email…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-left">
+            <table className="rt w-full min-w-[640px] text-left">
               <thead className="bg-background text-[13px] text-muted"><tr>{["Lead", "Interested Plan", "Stage", "Next Move", ""].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead>
               <tbody>
                 {!ready && <tr><td colSpan={5} className="p-10 text-center text-muted">Loading leads…</td></tr>}
@@ -104,7 +104,7 @@ export default function LeadsPage() {
           <section className={`${card} p-6`}>
             <div className="mb-4 flex items-center justify-between"><h3 className="text-2xl font-bold">{isNew ? "New Lead" : leadName(draft)}</h3><button aria-label="Close" onClick={() => setDraft(null)} className="text-muted"><X size={22} /></button></div>
             <EditableIf perm={isNew ? "Create leads" : "Edit leads"}>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div><label htmlFor="lf" className={label}>First Name <span className="text-bad">*</span></label><input id="lf" className={input} value={draft.firstName} onChange={(e) => set("firstName", e.target.value)} />{errors.firstName && <p className={errorText}>{errors.firstName}</p>}</div>
               <div><label htmlFor="ll" className={label}>Last Name</label><input id="ll" className={input} value={draft.lastName} onChange={(e) => set("lastName", e.target.value)} /></div>
               <div><label htmlFor="lp" className={label}>Phone</label><input id="lp" type="tel" className={input} value={draft.phone} onChange={(e) => set("phone", e.target.value)} /></div>
@@ -155,7 +155,7 @@ export default function LeadsPage() {
                 {!isNew && can("Delete leads") && <button className="inline-flex items-center gap-1.5 font-semibold text-bad" onClick={() => setDeleting(true)}><Trash2 size={16} />Delete lead</button>}
                 {!isNew && draft.stage !== "joined" && can("Create members") && <button className="inline-flex items-center gap-1.5 font-semibold text-primary" onClick={convert}><UserCheck size={16} />Convert to member</button>}
               </div>
-              <div className="flex gap-3"><MotionButton className={btnGhost} onClick={() => setDraft(null)}>Cancel</MotionButton><MotionButton className={btnPrimary} disabled={!can(isNew ? "Create leads" : "Edit leads")} onClick={() => save()}>{isNew ? "Add Lead" : "Save Changes"}</MotionButton></div>
+              <div className="flex gap-3"><MotionButton className={btnGhost} onClick={() => setDraft(null)}><LuX size={17} />Cancel</MotionButton><MotionButton className={btnPrimary} disabled={!can(isNew ? "Create leads" : "Edit leads")} onClick={() => save()}><LuSave size={17} />{isNew ? "Add Lead" : "Save Changes"}</MotionButton></div>
             </div>
           </section>
         )}

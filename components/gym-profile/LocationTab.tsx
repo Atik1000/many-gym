@@ -103,7 +103,7 @@ function Form({ initial, onSave }: { initial: Loc; onSave: (l: Loc) => void }) {
         <p className={hint}>Click or drag the pin to the gym&apos;s entrance.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="md:col-span-2">{field("address", "Address")}<p className={hint}>Filled automatically from the pin, but you can edit it.</p></div>
         {field("city", "City")}
         {field("postcode", "Postcode", false)}

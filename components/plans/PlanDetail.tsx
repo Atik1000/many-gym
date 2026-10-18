@@ -4,7 +4,7 @@ import { MotionButton, MotionLink } from "@/components/ui/Motion";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { LuArrowLeft as ArrowLeft, LuEllipsisVertical as MoreVertical, LuPencil as Pencil } from "react-icons/lu";
+import { LuArrowLeft as ArrowLeft, LuEllipsisVertical as MoreVertical, LuPencil as Pencil, LuArrowLeft, LuX } from "react-icons/lu";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { btnGhost, btnPrimary, card } from "@/lib/ui";
@@ -34,7 +34,7 @@ export default function PlanDetail() {
     <div className={`${card} p-10 text-center`}>
       <h2 className="text-xl font-bold">Plan not found</h2>
       <p className="mb-4 mt-1 text-muted">It may have been deleted.</p>
-      <MotionLink href="/plans" className={btnPrimary}>Back to Plans</MotionLink>
+      <MotionLink href="/plans" className={btnPrimary}><LuArrowLeft size={17} />Back to Plans</MotionLink>
     </div>
   );
 
@@ -64,7 +64,7 @@ export default function PlanDetail() {
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <section className={`${card} p-6`}>
           <h3 className="mb-4 text-xl font-bold">Basic Information</h3>
           <Field label="Plan Name">{plan.name}</Field>
@@ -112,7 +112,7 @@ export default function PlanDetail() {
         </section>
       </div>
 
-      <section className={`${card} mt-5 grid gap-6 p-6 md:grid-cols-2`}>
+      <section className={`${card} mt-5 grid grid-cols-1 gap-6 p-6 md:grid-cols-2`}>
         <div className="md:col-span-2"><h3 className="text-xl font-bold">Terms &amp; Conditions</h3></div>
         <Field label="Cancellation Policy">{plan.cancellationPolicy}</Field>
         <Field label="Refund Policy">{plan.refundPolicy}</Field>
@@ -122,7 +122,7 @@ export default function PlanDetail() {
 
       <Modal open={confirm} title="Delete plan?" onClose={() => setConfirm(false)}
         footer={<>
-          <MotionButton className={btnGhost} onClick={() => setConfirm(false)}>Cancel</MotionButton>
+          <MotionButton className={btnGhost} onClick={() => setConfirm(false)}><LuX size={17} />Cancel</MotionButton>
           <button className="rounded-[10px] bg-bad px-4 py-2 font-semibold text-white" onClick={() => { remove(plan.id); toast("Plan deleted"); router.push("/plans"); }}>Delete</button>
         </>}>
         <p><b>{plan.name}</b> will be removed permanently. Archive it instead if members are still on this plan.</p>

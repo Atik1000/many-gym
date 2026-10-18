@@ -78,7 +78,7 @@ export default function RoutineEditor({ routine, onChange }: { routine: Routine;
           <div className="rounded-xl bg-background px-4 py-8 text-center text-muted">Rest day — no exercises. Switch to “Workout day” to add some.</div>
         ) : (
           <>
-            <div className="mb-4 grid gap-4 md:grid-cols-2">
+            <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <label><span className="mb-1.5 block text-[13px] font-semibold">Workout Title <span className="font-normal text-muted">(optional)</span></span>
                 <input className={input} value={d.title} onChange={(e) => setDay({ title: e.target.value })} placeholder="e.g. Upper Body" /></label>
               <label><span className="mb-1.5 block text-[13px] font-semibold">Day Notes <span className="font-normal text-muted">(optional)</span></span>
@@ -112,7 +112,7 @@ export default function RoutineEditor({ routine, onChange }: { routine: Routine;
                 onClick={() => { setSessions(routine.sessions.filter((_, i) => i !== idx)); setSessIdx(Math.max(0, idx - 1)); }}><Trash2 size={18} /></button>
             </div>
           </div>
-          <div className="mb-4 grid gap-4 md:grid-cols-2">
+          <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <label><span className="mb-1.5 block text-[13px] font-semibold">Workout Title <span className="font-normal text-muted">(optional)</span></span>
               <input className={input} value={s.title} onChange={(e) => setSess({ title: e.target.value })} /></label>
             <label><span className="mb-1.5 block text-[13px] font-semibold">Session Notes <span className="font-normal text-muted">(optional)</span></span>

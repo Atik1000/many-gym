@@ -4,7 +4,7 @@ import { Reveal } from "@/components/ui/Motion";
 import { MotionButton } from "@/components/ui/Motion";
 import { Pagination, usePaged } from "@/components/ui/parts";
 import { useRef, useState } from "react";
-import { LuGlobe as Globe, LuImage as ImageIcon, LuLink2 as Link2, LuLoaderCircle as Loader2, LuLock as Lock, LuMessageSquare as MessageSquare, LuEllipsis as MoreHorizontal, LuPencil as Pencil, LuPin as Pin, LuThumbsUp as ThumbsUp, LuTrash2 as Trash2, LuX as X } from "react-icons/lu";
+import { LuGlobe as Globe, LuImage as ImageIcon, LuLink2 as Link2, LuLoaderCircle as Loader2, LuLock as Lock, LuMessageSquare as MessageSquare, LuEllipsis as MoreHorizontal, LuPencil as Pencil, LuPin as Pin, LuThumbsUp as ThumbsUp, LuTrash2 as Trash2, LuX as X, LuPlus, LuSend, LuX } from "react-icons/lu";
 import { useAuth } from "@/components/AuthProvider";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
@@ -99,7 +99,7 @@ function PostCard({ post, onChange, onEdit, onDelete }: { post: Post; onChange: 
               <div className="rounded-xl bg-background px-3 py-2"><b className="text-[13px]">{c.author}</b> <span className="text-xs text-muted">{timeAgo(c.createdAt)}</span><p>{c.text}</p></div></div>
           ))}
           <div className="flex gap-2"><input aria-label="Write a comment" className={input} placeholder="Write a comment…" value={comment} onChange={(e) => setComment(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addComment()} />
-            <MotionButton className={btnPrimary} disabled={!comment.trim()} onClick={addComment}>Post</MotionButton></div>
+            <MotionButton className={btnPrimary} disabled={!comment.trim()} onClick={addComment}><LuSend size={17} />Post</MotionButton></div>
         </div>
       )}
     </article>
@@ -140,7 +140,7 @@ function Composer({ editing, onClose, onSave }: { editing: Post | null; onClose:
 
   return (
     <Modal open title={editing ? "Edit post" : "Create post"} onClose={close}
-      footer={<><MotionButton className={btnGhost} onClick={close} disabled={busy}>Cancel</MotionButton>
+      footer={<><MotionButton className={btnGhost} onClick={close} disabled={busy}><LuX size={17} />Cancel</MotionButton>
         <MotionButton className={btnPrimary} disabled={!canPublish} onClick={publish}>{busy ? <><Loader2 size={16} className="animate-spin" />{editing ? "Saving…" : "Publishing…"}</> : editing ? "Save" : "Publish"}</MotionButton></>}>
       <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder="Share an update from your gym…"
         className="min-h-[110px] w-full resize-y rounded-[10px] border border-line px-3.5 py-3 outline-none focus:border-primary focus:ring-3 focus:ring-primary-50" />
@@ -202,7 +202,7 @@ export default function Feed() {
             <button onClick={() => openComposer()} className="w-full rounded-[10px] border border-line bg-background px-3.5 py-3 text-left text-muted">Share an update from your gym…</button>
             <div className="flex justify-between gap-2.5">
               <MotionButton className={btnGhost} onClick={() => openComposer()}><ImageIcon size={17} />Photo / Video</MotionButton>
-              <MotionButton className={btnPrimary} onClick={() => openComposer()}>Create Post</MotionButton>
+              <MotionButton className={btnPrimary} onClick={() => openComposer()}><LuPlus size={17} />Create Post</MotionButton>
             </div>
           </div>
         </div>
@@ -226,7 +226,7 @@ export default function Feed() {
       )}
 
       <Modal open={!!deleting} title="Delete post?" onClose={() => setDeleting(null)}
-        footer={<><MotionButton className={btnGhost} onClick={() => setDeleting(null)}>Cancel</MotionButton>
+        footer={<><MotionButton className={btnGhost} onClick={() => setDeleting(null)}><LuX size={17} />Cancel</MotionButton>
           <button className="rounded-[10px] bg-bad px-4 py-2 font-semibold text-white" onClick={() => { if (deleting) setPosts((l) => l.filter((x) => x.id !== deleting.id)); setDeleting(null); toast("Post deleted"); }}>Delete</button></>}>
         <p>This post, its likes and comments will be removed.</p>
       </Modal>

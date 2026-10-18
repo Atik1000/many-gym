@@ -59,7 +59,7 @@ function Form({ initial, onSave }: { initial: Overview; onSave: (o: Overview) =>
 
   return (
     <div className="grid gap-6">
-      <div className="grid gap-6 md:grid-cols-[140px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[140px_minmax(0,1fr)]">
         <ImagePicker title="Profile picture" note="1 image, square works best" round url={f.profileUrl} onPick={pick("profileUrl")} />
         <ImagePicker title="Cover photo" note="1 image, wide (e.g. 1600×400)" url={f.coverUrl} onPick={pick("coverUrl")} />
       </div>
@@ -79,7 +79,7 @@ function Form({ initial, onSave }: { initial: Overview; onSave: (o: Overview) =>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
           <label htmlFor="pt" className={label}>Primary gym type <span className="text-bad">*</span></label>
           <select id="pt" className={input} value={f.primaryType} onChange={(e) => set("primaryType", e.target.value)}>

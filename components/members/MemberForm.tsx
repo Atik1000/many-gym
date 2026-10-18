@@ -4,7 +4,7 @@ import { MotionButton, MotionLink } from "@/components/ui/Motion";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
-import { LuArrowLeft as ArrowLeft, LuCamera as Camera } from "react-icons/lu";
+import { LuArrowLeft as ArrowLeft, LuCamera as Camera, LuArrowLeft, LuSave } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { Avatar, Select } from "@/components/ui/parts";
 import { today } from "@/lib/dates";
@@ -35,7 +35,7 @@ function toThumb(file: File): Promise<string> {
 }
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <section className={`${card} p-6`}><h3 className="mb-4 text-xl font-bold">{title}</h3><div className="grid gap-4 md:grid-cols-2">{children}</div></section>
+  <section className={`${card} p-6`}><h3 className="mb-4 text-xl font-bold">{title}</h3><div className="grid grid-cols-1 gap-4 md:grid-cols-2">{children}</div></section>
 );
 const Field = ({ id, title, req, error, children, wide }: { id: string; title: string; req?: boolean; error?: string; children: React.ReactNode; wide?: boolean }) => (
   <div className={wide ? "md:col-span-2" : ""}><label htmlFor={id} className={label}>{title} {req && <span className="text-bad">*</span>}</label>{children}{error && <p className={errorText}>{error}</p>}</div>
@@ -111,7 +111,7 @@ function Form({ initial, editing, lead }: { initial: Member; editing: boolean; l
       <nav className="mb-3 text-muted"><Link href="/members" className="hover:text-foreground">Members</Link> / <b className="text-foreground">{editing ? `Edit ${fullName(initial)}` : "Add Member"}</b></nav>
       <h2 className="mb-5 text-[28px] font-bold tracking-tight">{editing ? `Edit ${fullName(initial)}` : "Add Member"}</h2>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="grid gap-5">
           <Section title="Basic Information">
             <Field id="firstName" title="First name" req error={errors.firstName}><span {...err("firstName")}>{text("firstName")}</span></Field>
@@ -216,7 +216,7 @@ function Form({ initial, editing, lead }: { initial: Member; editing: boolean; l
 
       <div className="mt-6 flex items-center justify-between">
         <MotionLink href={editing ? `/members/${initial.id}` : "/members"} className={btnGhost}><ArrowLeft size={17} />Cancel</MotionLink>
-        <MotionButton className={btnPrimary} onClick={submit}>{editing ? "Save changes" : "Add Member"}</MotionButton>
+        <MotionButton className={btnPrimary} onClick={submit}><LuSave size={17} />{editing ? "Save changes" : "Add Member"}</MotionButton>
       </div>
     </>
   );
@@ -241,6 +241,6 @@ export default function MemberForm({ editing = false }: { editing?: boolean }) {
   if (!editing) return <NewMember />;
   if (!ready) return <div className={`${card} h-[300px] animate-pulse`} />;
   const found = members.find((x) => x.id === id);
-  if (!found) return <div className={`${card} p-10 text-center`}><h2 className="text-xl font-bold">Member not found</h2><MotionLink href="/members" className={`${btnPrimary} mt-4`}>Back to Members</MotionLink></div>;
+  if (!found) return <div className={`${card} p-10 text-center`}><h2 className="text-xl font-bold">Member not found</h2><MotionLink href="/members" className={`${btnPrimary} mt-4`}><LuArrowLeft size={17} />Back to Members</MotionLink></div>;
   return <Form initial={found} editing />;
 }

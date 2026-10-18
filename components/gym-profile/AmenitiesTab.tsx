@@ -17,7 +17,7 @@ function Collection({ title, desc, selected, disabled, onToggle }: {
     <section>
       <h3 className="text-base font-bold">{title} <span className="ml-1 rounded-full bg-primary-50 px-2 py-0.5 text-xs font-semibold text-primary">{selected.length} selected</span></h3>
       <p className="mb-4 mt-0.5 text-muted">{desc}</p>
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {AMENITY_GROUPS.map(({ group, items }) => (
           <fieldset key={group}>
             <legend className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{group}</legend>

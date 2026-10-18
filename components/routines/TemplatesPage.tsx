@@ -2,7 +2,7 @@
 
 import { MotionButton } from "@/components/ui/Motion";
 import { useState } from "react";
-import { LuChevronRight as ChevronRight, LuPlus as Plus, LuSearch as Search, LuTrash2 as Trash2, LuX as X } from "react-icons/lu";
+import { LuChevronRight as ChevronRight, LuPlus as Plus, LuSearch as Search, LuTrash2 as Trash2, LuX as X, LuSave, LuX } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmModal, MultiSelect, Pagination, Pill, Select, usePaged } from "@/components/ui/parts";
 import { useResource } from "@/lib/api";
@@ -57,7 +57,7 @@ export default function TemplatesPage() {
         <Can perm="Create templates"><MotionButton className={btnPrimary} onClick={create}><Plus size={18} />Create Template</MotionButton></Can>
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
         <aside className={`${card} p-4`}>
           <label className="relative block">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
@@ -95,7 +95,7 @@ export default function TemplatesPage() {
               <button aria-label="Close editor" onClick={() => setDraft(null)} className="text-muted"><X size={22} /></button>
             </div>
             <EditableIf perm={isNew ? "Create templates" : "Edit templates"}>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div><label htmlFor="tn" className={label}>Template Name <span className="text-bad">*</span></label>
                 <input id="tn" className={input} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="e.g. Beginner Full Body" /></div>
               <div><label htmlFor="tf" className={label}>Routine Format <span className="text-bad">*</span></label>
@@ -114,8 +114,8 @@ export default function TemplatesPage() {
             <div className="mt-6 flex items-center justify-between border-t border-line pt-4">
               {!isNew && can("Delete templates") ? <button className="inline-flex items-center gap-1.5 font-semibold text-bad" onClick={() => setDeleting(true)}><Trash2 size={16} />Delete template</button> : <span />}
               <div className="flex gap-3">
-                <MotionButton className={btnGhost} onClick={() => setDraft(null)}>Cancel</MotionButton>
-                <MotionButton className={btnPrimary} disabled={!can(isNew ? "Create templates" : "Edit templates")} onClick={save}>Save Template</MotionButton>
+                <MotionButton className={btnGhost} onClick={() => setDraft(null)}><LuX size={17} />Cancel</MotionButton>
+                <MotionButton className={btnPrimary} disabled={!can(isNew ? "Create templates" : "Edit templates")} onClick={save}><LuSave size={17} />Save Template</MotionButton>
               </div>
             </div>
           </section>

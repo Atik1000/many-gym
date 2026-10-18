@@ -10,7 +10,7 @@ export default function Page() {
   return (
     <Guard perm="View studio information">
       <StudioHeader />
-      <div className="mt-5 grid items-start gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
+      <div className="mt-5 grid grid-cols-1 items-start gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
         <About />
         <Feed />
       </div>

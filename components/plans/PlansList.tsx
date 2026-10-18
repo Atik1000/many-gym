@@ -5,7 +5,7 @@ import { Pagination, usePaged } from "@/components/ui/parts";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LuArchive as Archive, LuCopy as Copy, LuEllipsisVertical as MoreVertical, LuPencil as Pencil, LuPlus as Plus, LuPower as Power, LuSearch as Search, LuTrash2 as Trash2 } from "react-icons/lu";
+import { LuArchive as Archive, LuCopy as Copy, LuEllipsisVertical as MoreVertical, LuPencil as Pencil, LuPlus as Plus, LuPower as Power, LuSearch as Search, LuTrash2 as Trash2, LuEye, LuX } from "react-icons/lu";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { btnGhost, btnPrimary, card, input } from "@/lib/ui";
@@ -68,7 +68,7 @@ export default function PlansList() {
         <Can perm="Create plans"><MotionLink href="/plans/new" className={btnPrimary}><Plus size={18} />Create Plan</MotionLink></Can>
       </div>
 
-      <div className={`${card} mb-4 grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_200px_200px]`}>
+      <div className={`${card} mb-4 grid grid-cols-1 gap-3 p-4 md:grid-cols-[minmax(0,1fr)_200px_200px]`}>
         <label className="relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input className={`${input} pl-10`} placeholder="Search plans…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -91,7 +91,7 @@ export default function PlansList() {
       </div>
 
       <div className={`${card} overflow-x-auto`}>
-        <table className="w-full min-w-[820px] text-left">
+        <table className="rt w-full min-w-[640px] text-left">
           <thead>
             <tr className="border-b border-line text-[13px] text-muted">
               {["Plan Name", "Type", "Price & Duration", "Payment Schedule", "Status", "Actions"].map((h) => <th key={h} className="px-5 py-3.5 font-semibold">{h}</th>)}
@@ -113,7 +113,7 @@ export default function PlansList() {
                 <td className="px-5 py-4"><StatusBadge status={p.status} /></td>
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-2">
-                    <MotionLink href={`/plans/${p.id}`} className={btnGhost}>View Details</MotionLink>
+                    <MotionLink href={`/plans/${p.id}`} className={btnGhost}><LuEye size={17} />View Details</MotionLink>
                     <RowMenu plan={p} onDelete={() => setDeleting(p)} />
                   </div>
                 </td>
@@ -126,7 +126,7 @@ export default function PlansList() {
 
       <Modal open={!!deleting} title="Delete plan?" onClose={() => setDeleting(null)}
         footer={<>
-          <MotionButton className={btnGhost} onClick={() => setDeleting(null)}>Cancel</MotionButton>
+          <MotionButton className={btnGhost} onClick={() => setDeleting(null)}><LuX size={17} />Cancel</MotionButton>
           <button className="rounded-[10px] bg-bad px-4 py-2 font-semibold text-white" onClick={() => { if (deleting) { remove(deleting.id); toast("Plan deleted"); } setDeleting(null); }}>Delete</button>
         </>}>
         <p><b>{deleting?.name}</b> will be removed permanently. Archive it instead if members are still on this plan.</p>

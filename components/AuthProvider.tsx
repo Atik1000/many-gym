@@ -3,7 +3,7 @@
 import { MotionLink } from "@/components/ui/Motion";
 import { createContext, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { LuLock as Lock } from "react-icons/lu";
+import { LuLock as Lock, LuArrowRight } from "react-icons/lu";
 import { PEOPLE_KEY, ROLES_KEY, type Person, type Role } from "@/lib/people";
 import { useResource } from "@/lib/api";
 import { SESSION_KEY, signOut } from "@/lib/auth";
@@ -67,7 +67,7 @@ export function Guard({ perm, children }: { perm: string; children: React.ReactN
       <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-bad-bg text-bad"><Lock size={22} /></span>
       <h2 className="text-xl font-bold">You don&apos;t have access</h2>
       <p className="mb-5 mt-1 text-muted">Your role ({role?.name ?? "none"}) doesn&apos;t include “{perm}”. Ask an Administrator to update your role.</p>
-      {home && <MotionLink href={home.href} className={btnPrimary}>Go to {home.label}</MotionLink>}
+      {home && <MotionLink href={home.href} className={btnPrimary}>Go to {home.label}<LuArrowRight size={17} /></MotionLink>}
     </div>
   );
 }

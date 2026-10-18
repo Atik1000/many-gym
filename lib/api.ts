@@ -11,8 +11,9 @@ import { buildDataset, type Dataset } from "./seed";
  * and every page sharing a resource updates together. To connect a real API later, only this file needs to change.
  */
 const KEY = "manygym.db.v1";
-const VERSION = 2; // bump when the seed shape changes so stale browser data is rebuilt
+const VERSION = 3; // bump when the seed shape changes so stale browser data is rebuilt
 
+const RESOURCES = ["plans", "members", "leads", "people", "roles", "routines", "leadReasons", "posts"] as const;
 export type Resource = Exclude<keyof Dataset, "gym">;
 let db: Dataset | null = null;
 const listeners = new Set<() => void>();
@@ -28,7 +29,8 @@ function load(): Dataset {
   if (db) return db;
   try {
     const parsed = JSON.parse(localStorage.getItem(KEY) ?? "null") as { version: number; data: Dataset } | null;
-    if (parsed?.version === VERSION) return (db = parsed.data);
+    // only trust stored data that has every resource (guards against a partial or hand-edited save)
+    if (parsed?.version === VERSION && [...RESOURCES, "gym"].every((k) => parsed.data?.[k as keyof Dataset])) return (db = parsed.data);
   } catch { /* unreadable → reseed */ }
   db = buildDataset(); persist();
   return db;

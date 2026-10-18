@@ -39,3 +39,18 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: non
 div.absolute.shadow-xl { animation: pop .14s ease-out; transform-origin: top right; }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* Phones: tables marked .rt become a stack of cards. Cell captions come from the header text (see TableLabels). */
+@media (max-width: 767px) {
+  table.rt, table.rt tbody, table.rt tr, table.rt td { display: block; min-width: 0 !important; width: 100%; }
+  table.rt { min-width: 0 !important; }
+  table.rt thead { display: none; }
+  table.rt tbody { padding: 10px; }
+  table.rt tr { margin-bottom: 10px; border: 1px solid var(--color-line); border-radius: 14px; background: var(--color-surface); padding: 6px 0; box-shadow: 0 1px 2px rgba(20,20,43,.04); }
+  table.rt td { display: flex; align-items: center; justify-content: space-between; gap: 14px; border: 0 !important; padding: 7px 14px !important; text-align: right; }
+  table.rt td::before { content: attr(data-label); flex: none; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--color-muted); text-align: left; }
+  table.rt td[data-label=""]::before, table.rt td:first-child::before { content: none; }
+  table.rt td:first-child { justify-content: flex-start; text-align: left; padding-top: 12px !important; padding-bottom: 12px !important; border-bottom: 1px solid var(--color-line) !important; margin-bottom: 4px; }
+  table.rt td:last-child:not(:first-child) { justify-content: flex-end; }
+  table.rt td[colspan] { display: block; text-align: center; }
+}

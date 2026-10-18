@@ -3,7 +3,7 @@
 import { MotionButton } from "@/components/ui/Motion";
 import { useId, useState } from "react";
 import { motion } from "framer-motion";
-import { LuChevronDown as ChevronDown, LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight, LuX as X } from "react-icons/lu";
+import { LuChevronDown as ChevronDown, LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight, LuX as X, LuX } from "react-icons/lu";
 import Modal from "./Modal";
 import { btnGhost, input } from "@/lib/ui";
 import { avatarUrl } from "@/lib/media";
@@ -77,7 +77,7 @@ export function ConfirmModal({ open, title, body, confirmLabel = "Delete", dange
 }) {
   return (
     <Modal open={open} title={title} onClose={onClose} footer={<>
-      <MotionButton className={btnGhost} onClick={onClose}>Cancel</MotionButton>
+      <MotionButton className={btnGhost} onClick={onClose}><LuX size={17} />Cancel</MotionButton>
       <button className={`rounded-[10px] px-4 py-2 font-semibold text-white ${danger ? "bg-bad" : "bg-primary"}`} onClick={onConfirm}>{confirmLabel}</button>
     </>}>
       <div>{body}</div>

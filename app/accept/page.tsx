@@ -1,5 +1,6 @@
 "use client";
 
+import { LuUserPlus } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -47,7 +48,7 @@ export default function AcceptPage() {
             <input id="pw" type="password" required minLength={8} autoComplete="new-password" className={input} value={password} onChange={(e) => setPassword(e.target.value)} />
             <p className="mt-1 text-xs text-muted">At least 8 characters.</p>
             {error && <p role="alert" className={`${errorText} mt-3 text-[13px]`}>{error}</p>}
-            <MotionButton type="submit" className={`${btnPrimary} mt-5 w-full`}>Create account &amp; sign in</MotionButton>
+            <MotionButton type="submit" className={`${btnPrimary} mt-5 w-full`}><LuUserPlus size={17} />Create account &amp; sign in</MotionButton>
           </form>
         )}
       </div>

@@ -115,7 +115,7 @@ function Columns({ buckets, unit }: { buckets: Bucket[]; unit: "day" | "week" | 
           ))}
         </div>
       </div>
-      <div className="flex gap-[2px] pl-12 pt-2">
+      <div className="flex gap-[2px] overflow-hidden pl-12 pt-2">
         {buckets.map((b, i) => <span key={b.key} className="flex-1 overflow-visible whitespace-nowrap text-center text-xs text-muted">{i % every === 0 ? b.label : ""}</span>)}
       </div>
       {tip.node}
@@ -174,7 +174,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <Tile label="Active members" value={String(k.active)} note={`of ${k.totalMembers} total`} href="/members" />
         <Tile label="New members" value={String(k.newMembers)} note="joined in period" />
         <Tile label="Revenue collected" value={money(k.revenue)} note={delta === null ? (range === "all" ? "all payments" : "no earlier payments to compare") : <span className={delta >= 0 ? "text-ok" : "text-bad"}>{delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}% vs previous {d.len} days</span>} />
@@ -183,7 +183,7 @@ export default function ReportsPage() {
         <Tile label="Lead conversion" value={`${Math.round(k.leadConversion * 100)}%`} note={`${k.leadCount} leads, all time`} href="/leads" />
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <ChartCard className="xl:col-span-2" title="Revenue collected" subtitle={`Payments received, by ${d.unit}`}
           table={{ cols: [d.unit[0].toUpperCase() + d.unit.slice(1), "Collected"], rows: d.buckets.map((b) => [b.label, money(b.value)]) }}>
           <Columns buckets={d.buckets} unit={d.unit} />

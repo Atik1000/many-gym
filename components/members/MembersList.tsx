@@ -4,7 +4,7 @@ import { MotionLink } from "@/components/ui/Motion";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { LuEllipsis as MoreHorizontal, LuPlus as Plus, LuSearch as Search } from "react-icons/lu";
+import { LuEllipsis as MoreHorizontal, LuPlus as Plus, LuSearch as Search, LuEye } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { Avatar, ConfirmModal, Dot, Pagination, Pill, Select } from "@/components/ui/parts";
 import { balance, currentMembership, fullName, isExpiringSoon, memberStatus, paymentStatus, MEMBERS_KEY, type Member, type MemberStatus, type PaymentStatus } from "@/lib/members";
@@ -72,7 +72,7 @@ export default function MembersList() {
       </div>
 
       <div className={`${card} overflow-hidden`}>
-        <div className="grid gap-3 border-b border-line p-4 md:grid-cols-[minmax(0,1fr)_190px_180px_180px]">
+        <div className="grid grid-cols-1 gap-3 border-b border-line p-4 md:grid-cols-[minmax(0,1fr)_190px_180px_180px]">
           <label className="relative"><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <input className={`${input} pl-10`} placeholder="Search name, email or phone…" value={q} onChange={(e) => f(setQ)(e.target.value)} /></label>
           <Select aria-label="Plan" value={planF} onChange={(e) => f(setPlanF)(e.target.value)}><option value="all">All Plans</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>
@@ -80,7 +80,7 @@ export default function MembersList() {
           <Select aria-label="Trainer" value={trainerF} onChange={(e) => f(setTrainerF)(e.target.value)}><option value="all">All Trainers</option><option value="none">Unassigned</option>{trainers.map((t) => <option key={t.id} value={t.id}>{t.name || t.email}</option>)}</Select>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[960px] text-left">
+          <table className="rt w-full min-w-[640px] text-left">
             <thead className="bg-background text-[13px] text-muted"><tr>{["Member", "Membership Plan", "Status", "Payment", "Expiry / Sessions", "Trainer", "Actions"].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
             <tbody>
               {!ready && <tr><td colSpan={7} className="p-10 text-center text-muted">Loading members…</td></tr>}
@@ -101,7 +101,7 @@ export default function MembersList() {
                     <td className="px-5">{trainerName(m.trainerId)}</td>
                     <td className="px-5">
                       <div className="flex items-center gap-2">
-                        <MotionLink href={`/members/${m.id}`} className={`${btnGhost} !px-3.5 !py-2 !text-primary-600`}>View Details</MotionLink>
+                        <MotionLink href={`/members/${m.id}`} className={`${btnGhost} !px-3.5 !py-2 !text-primary-600`}><LuEye size={17} />View Details</MotionLink>
                         {(can("Edit members") || can("Manage member information") || can("Delete members")) && <div className="relative">
                           <button aria-label={`Actions for ${fullName(m)}`} onClick={() => setMenu(menu === m.id ? null : m.id)} className="rounded-lg p-2 text-muted hover:bg-background"><MoreHorizontal size={18} /></button>
                           {menu === m.id && (<>

@@ -1,5 +1,6 @@
 "use client";
 
+import { LuKeyRound, LuSave } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
 import { useState } from "react";
 import { writeResource } from "@/lib/api";
@@ -44,7 +45,7 @@ export default function SettingsPage() {
           <label htmlFor="n" className={label}>Display name</label>
           <input id="n" className={input} maxLength={80} value={shownName} onChange={(e) => setNameDraft(e.target.value)} />
           {nameErr && <p className={errorText}>{nameErr}</p>}
-          <MotionButton className={`${btnPrimary} mt-4`} disabled={!shownName.trim() || shownName.trim() === user.name}>Save name</MotionButton>
+          <MotionButton className={`${btnPrimary} mt-4`} disabled={!shownName.trim() || shownName.trim() === user.name}><LuSave size={17} />Save name</MotionButton>
         </form>
       </section>
       <section className={`${card} p-6`}>
@@ -58,7 +59,7 @@ export default function SettingsPage() {
           <label htmlFor="rp" className={`${label} mt-4`}>Repeat new password</label>
           <input id="rp" type="password" autoComplete="new-password" required className={input} value={again} onChange={(e) => setAgain(e.target.value)} />
           {pwErr && <p role="alert" className={errorText}>{pwErr}</p>}
-          <MotionButton className={`${btnPrimary} mt-4`} >Change password</MotionButton>
+          <MotionButton className={`${btnPrimary} mt-4`} ><LuKeyRound size={17} />Change password</MotionButton>
         </form>
       </section>
     </div>

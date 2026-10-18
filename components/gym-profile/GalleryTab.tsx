@@ -62,7 +62,7 @@ function Form({ initial, onSave }: { initial: GalleryItem[]; onSave: (g: Gallery
             <option>All</option>
             {GALLERY_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {shown.map((m) => (
               <div key={m.id} className="overflow-hidden rounded-xl border border-line">
                 <div className="relative aspect-[4/3] bg-black">

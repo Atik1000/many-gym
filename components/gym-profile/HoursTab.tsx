@@ -1,5 +1,6 @@
 "use client";
 
+import { LuCopy } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
 import { useState } from "react";
 import { useGym } from "@/lib/api";
@@ -31,7 +32,7 @@ function Form({ initial, onSave }: { initial: Hours; onSave: (h: Hours) => void 
     <div>
       <div className="mb-4 flex items-center justify-between">
         <p className="text-muted">Set the opening and closing time for each day. Switch a day off if the gym is closed.</p>
-        <MotionButton className={btnGhost} onClick={() => setHours((h) => Object.fromEntries(DAYS.map((d) => [d, { ...h.Monday }])))}>Copy Monday to all</MotionButton>
+        <MotionButton className={btnGhost} onClick={() => setHours((h) => Object.fromEntries(DAYS.map((d) => [d, { ...h.Monday }])))}><LuCopy size={17} />Copy Monday to all</MotionButton>
       </div>
       <div className="divide-y divide-line rounded-xl border border-line">
         {DAYS.map((d) => (

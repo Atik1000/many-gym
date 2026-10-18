@@ -3,7 +3,7 @@
 import { MotionButton, MotionLink } from "@/components/ui/Motion";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { LuArrowLeft as ArrowLeft, LuArrowRight as ArrowRight, LuCheck as Check, LuPlus as Plus, LuTrash2 as Trash2, LuWandSparkles as Wand2 } from "react-icons/lu";
+import { LuArrowLeft as ArrowLeft, LuArrowRight as ArrowRight, LuCheck as Check, LuPlus as Plus, LuTrash2 as Trash2, LuWandSparkles as Wand2, LuArrowLeft, LuSave } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { useGym } from "@/lib/api";
 import { btnGhost, btnPrimary, card, errorText, hint, input, label } from "@/lib/ui";
@@ -65,7 +65,7 @@ function StepType({ p, set, e }: { p: Plan; set: Setter; e: StepErrors }) {
     <div className="grid gap-5">
       <div>
         <span className={label}>Type</span>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {([["time", "Time based", "Access for a period — e.g. a monthly or weekly plan"], ["session", "Session based", "A pack of sessions — e.g. 10 yoga classes"]] as const).map(([v, t, d]) => (
             <button key={v} type="button" onClick={() => pick(v)} aria-pressed={p.type === v}
               className={`rounded-xl border p-4 text-left ${p.type === v ? "border-primary bg-primary-50" : "border-line hover:bg-background"}`}>
@@ -78,7 +78,7 @@ function StepType({ p, set, e }: { p: Plan; set: Setter; e: StepErrors }) {
         <label htmlFor="price" className={label}>Total price <span className="text-bad">*</span></label>
         <Money id="price" value={p.price} onChange={(v) => set("price", v)} error={e.price} />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="dur" className={label}>Duration <span className="text-bad">*</span></label>
           <input id="dur" type="number" min={1} className={input} value={p.duration} onChange={(ev) => set("duration", ev.target.value)} />
@@ -292,7 +292,7 @@ function Wizard({ initial, editing }: { initial: Plan; editing: boolean }) {
         })}
       </ol>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <section className={`${card} p-6`}>
           <h3 className="mb-5 text-xl font-bold">{STEPS[step - 1]}</h3>
           {step === 1 && <StepBasic p={p} set={set} e={errors} />}
@@ -304,16 +304,16 @@ function Wizard({ initial, editing }: { initial: Plan; editing: boolean }) {
         <Preview p={p} />
       </div>
 
-      <div className="mt-6 flex items-center justify-between gap-3">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         {step === 1
           ? <MotionLink href={editing ? `/plans/${initial.id}` : "/plans"} className={btnGhost}><ArrowLeft size={17} />Cancel</MotionLink>
           : <MotionButton className={btnGhost} onClick={() => { setStep(step - 1); setErrors({}); }}><ArrowLeft size={17} />Previous</MotionButton>}
-        <div className="flex gap-3">
-          {!editing && <MotionButton className={btnGhost} onClick={saveDraft}>Save Draft</MotionButton>}
+        <div className="flex flex-wrap gap-3">
+          {!editing && <MotionButton className={btnGhost} onClick={saveDraft}><LuSave size={17} />Save Draft</MotionButton>}
           {step < 5
             ? <MotionButton className={btnPrimary} onClick={next}>Next: {STEPS[step]}<ArrowRight size={17} /></MotionButton>
-            : <MotionButton className={btnPrimary} onClick={finish}>{editing ? "Save changes" : "Create plan"}</MotionButton>}
-          {editing && step < 5 && <MotionButton className={btnGhost} onClick={finish}>Save changes</MotionButton>}
+            : <MotionButton className={btnPrimary} onClick={finish}><LuSave size={17} />{editing ? "Save changes" : "Create plan"}</MotionButton>}
+          {editing && step < 5 && <MotionButton className={btnGhost} onClick={finish}><LuSave size={17} />Save changes</MotionButton>}
         </div>
       </div>
     </>
@@ -326,6 +326,6 @@ export default function PlanWizard({ editing = false }: { editing?: boolean }) {
   if (!editing) return <Wizard initial={blankPlan()} editing={false} />;
   if (!ready) return <div className={`${card} h-[300px] animate-pulse`} />;
   const plan = plans.find((x) => x.id === id);
-  if (!plan) return <div className={`${card} p-10 text-center`}><h2 className="text-xl font-bold">Plan not found</h2><MotionLink href="/plans" className={`${btnPrimary} mt-4`}>Back to Plans</MotionLink></div>;
+  if (!plan) return <div className={`${card} p-10 text-center`}><h2 className="text-xl font-bold">Plan not found</h2><MotionLink href="/plans" className={`${btnPrimary} mt-4`}><LuArrowLeft size={17} />Back to Plans</MotionLink></div>;
   return <Wizard initial={plan} editing />;
 }

@@ -5,7 +5,7 @@ import { MotionButton, MotionLink } from "@/components/ui/Motion";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { LuArrowLeft as ArrowLeft, LuEllipsis as MoreHorizontal, LuPencil as Pencil } from "react-icons/lu";
+import { LuArrowLeft as ArrowLeft, LuEllipsis as MoreHorizontal, LuPencil as Pencil, LuArrowLeft, LuBanknote, LuClipboardList, LuPencil, LuRefreshCw, LuSave, LuTicket, LuUserCheck, LuWandSparkles, LuX } from "react-icons/lu";
 import RoutineEditor from "@/components/routines/RoutineEditor";
 import RoutineViewer from "@/components/routines/RoutineViewer";
 import { useToast } from "@/components/ui/Toast";
@@ -57,9 +57,9 @@ export default function MemberDetail() {
 
   const m = members.find((x) => x.id === id);
   if (!ready) return <div className={`${card} h-[300px] animate-pulse`} />;
-  if (!m) return <div className={`${card} p-10 text-center`}><h2 className="text-xl font-bold">Member not found</h2><MotionLink href="/members" className={`${btnPrimary} mt-4`}>Back to Members</MotionLink></div>;
+  if (!m) return <div className={`${card} p-10 text-center`}><h2 className="text-xl font-bold">Member not found</h2><MotionLink href="/members" className={`${btnPrimary} mt-4`}><LuArrowLeft size={17} />Back to Members</MotionLink></div>;
 
-  if (trainerOnly && m.trainerId !== user?.id) return <div className={`${card} p-10 text-center`}><h2 className="text-xl font-bold">Not your member</h2><p className="mb-4 mt-1 text-muted">Trainers can only open members assigned to them.</p><MotionLink href="/members" className={btnPrimary}>Back to Members</MotionLink></div>;
+  if (trainerOnly && m.trainerId !== user?.id) return <div className={`${card} p-10 text-center`}><h2 className="text-xl font-bold">Not your member</h2><p className="mb-4 mt-1 text-muted">Trainers can only open members assigned to them.</p><MotionLink href="/members" className={btnPrimary}><LuArrowLeft size={17} />Back to Members</MotionLink></div>;
   const now = today();
   const ms = currentMembership(m);
   const st = memberStatus(m, now); const pay = paymentStatus(ms); const soon = isExpiringSoon(m, now);
@@ -112,9 +112,9 @@ export default function MemberDetail() {
             <Pill tone={STATUS_TONE[st]}><Dot tone={STATUS_TONE[st]} />{cap(st)}</Pill>
             {m.joiningStatus === "sent_invitation" && <Pill tone="amber">Invitation sent</Pill>}</div>
         </div>
-        <div className="ml-auto flex items-center gap-3">
-          {canEdit && <MotionLink href={`/members/${m.id}/edit`} className={btnGhost}>Edit Member</MotionLink>}
-          {canManage && <MotionButton className={btnPrimary} onClick={openPay}>Record Payment</MotionButton>}
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          {canEdit && <MotionLink href={`/members/${m.id}/edit`} className={btnGhost}><LuPencil size={17} />Edit Member</MotionLink>}
+          {canManage && <MotionButton className={btnPrimary} onClick={openPay}><LuBanknote size={17} />Record Payment</MotionButton>}
           {(canManage || can("Delete members")) && <div className="relative">
             <button aria-label="More actions" onClick={() => setMenu((v) => !v)} className="grid h-10 w-10 place-items-center rounded-[10px] border border-line bg-surface"><MoreHorizontal size={18} /></button>
             {menu && (<>
@@ -132,7 +132,7 @@ export default function MemberDetail() {
         </div>
       </div>
 
-      <div className={`${card} mb-5 grid gap-5 p-6 md:grid-cols-4`}>
+      <div className={`${card} mb-5 grid grid-cols-1 gap-5 p-6 md:grid-cols-4`}>
         <div><div className="text-muted">Plan</div><b className="text-xl">{ms.planName}</b></div>
         <div><div className="text-muted">Validity</div><b className="text-xl">{fmtDate(ms.start)} – {fmtDate(ms.end)}</b>{soon && <div className="text-[13px] font-semibold text-warn">Expiring soon</div>}</div>
         <div><div className="mb-1 text-muted">Payment</div><Pill tone={PAY_TONE[pay]}><Dot tone={PAY_TONE[pay]} />{PAY_LABEL[pay]}</Pill></div>
@@ -144,10 +144,10 @@ export default function MemberDetail() {
       </div>
 
       {tab === "Overview" && (
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="grid gap-5">
             <Card title="Personal Information" action={canEdit ? <Link href={`/members/${m.id}/edit`} className="inline-flex items-center gap-1.5 text-muted"><Pencil size={15} />Edit</Link> : undefined}>
-              <dl className="grid md:grid-cols-2 md:gap-x-8">
+              <dl className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8">
                 <Row k="First Name" v={m.firstName} /><Row k="Last Name" v={m.lastName} /><Row k="Email" v={m.email} /><Row k="Phone" v={m.phone} />
                 <Row k="Date of Birth" v={m.dob && fmtDate(m.dob)} /><Row k="Sex" v={m.sex} /><Row k="Nationality" v={m.nationality} /><Row k="Address" v={[m.address, m.city, m.country].filter(Boolean).join(", ")} />
               </dl>
@@ -171,7 +171,7 @@ export default function MemberDetail() {
                 <div className="flex justify-between"><dt className="text-muted">Paid</dt><dd className="font-semibold text-ok">{money(paidAmount(ms))}</dd></div>
                 <div className="flex justify-between"><dt className="text-muted">Balance</dt><dd className="font-semibold">{money(balance(ms))}</dd></div>
               </dl>
-              {canManage && <MotionButton className={`${btnGhost} mt-4 w-full !text-primary`} onClick={openRenew}>Renew Membership</MotionButton>}
+              {canManage && <MotionButton className={`${btnGhost} mt-4 w-full !text-primary`} onClick={openRenew}><LuRefreshCw size={17} />Renew Membership</MotionButton>}
             </section>
             <section className={`${card} p-6`}>
               <h3 className="mb-3 text-xl font-bold">Training</h3>
@@ -185,7 +185,7 @@ export default function MemberDetail() {
 
       {tab === "Memberships" && (
         <div className="grid gap-4">
-          {canManage && <div className="flex justify-end"><MotionButton className={btnPrimary} onClick={openRenew}>Renew / add membership</MotionButton></div>}
+          {canManage && <div className="flex justify-end"><MotionButton className={btnPrimary} onClick={openRenew}><LuRefreshCw size={17} />Renew / add membership</MotionButton></div>}
           {[...m.memberships].sort((a, b) => b.start.localeCompare(a.start)).map((x) => {
             const s = x.id === ms.id ? st : msStatus(x, now);
             return (
@@ -198,7 +198,7 @@ export default function MemberDetail() {
                     <div className="h-2 flex-1 overflow-hidden rounded-full bg-background"><div className="h-full bg-primary" style={{ width: `${(x.sessionsUsed / x.sessionsTotal) * 100}%` }} /></div>
                     <span className="font-medium">{x.sessionsTotal - x.sessionsUsed} of {x.sessionsTotal} sessions left</span>
                     {x.id === ms.id && <>
-                      <MotionButton className={`${btnGhost} !py-1.5`} disabled={x.sessionsUsed >= x.sessionsTotal || s !== "active"} onClick={() => { patchMs(x.id, (y) => ({ ...y, sessionsUsed: y.sessionsUsed + 1 })); toast("Session used"); }}>Use a session</MotionButton>
+                      <MotionButton className={`${btnGhost} !py-1.5`} disabled={x.sessionsUsed >= x.sessionsTotal || s !== "active"} onClick={() => { patchMs(x.id, (y) => ({ ...y, sessionsUsed: y.sessionsUsed + 1 })); toast("Session used"); }}><LuTicket size={17} />Use a session</MotionButton>
                       <button className="font-semibold text-muted disabled:opacity-40" disabled={x.sessionsUsed === 0} onClick={() => patchMs(x.id, (y) => ({ ...y, sessionsUsed: y.sessionsUsed - 1 }))}>Undo</button></>}
                   </div>)}
               </section>
@@ -217,7 +217,7 @@ export default function MemberDetail() {
                   <tbody>{[...x.payments].sort((a, b) => b.date.localeCompare(a.date)).map((p) => <tr key={p.id} className="border-t border-line"><td className="py-2">{fmtDate(p.date)}</td><td><span className="inline-flex items-center gap-2">{(() => { const Icon = paymentIcon(p.method); return <Icon size={16} className="text-muted" />; })()}{p.method}</span></td><td className="text-right font-medium">{money(p.amount)}</td></tr>)}</tbody></table>)}
             </section>
           ))}
-          <div><MotionButton className={btnPrimary} onClick={openPay} disabled={m.memberships.every((x) => balance(x) === 0)}>Record Payment</MotionButton>{m.memberships.every((x) => balance(x) === 0) && <span className="ml-3 text-muted">Everything is paid.</span>}</div>
+          <div><MotionButton className={btnPrimary} onClick={openPay} disabled={m.memberships.every((x) => balance(x) === 0)}><LuBanknote size={17} />Record Payment</MotionButton>{m.memberships.every((x) => balance(x) === 0) && <span className="ml-3 text-muted">Everything is paid.</span>}</div>
         </div>
       )}
 
@@ -225,24 +225,24 @@ export default function MemberDetail() {
         <section className={`${card} p-6`}>
           {!m.routine && !editingRoutine ? (
             <div className="py-8 text-center"><p className="text-lg font-semibold">No routine yet</p><p className="mb-4 text-muted">Assign a template or build a custom routine for {m.firstName}.</p>
-              {canRoutine ? <div className="flex justify-center gap-3"><MotionButton className={btnGhost} onClick={() => { setTplId(templates[0]?.id ?? ""); setModal("assign"); }}>Assign Template</MotionButton><MotionButton className={btnPrimary} onClick={() => assign({ ...blankRoutine("weekly"), id: uid(), name: `${m.firstName}'s routine` })}>Create Custom</MotionButton></div> : <p className="text-muted">Your role can&apos;t manage routines.</p>}</div>
+              {canRoutine ? <div className="flex justify-center gap-3"><MotionButton className={btnGhost} onClick={() => { setTplId(templates[0]?.id ?? ""); setModal("assign"); }}><LuClipboardList size={17} />Assign Template</MotionButton><MotionButton className={btnPrimary} onClick={() => assign({ ...blankRoutine("weekly"), id: uid(), name: `${m.firstName}'s routine` })}><LuWandSparkles size={17} />Create Custom</MotionButton></div> : <p className="text-muted">Your role can&apos;t manage routines.</p>}</div>
           ) : editingRoutine ? (
             <>
-              <div className="mb-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_200px]">
+              <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_200px]">
                 <div><label htmlFor="rn" className={label}>Routine name</label><input id="rn" className={input} value={editingRoutine.name} onChange={(e) => setEditingRoutine({ ...editingRoutine, name: e.target.value })} /></div>
                 <div><label htmlFor="rf" className={label}>Format</label><input id="rf" className={input} disabled value={editingRoutine.format === "weekly" ? "Weekly" : "Session-Based"} /></div>
               </div>
               <RoutineEditor routine={editingRoutine} onChange={setEditingRoutine} />
               {routineErr.length > 0 && <ul className="mt-3">{routineErr.map((e) => <li key={e} className={errorText}>• {e}</li>)}</ul>}
-              <div className="mt-5 flex justify-end gap-3 border-t border-line pt-4"><MotionButton className={btnGhost} onClick={() => { setEditingRoutine(null); setRoutineErr([]); }}>Cancel</MotionButton><MotionButton className={btnPrimary} onClick={saveRoutine}>Save Routine</MotionButton></div>
+              <div className="mt-5 flex justify-end gap-3 border-t border-line pt-4"><MotionButton className={btnGhost} onClick={() => { setEditingRoutine(null); setRoutineErr([]); }}><LuX size={17} />Cancel</MotionButton><MotionButton className={btnPrimary} onClick={saveRoutine}><LuSave size={17} />Save Routine</MotionButton></div>
             </>
           ) : m.routine && (
             <>
               <div className="mb-5 flex flex-wrap items-start gap-3">
                 <div><div className="flex items-center gap-3"><h3 className="text-2xl font-bold">{m.routine.name}</h3><Pill tone="purple">{m.routine.format === "weekly" ? "Weekly" : "Session-Based"}</Pill><Pill tone="blue">{m.routine.level}</Pill></div>
                   <p className="text-muted">Assigned trainer: {trainer?.name || "—"}</p></div>
-                {canRoutine && <div className="ml-auto flex flex-wrap gap-3"><MotionButton className={btnGhost} onClick={() => { setTplId(templates[0]?.id ?? ""); setModal("assign"); }}>Assign Template</MotionButton><MotionButton className={btnGhost} onClick={() => setModal("customConfirm")}>Create Custom</MotionButton>
-                  <MotionButton className={btnPrimary} onClick={() => { setEditingRoutine(structuredClone(m.routine)); setRoutineErr([]); }}>Edit Routine</MotionButton></div>}
+                {canRoutine && <div className="ml-auto flex flex-wrap gap-3"><MotionButton className={btnGhost} onClick={() => { setTplId(templates[0]?.id ?? ""); setModal("assign"); }}><LuClipboardList size={17} />Assign Template</MotionButton><MotionButton className={btnGhost} onClick={() => setModal("customConfirm")}><LuWandSparkles size={17} />Create Custom</MotionButton>
+                  <MotionButton className={btnPrimary} onClick={() => { setEditingRoutine(structuredClone(m.routine)); setRoutineErr([]); }}><LuPencil size={17} />Edit Routine</MotionButton></div>}
               </div>
               <p className="mb-3 text-right text-muted">Personal copy · Changes apply only to {m.firstName}&apos;s routine.</p>
               <RoutineViewer routine={m.routine} />
@@ -264,10 +264,10 @@ export default function MemberDetail() {
 
       <MotionLink href="/members" className={`${btnGhost} mt-6`}><ArrowLeft size={17} />Back to Members</MotionLink>
 
-      <Modal open={modal === "pay"} title="Record Payment" onClose={() => setModal(null)} footer={<><MotionButton className={btnGhost} onClick={() => setModal(null)}>Cancel</MotionButton><MotionButton className={btnPrimary} onClick={savePay}>Save Payment</MotionButton></>}>
+      <Modal open={modal === "pay"} title="Record Payment" onClose={() => setModal(null)} footer={<><MotionButton className={btnGhost} onClick={() => setModal(null)}><LuX size={17} />Cancel</MotionButton><MotionButton className={btnPrimary} onClick={savePay}><LuBanknote size={17} />Save Payment</MotionButton></>}>
         <div><label htmlFor="pm" className={label}>Membership</label><Select id="pm" value={msId} onChange={(e) => { setMsId(e.target.value); const t = m.memberships.find((x) => x.id === e.target.value)!; setAmt(balance(t) > 0 ? balance(t).toFixed(2) : ""); }}>
           {m.memberships.map((x) => <option key={x.id} value={x.id}>{x.planName} · {fmtDate(x.start)} — {money(balance(x))} due</option>)}</Select></div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div><label htmlFor="pa" className={label}>Amount</label><input id="pa" inputMode="decimal" className={input} value={amt} onChange={(e) => setAmt(e.target.value)} /></div>
           <div><label htmlFor="pmt" className={label}>Method</label><Select id="pmt" value={method} onChange={(e) => setMethod(e.target.value)}>{PAYMENT_METHODS.map((x) => <option key={x}>{x}</option>)}</Select></div>
           <div><label htmlFor="pd" className={label}>Date</label><input id="pd" type="date" className={input} value={pdate} onChange={(e) => setPdate(e.target.value)} /></div>
@@ -275,9 +275,9 @@ export default function MemberDetail() {
         {formErr && <p className={errorText}>{formErr}</p>}
       </Modal>
 
-      <Modal open={modal === "renew"} title="Renew Membership" onClose={() => setModal(null)} footer={<><MotionButton className={btnGhost} onClick={() => setModal(null)}>Cancel</MotionButton><MotionButton className={btnPrimary} onClick={saveRenew}>Renew</MotionButton></>}>
+      <Modal open={modal === "renew"} title="Renew Membership" onClose={() => setModal(null)} footer={<><MotionButton className={btnGhost} onClick={() => setModal(null)}><LuX size={17} />Cancel</MotionButton><MotionButton className={btnPrimary} onClick={saveRenew}><LuRefreshCw size={17} />Renew</MotionButton></>}>
         <div><label htmlFor="rpl" className={label}>Plan</label><Select id="rpl" value={renewPlan} onChange={(e) => { setRenewPlan(e.target.value); setRenewEnd(""); }}>{plans.filter((p) => p.status === "active").map((p) => <option key={p.id} value={p.id}>{p.name} — {money(num(p.price))}</option>)}</Select></div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div><label htmlFor="rs" className={label}>Start date</label><input id="rs" type="date" className={input} value={renewStart} onChange={(e) => setRenewStart(e.target.value)} /></div>
           <div><label htmlFor="re" className={label}>{rp?.type === "session" ? "Expiry date" : "End date"}</label>
             {rp?.type === "session" ? <input id="re" type="date" min={renewStart} className={input} value={renewEnd} onChange={(e) => setRenewEnd(e.target.value)} /> : <input id="re" className={input} disabled value={rEnd} />}</div>
@@ -286,8 +286,8 @@ export default function MemberDetail() {
         {formErr && <p className={errorText}>{formErr}</p>}
       </Modal>
 
-      <Modal open={modal === "assign"} title="Assign Template" onClose={() => setModal(null)} footer={<><MotionButton className={btnGhost} onClick={() => setModal(null)}>Cancel</MotionButton>
-        <MotionButton className={btnPrimary} disabled={!tplId} onClick={() => { const t = templates.find((x) => x.id === tplId); if (t) assign(copyRoutine(t)); }}>Assign</MotionButton></>}>
+      <Modal open={modal === "assign"} title="Assign Template" onClose={() => setModal(null)} footer={<><MotionButton className={btnGhost} onClick={() => setModal(null)}><LuX size={17} />Cancel</MotionButton>
+        <MotionButton className={btnPrimary} disabled={!tplId} onClick={() => { const t = templates.find((x) => x.id === tplId); if (t) assign(copyRoutine(t)); }}><LuUserCheck size={17} />Assign</MotionButton></>}>
         {templates.length === 0 ? <p className="text-muted">No templates yet — create one in Routine Templates.</p> : <><Select aria-label="Template" value={tplId} onChange={(e) => setTplId(e.target.value)}>{templates.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.format === "weekly" ? "Weekly" : "Session-Based"})</option>)}</Select>
           {m.routine && <p className="text-bad">This replaces the member&apos;s current routine.</p>}<p className={hint}>The member gets their own copy; later template edits won&apos;t change it.</p></>}
       </Modal>

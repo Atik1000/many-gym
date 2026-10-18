@@ -1,5 +1,6 @@
 "use client";
 
+import { LuLogIn } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -41,7 +42,7 @@ export default function LoginPage() {
           <label htmlFor="password" className={`${label} mt-4`}>Password</label>
           <input id="password" type="password" autoComplete="current-password" required className={input} value={password} onChange={(e) => setPassword(e.target.value)} />
           {error && <p role="alert" className={`${errorText} mt-3 text-[13px]`}>{error}</p>}
-          <MotionButton type="submit" className={`${btnPrimary} mt-5 w-full`}>Sign in</MotionButton>
+          <MotionButton type="submit" className={`${btnPrimary} mt-5 w-full`}><LuLogIn size={17} />Sign in</MotionButton>
         </form>
         <div className={`${card} mt-4 p-5`}>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Demo accounts · password <code className="rounded bg-background px-1 normal-case">manygym123</code></p>

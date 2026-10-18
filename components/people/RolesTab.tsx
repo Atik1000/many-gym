@@ -2,7 +2,7 @@
 
 import { MotionButton } from "@/components/ui/Motion";
 import { useState } from "react";
-import { LuChartColumn as ChartColumn, LuCreditCard as CreditCard, LuFileText as FileText, LuHouse as Home, LuPlus as Plus, LuShieldCheck as ShieldCheck, LuStore as Store, LuUserPlus as UserPlus, LuUsers as Users, LuChevronRight as ChevronRight, LuTrash2 as Trash2 } from "react-icons/lu";
+import { LuChartColumn as ChartColumn, LuCreditCard as CreditCard, LuFileText as FileText, LuHouse as Home, LuPlus as Plus, LuShieldCheck as ShieldCheck, LuStore as Store, LuUserPlus as UserPlus, LuUsers as Users, LuChevronRight as ChevronRight, LuTrash2 as Trash2, LuSave, LuX } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmModal, MultiSelect, Pill } from "@/components/ui/parts";
 import { PERMISSION_GROUPS, permCount, type Person, type Role } from "@/lib/people";
@@ -42,7 +42,7 @@ export default function RolesTab({ roles, setRoles, people }: { roles: Role[]; s
   return (
     <div className="p-5">
       <div className="mb-4 flex justify-end">{can("Create roles") && <MotionButton className={btnPrimary} onClick={create}><Plus size={18} />Create Role</MotionButton>}</div>
-      <div className="grid items-start gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
         <aside className="rounded-xl border border-line p-4">
           <h3 className="mb-3 text-xl font-bold">Roles</h3>
           <p className="mb-1 text-muted">Default Roles</p>
@@ -73,7 +73,7 @@ export default function RolesTab({ roles, setRoles, people }: { roles: Role[]; s
               {PERMISSION_GROUPS.map(({ group, actions }) => {
                 const Icon = ICON[group] ?? Home;
                 return (
-                  <div key={group} className="grid items-start gap-2 md:grid-cols-[200px_minmax(0,1fr)]">
+                  <div key={group} className="grid grid-cols-1 items-start gap-2 md:grid-cols-[200px_minmax(0,1fr)]">
                     <span className="flex items-center gap-2.5 pt-2.5 font-semibold"><Icon size={20} className="text-primary" />{group}</span>
                     {readOnly
                       ? <div className="flex flex-wrap gap-1.5 pt-1.5">{(draft.permissions[group] ?? []).map((a) => <Pill key={a} tone="purple">{a}</Pill>)}{!(draft.permissions[group] ?? []).length && <span className="pt-1 text-muted">No access</span>}</div>
@@ -86,7 +86,7 @@ export default function RolesTab({ roles, setRoles, people }: { roles: Role[]; s
             {!readOnly && (
               <div className="mt-6 flex items-center justify-between border-t border-line pt-4">
                 {!isNew && can("Delete roles") ? <button className="inline-flex items-center gap-1.5 font-semibold text-bad" onClick={() => setDeleting(true)}><Trash2 size={16} />Delete role</button> : <span />}
-                <div className="flex gap-3"><MotionButton className={btnGhost} onClick={() => { const r = roles.find((x) => x.id === sel); if (r) open(r); else { setSel(null); setDraft(null); } }}>Cancel</MotionButton><MotionButton className={btnPrimary} onClick={save}>Save Role</MotionButton></div>
+                <div className="flex gap-3"><MotionButton className={btnGhost} onClick={() => { const r = roles.find((x) => x.id === sel); if (r) open(r); else { setSel(null); setDraft(null); } }}><LuX size={17} />Cancel</MotionButton><MotionButton className={btnPrimary} onClick={save}><LuSave size={17} />Save Role</MotionButton></div>
               </div>
             )}
           </section>

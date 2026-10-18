@@ -7,8 +7,10 @@ import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/ui/parts";
 import { useToast } from "@/components/ui/Toast";
 import { resetDemoData } from "@/lib/api";
-import { LuBell as Bell, LuChevronDown as ChevronDown, LuSearch as Search } from "react-icons/lu";
+import { LuBell as Bell, LuChevronDown as ChevronDown, LuMenu, LuSearch as Search } from "react-icons/lu";
 import { NAV } from "@/lib/nav";
+import { MotionButton } from "@/components/ui/Motion";
+import { NAV_EVENT } from "@/components/Sidebar";
 
 export default function Topbar() {
   const pathname = usePathname();
@@ -17,8 +19,9 @@ export default function Topbar() {
   const toast = useToast();
   const title = NAV.find((n) => pathname === n.href || pathname.startsWith(n.href + "/"))?.label ?? "";
   return (
-    <header className="sticky top-0 z-10 flex h-[60px] items-center gap-4 border-b border-line bg-surface px-7">
-      <h1 className="text-lg font-bold">{title}</h1>
+    <header className="sticky top-0 z-10 flex h-[60px] items-center gap-3 border-b border-line bg-surface px-4 sm:gap-4 sm:px-7">
+      <MotionButton aria-label="Open menu" onClick={() => window.dispatchEvent(new Event(NAV_EVENT))} className="-ml-1 rounded-lg p-2 text-foreground hover:bg-background lg:hidden"><LuMenu size={22} /></MotionButton>
+      <h1 className="min-w-0 flex-1 truncate text-lg font-bold md:flex-none">{title}</h1>
       <label className="ml-auto hidden w-[340px] items-center gap-2 rounded-[10px] border border-line bg-background px-3 py-2 text-muted md:flex">
         <Search size={18} />
         <input className="w-full bg-transparent text-foreground outline-none" placeholder="Search members, leads, or anything…" />

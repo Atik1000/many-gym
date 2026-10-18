@@ -2,7 +2,7 @@
 
 import { MotionLink, Reveal } from "@/components/ui/Motion";
 import Link from "next/link";
-import { LuMail as Mail } from "react-icons/lu";
+import { LuMail as Mail, LuUserPlus, LuUsers } from "react-icons/lu";
 import { Avatar, Pagination, Pill, usePaged } from "@/components/ui/parts";
 import { MEMBERS_KEY, fullName, memberStatus, type Member } from "@/lib/members";
 import { PEOPLE_KEY, type Person } from "@/lib/people";
@@ -17,14 +17,14 @@ export default function TrainersPage() {
 
   return (
     <>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div><h2 className="text-[28px] font-bold tracking-tight">Trainers</h2><p className="text-muted">Trainers only see the members assigned to them.</p></div>
-        <MotionLink href="/people" className={btnGhost}>Invite or manage people</MotionLink>
+        <MotionLink href="/people" className={btnGhost}><LuUserPlus size={17} />Invite or manage people</MotionLink>
       </div>
       {!ready ? <div className={`${card} h-[240px] animate-pulse`} /> : trainers.length === 0 ? (
         <div className={`${card} p-10 text-center text-muted`}>No trainers yet. Invite someone with the Trainer role from People &amp; Roles.</div>
       ) : (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
           {pg.view.map((t, i) => {
             const mine = members.filter((m) => m.trainerId === t.id);
             const active = mine.filter((m) => memberStatus(m) === "active").length;
@@ -45,7 +45,7 @@ export default function TrainersPage() {
                     {mine.length > 4 && <li className="text-muted">+{mine.length - 4} more</li>}
                   </ul>
                 ) : <p className="mb-3 text-muted">No members assigned yet.</p>}
-                <MotionLink href={`/members?trainer=${t.id}`} className={`${btnGhost} w-full`}>View members</MotionLink>
+                <MotionLink href={`/members?trainer=${t.id}`} className={`${btnGhost} w-full`}><LuUsers size={17} />View members</MotionLink>
               </section></Reveal>
             );
           })}

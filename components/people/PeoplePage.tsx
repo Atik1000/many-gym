@@ -3,7 +3,7 @@
 import { MotionButton } from "@/components/ui/Motion";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { LuEllipsis as MoreHorizontal, LuPlus as Plus, LuSearch as Search, LuX as X } from "react-icons/lu";
+import { LuEllipsis as MoreHorizontal, LuPlus as Plus, LuSearch as Search, LuX as X, LuCopy, LuLink, LuSend, LuShieldCheck, LuX } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { Avatar, ConfirmModal, Pagination, Pill, Select, usePaged } from "@/components/ui/parts";
 import { MEMBERS_KEY, type Member } from "@/lib/members";
@@ -54,7 +54,7 @@ export default function PeoplePage() {
           <p className="mb-1.5 font-semibold">Invitation link for {link.email}</p>
           <div className="flex gap-2">
             <input readOnly aria-label="Invitation link" className={`${input} font-mono text-[13px]`} value={link.url} onFocus={(e) => e.currentTarget.select()} />
-            <MotionButton className={btnGhost} onClick={() => { void navigator.clipboard?.writeText(link.url).then(() => toast("Link copied"), () => toast("Press ⌘C to copy")); }}>Copy</MotionButton>
+            <MotionButton className={btnGhost} onClick={() => { void navigator.clipboard?.writeText(link.url).then(() => toast("Link copied"), () => toast("Press ⌘C to copy")); }}><LuCopy size={17} />Copy</MotionButton>
             <MotionButton className={btnGhost} aria-label="Dismiss" onClick={() => setLink(null)}><X size={16} /></MotionButton>
           </div>
           <p className={hint}>Single use. Send it to them yourself — there&apos;s no email service connected yet.</p>
@@ -72,16 +72,16 @@ export default function PeoplePage() {
         </div>
 
         {tab === "roles" ? (!ready ? <p className="p-10 text-center text-muted">Loading…</p> : <RolesTab roles={roles} setRoles={setRoles} people={people} />) : (
-          <div className="grid items-start gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="grid grid-cols-1 items-start gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_340px]">
             <div>
-              <div className="mb-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_190px_170px]">
+              <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_190px_170px]">
                 <label className="relative"><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                   <input className={`${input} pl-10`} placeholder="Search name or email…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
                 <Select aria-label="Role" value={roleF} onChange={(e) => setRoleF(e.target.value)}><option value="all">All Roles</option>{roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</Select>
                 <Select aria-label="Status" value={statusF} onChange={(e) => setStatusF(e.target.value)}><option value="all">All Statuses</option><option value="active">Active</option><option value="invited">Invited</option></Select>
               </div>
               <div className="overflow-x-auto rounded-xl border border-line">
-                <table className="w-full min-w-[640px] text-left">
+                <table className="rt w-full min-w-[640px] text-left">
                   <thead className="bg-background text-muted"><tr>{["Person", "Role", "Status", "Assigned Members", "Actions"].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead>
                   <tbody>
                     {!ready && <tr><td colSpan={5} className="p-8 text-center text-muted">Loading…</td></tr>}
@@ -93,7 +93,7 @@ export default function PeoplePage() {
                         <td className="px-4"><Pill tone={p.status === "active" ? "green" : "amber"}>{p.status === "active" ? "Active" : "Invited"}</Pill></td>
                         <td className="px-4">{p.roleId === "trainer" && assigned.get(p.id) ? <Link href={`/members?trainer=${p.id}`} className="font-semibold text-primary">{assigned.get(p.id)} members</Link> : "—"}</td>
                         <td className="px-4">
-                          {p.status === "invited" && can("Invite/add people") && <MotionButton className={`${btnGhost} mr-2 !px-3 !py-1.5 !text-primary`} onClick={() => makeLink(p)}>Invite link</MotionButton>}
+                          {p.status === "invited" && can("Invite/add people") && <MotionButton className={`${btnGhost} mr-2 !px-3 !py-1.5 !text-primary`} onClick={() => makeLink(p)}><LuLink size={17} />Invite link</MotionButton>}
                           {(can("Edit people") || can("Remove people")) && <span className="relative inline-block">
                             <button aria-label={`Actions for ${displayName(p)}`} onClick={() => setMenu(menu === p.id ? null : p.id)} className="rounded-lg p-1.5 text-muted hover:bg-background"><MoreHorizontal size={18} /></button>
                             {menu === p.id && (<>
@@ -126,12 +126,12 @@ export default function PeoplePage() {
                     {custom.length > 0 && <optgroup label="Custom Roles">{custom.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</optgroup>}
                   </Select>
                   <p className={hint}>You&apos;ll get a one-time link to send them. Status remains Invited until they set a password.</p>
-                  <div className="mt-4 grid grid-cols-2 gap-3"><MotionButton className={btnGhost} onClick={() => setInviting(false)}>Cancel</MotionButton><MotionButton className={btnPrimary} onClick={invite}>Send Invitation</MotionButton></div>
+                  <div className="mt-4 grid grid-cols-2 gap-3"><MotionButton className={btnGhost} onClick={() => setInviting(false)}><LuX size={17} />Cancel</MotionButton><MotionButton className={btnPrimary} onClick={invite}><LuSend size={17} />Send Invitation</MotionButton></div>
                 </section>
               )}
               <section className="flex items-center justify-between rounded-xl border border-line p-5">
                 <div><h3 className="text-lg font-bold">Manage Roles</h3><p className="text-muted">{DEFAULT_ROLES.length} default roles · {custom.length} custom role{custom.length === 1 ? "" : "s"}</p></div>
-                <MotionButton className={btnGhost} onClick={() => setTab("roles")}>View Roles</MotionButton>
+                <MotionButton className={btnGhost} onClick={() => setTab("roles")}><LuShieldCheck size={17} />View Roles</MotionButton>
               </section>
             </div>
           </div>
