@@ -3,7 +3,8 @@
 import { MotionButton } from "@/components/ui/Motion";
 import { Pagination, usePaged } from "@/components/ui/parts";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { animate } from "framer-motion";
 import { LuDownload as Download } from "react-icons/lu";
 import { Can } from "@/components/AuthProvider";
 import { useToast } from "@/components/ui/Toast";
@@ -39,8 +40,25 @@ function useTip() {
 
 const SERIES = "bg-primary"; // single series → single hue; text always uses text tokens, never the series colour
 
+/** Counts a number up to its value (keeping any $ / % / thousands separators) so changes in the range are noticed. */
+function CountUp({ text }: { text: string }) {
+  const [shown, setShown] = useState<string | null>(null); // null = show the real value
+  useEffect(() => {
+    const m = /-?[\d,]*\.?\d+/.exec(text);
+    if (!m || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const target = parseFloat(m[0].replace(/,/g, "")), decimals = m[0].includes(".") ? m[0].split(".")[1].length : 0;
+    const controls = animate(0, target, {
+      duration: 0.8, ease: "easeOut",
+      onUpdate: (v) => setShown(text.replace(m[0], v.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }))),
+      onComplete: () => setShown(null),
+    });
+    return () => controls.stop();
+  }, [text]);
+  return <>{shown ?? text}</>;
+}
+
 function Tile({ label, value, note, href }: { label: string; value: string; note?: React.ReactNode; href?: string }) {
-  const inner = (<><div className="text-muted">{label}</div><div className="mt-1 text-[28px] font-bold leading-tight tracking-tight">{value}</div><div className="mt-1 min-h-[18px] text-[13px] text-muted">{note}</div></>);
+  const inner = (<><div className="text-muted">{label}</div><div className="mt-1 text-[28px] font-bold leading-tight tracking-tight tabular-nums"><CountUp text={value} /></div><div className="mt-1 min-h-[18px] text-[13px] text-muted">{note}</div></>);
   return href ? <Link href={href} className={`${card} block p-5 hover:border-primary`}>{inner}</Link> : <div className={`${card} p-5`}>{inner}</div>;
 }
 
@@ -159,7 +177,7 @@ export default function ReportsPage() {
   return (
     <>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div><h2 className="text-[28px] font-bold tracking-tight">Reports</h2><p className="text-muted">{fmtDate(d.start)} – {fmtDate(d.end)}</p></div>
+        <div><h2 className="text-[28px] font-bold tracking-tight">Insights</h2><p className="text-muted">{fmtDate(d.start)} – {fmtDate(d.end)}</p></div>
         <div className="flex flex-wrap items-center gap-3">
           <div role="group" aria-label="Date range" className="flex flex-wrap gap-1 rounded-xl border border-line bg-surface p-1">
             {RANGES.map((r) => <button key={r.id} aria-pressed={range === r.id} onClick={() => setRange(r.id)} className={`rounded-lg px-3.5 py-1.5 font-semibold ${range === r.id ? "bg-primary-50 text-primary" : "text-muted hover:text-foreground"}`}>{r.label}</button>)}

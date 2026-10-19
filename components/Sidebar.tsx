@@ -2,17 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MotionButton } from "@/components/ui/Motion";
-import { LuChevronDown as ChevronDown, LuX } from "react-icons/lu";
-import { NAV, SETTINGS, type NavItem } from "@/lib/nav";
+import { LuPanelLeftClose, LuPanelLeftOpen, LuX } from "react-icons/lu";
+import { NAV, EXTRA_TITLES, type NavItem } from "@/lib/nav";
 import { useGym } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 
-function Item({ item, active, group }: { item: NavItem; active: boolean; group: string }) {
+// collapsed state is remembered per browser; a tiny external store keeps SSR markup stable
+const COLLAPSE_KEY = "manygym.sidebar.collapsed";
+const COLLAPSE_EVENT = "manygym:collapse";
+const subscribeCollapsed = (cb: () => void) => { window.addEventListener(COLLAPSE_EVENT, cb); return () => window.removeEventListener(COLLAPSE_EVENT, cb); };
+const readCollapsed = () => { try { return localStorage.getItem(COLLAPSE_KEY) === "1"; } catch { return false; } };
+const setCollapsed = (v: boolean) => { try { localStorage.setItem(COLLAPSE_KEY, v ? "1" : "0"); } catch {} window.dispatchEvent(new Event(COLLAPSE_EVENT)); };
+
+function Item({ item, active, group, collapsed }: { item: NavItem; active: boolean; group: string; collapsed?: boolean }) {
   const Icon = item.icon;
-  const cls = `relative flex items-center gap-3 rounded-[10px] px-3 py-2.5 font-medium transition-colors ${
+  const cls = `relative flex items-center gap-3 rounded-[10px] px-3 py-2.5 font-medium ${collapsed ? "justify-center" : ""} transition-colors ${
     active ? "font-semibold text-primary" : "text-[#3b3e55] hover:bg-background"
   } ${item.ready ? "" : "cursor-not-allowed opacity-60"}`;
   const inner = (
@@ -24,42 +31,45 @@ function Item({ item, active, group }: { item: NavItem; active: boolean; group: 
         </>
       )}
       <motion.span className="relative flex items-center gap-3" whileHover={item.ready ? { x: 2 } : undefined} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
-        <Icon size={20} strokeWidth={1.8} />
-        {item.label}
+        <Icon size={20} strokeWidth={1.8} className="shrink-0" />
+        {!collapsed && item.label}
       </motion.span>
     </>
   );
   return item.ready ? (
-    <Link href={item.href} className={cls} aria-current={active ? "page" : undefined}>{inner}</Link>
+    <Link href={item.href} title={collapsed ? item.label : undefined} aria-label={item.label} className={cls} aria-current={active ? "page" : undefined}>{inner}</Link>
   ) : (
     <span className={cls} title="Coming soon">{inner}</span>
   );
 }
 
-function NavContent({ group, onNavigate }: { group: string; onNavigate?: () => void }) {
+function NavContent({ group, onNavigate, collapsed, onToggle }: { group: string; onNavigate?: () => void; collapsed?: boolean; onToggle?: () => void }) {
   const pathname = usePathname();
   const { ready, can } = useAuth();
   const [gym] = useGym();
   // hide sections the role can't view (show everything until the role has loaded to avoid a flash)
   const visible = NAV.filter((n) => !ready || !n.perm || can(n.perm));
+  const title = NAV.find((n) => pathname === n.href || pathname.startsWith(n.href + "/"))?.label ?? EXTRA_TITLES[Object.keys(EXTRA_TITLES).find((k) => pathname.startsWith(k)) ?? ""] ?? "";
+  const Toggle = collapsed ? LuPanelLeftOpen : LuPanelLeftClose;
   return (
     <>
-      <div className="flex items-center gap-2.5 px-2 text-[22px] font-extrabold tracking-tight">
-        <span className="grid h-[34px] w-[34px] place-items-center rounded-[10px] bg-gradient-to-br from-[#7a5cff] to-primary-600 text-lg text-white shadow-[0_6px_14px_-4px_rgba(91,61,245,.6)]">m</span>
-        manygym
+      <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between gap-2 px-2"}`}>
+        {!collapsed && <h2 className="truncate text-[22px] font-extrabold tracking-tight">{title}</h2>}
+        {onToggle && (
+          <MotionButton aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={onToggle}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-background text-foreground hover:bg-line"><Toggle size={19} /></MotionButton>
+        )}
       </div>
-      <button className="flex w-full items-center gap-2.5 rounded-[10px] border border-line px-2.5 py-2 font-semibold transition-colors hover:bg-background">
+      <div className={`flex items-center gap-2.5 ${collapsed ? "justify-center" : "px-2"}`} title={collapsed ? gym?.overview.name : undefined}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {gym?.overview.profileUrl ? <img src={gym.overview.profileUrl} alt="" className="h-7 w-7 rounded-full object-cover" /> : <span className="h-7 w-7 rounded-full bg-background" />}
-        <span className="truncate">{gym?.overview.name ?? "Your gym"}</span>
-        <ChevronDown size={16} className="ml-auto text-muted" />
-      </button>
+        {gym?.overview.profileUrl ? <img src={gym.overview.profileUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" /> : <span className="h-9 w-9 shrink-0 rounded-full bg-background" />}
+        {!collapsed && <span className="truncate font-semibold">{gym?.overview.name ?? "Your gym"}</span>}
+      </div>
+      <div className="border-t border-line" />
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto" onClick={(e) => { if ((e.target as HTMLElement).closest("a")) onNavigate?.(); }}>
         {visible.map((item) => (
-          <Item key={item.href} group={group} item={item} active={pathname === item.href || pathname.startsWith(item.href + "/")} />
+          <Item key={item.href} group={group} collapsed={collapsed} item={item} active={pathname === item.href || pathname.startsWith(item.href + "/")} />
         ))}
-        <div className="flex-1" />
-        <Item group={group} item={SETTINGS} active={pathname === SETTINGS.href} />
       </nav>
     </>
   );
@@ -69,6 +79,7 @@ export const NAV_EVENT = "manygym:nav";
 
 export default function Sidebar() {
   const [open, setOpen] = useState(false);
+  const collapsed = useSyncExternalStore(subscribeCollapsed, readCollapsed, () => false);
   // the top bar's menu button (phones/tablets) asks for the drawer through a window event
   useEffect(() => {
     const toggle = () => setOpen((v) => !v);
@@ -83,9 +94,10 @@ export default function Sidebar() {
   }, [open]);
   return (
     <>
-      <aside className="sticky top-0 hidden h-screen w-[250px] shrink-0 flex-col gap-3.5 border-r border-line bg-surface p-3.5 pt-5 lg:flex">
-        <NavContent group="desktop" />
-      </aside>
+      <motion.aside initial={false} animate={{ width: collapsed ? 76 : 250 }} transition={{ type: "spring", stiffness: 380, damping: 38 }}
+        className="sticky top-[60px] hidden h-[calc(100vh-60px)] shrink-0 flex-col gap-3.5 overflow-hidden border-r border-line bg-surface p-3.5 pt-4 lg:flex">
+        <NavContent group="desktop" collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+      </motion.aside>
       <AnimatePresence>
         {open && (
           <div className="fixed inset-0 z-40 lg:hidden">

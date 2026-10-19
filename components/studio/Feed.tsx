@@ -2,8 +2,7 @@
 
 import { Reveal } from "@/components/ui/Motion";
 import { MotionButton } from "@/components/ui/Motion";
-import { Pagination, usePaged } from "@/components/ui/parts";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LuGlobe as Globe, LuImage as ImageIcon, LuLink2 as Link2, LuLoaderCircle as Loader2, LuLock as Lock, LuMessageSquare as MessageSquare, LuEllipsis as MoreHorizontal, LuPencil as Pencil, LuPin as Pin, LuThumbsUp as ThumbsUp, LuTrash2 as Trash2, LuX as X, LuPlus, LuSend, LuX } from "react-icons/lu";
 import { useAuth } from "@/components/AuthProvider";
 import Modal from "@/components/ui/Modal";
@@ -190,7 +189,17 @@ export default function Feed() {
   // pinned first, then newest first
   const sorted = [...posts].sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.createdAt.localeCompare(a.createdAt));
   const openComposer = (editing: Post | null = null) => setComposer({ key: Date.now(), editing });
-  const pg = usePaged(sorted, 5);
+  // infinite scroll: reveal 5 more posts whenever the sentinel below the feed scrolls into view
+  const [shown, setShown] = useState(5);
+  const sentinel = useRef<HTMLDivElement>(null);
+  const hasMore = shown < sorted.length;
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !hasMore) return;
+    const io = new IntersectionObserver((e) => { if (e[0].isIntersecting) setShown((n) => n + 5); }, { rootMargin: "300px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, shown]);
   const change = (p: Post) => setPosts((l) => l.map((x) => (x.id === p.id ? p : x)));
 
   return (
@@ -212,8 +221,9 @@ export default function Feed() {
 
       {!ready && <div className={`${card} mt-4 h-40 animate-pulse`} />}
       {ready && sorted.length === 0 && <p className={`${card} mt-4 p-10 text-center text-muted`}>No posts yet. Share your first update.</p>}
-      {pg.view.map((p, i) => <Reveal key={p.id} index={i}><PostCard post={p} onChange={change} onEdit={() => openComposer(p)} onDelete={() => setDeleting(p)} /></Reveal>)}
-      {sorted.length > 5 && <div className={`${card} mt-4`}><Pagination {...pg} noun="posts" /></div>}
+      {sorted.slice(0, shown).map((p, i) => <Reveal key={p.id} index={i % 5}><PostCard post={p} onChange={change} onEdit={() => openComposer(p)} onDelete={() => setDeleting(p)} /></Reveal>)}
+      {hasMore && <div ref={sentinel} className="mt-4 h-16 animate-pulse rounded-xl border border-line bg-surface" aria-label="Loading more posts" />}
+      {ready && sorted.length > 5 && !hasMore && <p className="mt-6 text-center text-sm text-muted">You&apos;re all caught up</p>}
 
       {composer && (
         <Composer key={composer.key} editing={composer.editing} onClose={() => setComposer(null)}
