@@ -54,3 +54,13 @@ div.absolute.shadow-xl { animation: pop .14s ease-out; transform-origin: top rig
   table.rt td:last-child:not(:first-child) { justify-content: flex-end; }
   table.rt td[colspan] { display: block; text-align: center; }
 }
+
+/* desktop tables: rows glide in one after another, and lift a touch on hover */
+@keyframes row-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (min-width: 768px) {
+  table.rt tbody tr { animation: row-in .35s ease-out both; transition: background-color .15s; }
+  table.rt tbody tr:hover { background: color-mix(in srgb, var(--color-primary, #5b3df5) 4%, transparent); }
+  table.rt tbody tr:nth-child(2) { animation-delay: 40ms; } table.rt tbody tr:nth-child(3) { animation-delay: 80ms; }
+  table.rt tbody tr:nth-child(4) { animation-delay: 120ms; } table.rt tbody tr:nth-child(5) { animation-delay: 160ms; }
+  table.rt tbody tr:nth-child(n+6) { animation-delay: 200ms; }
+}

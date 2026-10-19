@@ -1,5 +1,8 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/parts";
+import { LuNewspaper } from "react-icons/lu";
+
 import { Reveal } from "@/components/ui/Motion";
 import { MotionButton } from "@/components/ui/Motion";
 import { useEffect, useRef, useState } from "react";
@@ -220,7 +223,7 @@ export default function Feed() {
       <div className="mt-4 flex gap-1 border-b border-line px-2"><button className="border-b-2 border-primary px-3.5 py-2.5 font-semibold text-primary">Published</button></div>
 
       {!ready && <div className={`${card} mt-4 h-40 animate-pulse`} />}
-      {ready && sorted.length === 0 && <p className={`${card} mt-4 p-10 text-center text-muted`}>No posts yet. Share your first update.</p>}
+      {ready && sorted.length === 0 && <div className={`${card} mt-4 p-10 text-center text-muted`}><EmptyState icon={LuNewspaper} title="No posts yet" hint="Share your first update." /></div>}
       {sorted.slice(0, shown).map((p, i) => <Reveal key={p.id} index={i % 5}><PostCard post={p} onChange={change} onEdit={() => openComposer(p)} onDelete={() => setDeleting(p)} /></Reveal>)}
       {hasMore && <div ref={sentinel} className="mt-4 h-16 animate-pulse rounded-xl border border-line bg-surface" aria-label="Loading more posts" />}
       {ready && sorted.length > 5 && !hasMore && <p className="mt-6 text-center text-sm text-muted">You&apos;re all caught up</p>}

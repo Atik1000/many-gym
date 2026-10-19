@@ -31,7 +31,7 @@ export default function StudioHeader() {
           <div className="mt-1 flex items-center gap-1.5 text-muted"><MapPin size={16} />{gym.location.city}, {gym.location.country}</div>
         </div>
         <div className="flex flex-wrap gap-2.5 sm:pb-2">
-          <Can perm="Edit gym profile"><MotionLink href="/gym-profile" className={btnGhost}><Pencil size={17} />Edit Gym Profile</MotionLink></Can>
+          <Can perm="Edit gym profile"><MotionLink href="/gym-profile" title="Edit gym profile" className={btnGhost}><Pencil size={17} /><span className="sr-only">Edit Gym Profile</span></MotionLink></Can>
           <a href="#" className={btnPrimary}><ExternalLink size={17} />View Public Profile</a>
         </div>
       </div>

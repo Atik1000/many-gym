@@ -1,5 +1,8 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/parts";
+import { LuDumbbell } from "react-icons/lu";
+
 import { MotionLink, Reveal } from "@/components/ui/Motion";
 import Link from "next/link";
 import { LuMail as Mail, LuUserPlus, LuUsers } from "react-icons/lu";
@@ -22,7 +25,7 @@ export default function TrainersPage() {
         <MotionLink href="/people" className={btnGhost}><LuUserPlus size={17} />Invite or manage people</MotionLink>
       </div>
       {!ready ? <div className={`${card} h-[240px] animate-pulse`} /> : trainers.length === 0 ? (
-        <div className={`${card} p-10 text-center text-muted`}>No trainers yet. Invite someone with the Trainer role from People &amp; Roles.</div>
+        <div className={`${card} p-10 text-center text-muted`}><EmptyState icon={LuDumbbell} title="No trainers yet" hint="Invite someone with the Trainer role from People & Roles." /></div>
       ) : (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
           {pg.view.map((t, i) => {

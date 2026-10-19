@@ -3,6 +3,7 @@
 import { MotionButton } from "@/components/ui/Motion";
 import { useId, useState } from "react";
 import { motion } from "framer-motion";
+import type { IconType } from "react-icons";
 import { LuChevronDown as ChevronDown, LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight, LuX as X, LuX } from "react-icons/lu";
 import Modal from "./Modal";
 import { btnGhost, input } from "@/lib/ui";
@@ -124,3 +125,14 @@ export function Pagination({ page, pages, onPage, total, size, shown, noun = "re
 }
 
 export const Select = ({ className = "", ...p }: React.SelectHTMLAttributes<HTMLSelectElement>) => <select className={`${input} ${className}`} {...p} />;
+
+/** Friendly empty state: icon badge, headline and a hint. */
+export function EmptyState({ icon: Icon, title, hint }: { icon: IconType; title: string; hint?: string }) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto flex max-w-sm flex-col items-center gap-2 py-4">
+      <span className="grid h-14 w-14 place-items-center rounded-2xl bg-primary-50 text-primary"><Icon size={26} /></span>
+      <b className="text-base text-foreground">{title}</b>
+      {hint && <span className="text-muted">{hint}</span>}
+    </motion.div>
+  );
+}

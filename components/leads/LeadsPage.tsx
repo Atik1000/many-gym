@@ -1,5 +1,8 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/parts";
+import { LuUserPlus } from "react-icons/lu";
+
 import { MotionButton } from "@/components/ui/Motion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -81,7 +84,7 @@ export default function LeadsPage() {
               <thead className="bg-background text-[13px] text-muted"><tr>{["Lead", "Interested Plan", "Stage", "Next Move", ""].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead>
               <tbody>
                 {!ready && <tr><td colSpan={5} className="p-10 text-center text-muted">Loading leads…</td></tr>}
-                {ready && shown.length === 0 && <tr><td colSpan={5} className="p-12 text-center text-muted">{leads.length ? "No leads match." : "No leads yet. Add your first lead."}</td></tr>}
+                {ready && shown.length === 0 && <tr><td colSpan={5} className="p-12 text-center text-muted"><EmptyState icon={LuUserPlus} title={leads.length ? "No leads match" : "No leads yet"} hint={leads.length ? "Try a different search or filter." : "Add your first lead."} /></td></tr>}
                 {pg.view.map((l) => {
                   const nm = nextMoveOf(l); const overdue = nm && nm.date < today() && l.stage !== "joined" && l.stage !== "not_joining";
                   return (

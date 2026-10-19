@@ -113,7 +113,7 @@ export default function MemberDetail() {
             {m.joiningStatus === "sent_invitation" && <Pill tone="amber">Invitation sent</Pill>}</div>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-3">
-          {canEdit && <MotionLink href={`/members/${m.id}/edit`} className={btnGhost}><LuPencil size={17} />Edit Member</MotionLink>}
+          {canEdit && <MotionLink href={`/members/${m.id}/edit`} title="Edit member" className={btnGhost}><LuPencil size={17} /><span className="sr-only">Edit Member</span></MotionLink>}
           {canManage && <MotionButton className={btnPrimary} onClick={openPay}><LuBanknote size={17} />Record Payment</MotionButton>}
           {(canManage || can("Delete members")) && <div className="relative">
             <button aria-label="More actions" onClick={() => setMenu((v) => !v)} className="grid h-10 w-10 place-items-center rounded-[10px] border border-line bg-surface"><MoreHorizontal size={18} /></button>
@@ -262,7 +262,7 @@ export default function MemberDetail() {
         </section>
       )}
 
-      <MotionLink href="/members" className={`${btnGhost} mt-6`}><ArrowLeft size={17} />Back to Members</MotionLink>
+      <MotionLink href="/members" title="Back to Members" className={`${btnGhost} mt-6`}><ArrowLeft size={17} /><span className="sr-only">Back to Members</span></MotionLink>
 
       <Modal open={modal === "pay"} title="Record Payment" onClose={() => setModal(null)} footer={<><MotionButton className={btnGhost} onClick={() => setModal(null)}><LuX size={17} />Cancel</MotionButton><MotionButton className={btnPrimary} onClick={savePay}><LuBanknote size={17} />Save Payment</MotionButton></>}>
         <div><label htmlFor="pm" className={label}>Membership</label><Select id="pm" value={msId} onChange={(e) => { setMsId(e.target.value); const t = m.memberships.find((x) => x.id === e.target.value)!; setAmt(balance(t) > 0 ? balance(t).toFixed(2) : ""); }}>

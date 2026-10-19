@@ -1,5 +1,8 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/parts";
+import { LuCreditCard } from "react-icons/lu";
+
 import { MotionButton, MotionLink } from "@/components/ui/Motion";
 import { Pagination, usePaged } from "@/components/ui/parts";
 import Link from "next/link";
@@ -101,7 +104,7 @@ export default function PlansList() {
             {!ready && <tr><td colSpan={6} className="px-5 py-10 text-center text-muted">Loading plans…</td></tr>}
             {ready && shown.length === 0 && (
               <tr><td colSpan={6} className="px-5 py-12 text-center text-muted">
-                {plans.length === 0 ? "No plans yet. Create your first membership plan." : "No plans match your filters."}
+                <EmptyState icon={LuCreditCard} title={plans.length === 0 ? "No plans yet" : "No plans match your filters"} hint={plans.length === 0 ? "Create your first membership plan." : "Try clearing a filter."} />
               </td></tr>
             )}
             {pg.view.map((p) => (
@@ -113,7 +116,7 @@ export default function PlansList() {
                 <td className="px-5 py-4"><StatusBadge status={p.status} /></td>
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-2">
-                    <MotionLink href={`/plans/${p.id}`} className={btnGhost}><LuEye size={17} />View Details</MotionLink>
+                    <MotionLink href={`/plans/${p.id}`} title="View details" aria-label="View details" className={btnGhost}><LuEye size={17} /><span className="md:sr-only">View Details</span></MotionLink>
                     <RowMenu plan={p} onDelete={() => setDeleting(p)} />
                   </div>
                 </td>

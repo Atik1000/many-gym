@@ -118,7 +118,7 @@ export default function PlanDetail() {
         <Field label="Refund Policy">{plan.refundPolicy}</Field>
       </section>
 
-      <MotionLink href="/plans" className={`${btnGhost} mt-5`}><ArrowLeft size={17} />Back to Plans</MotionLink>
+      <MotionLink href="/plans" title="Back to Plans" className={`${btnGhost} mt-5`}><ArrowLeft size={17} /><span className="sr-only">Back to Plans</span></MotionLink>
 
       <Modal open={confirm} title="Delete plan?" onClose={() => setConfirm(false)}
         footer={<>

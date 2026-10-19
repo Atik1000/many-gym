@@ -101,7 +101,7 @@ export default function MembersList() {
                     <td className="px-5">{trainerName(m.trainerId)}</td>
                     <td className="px-5">
                       <div className="flex items-center gap-2">
-                        <MotionLink href={`/members/${m.id}`} className={`${btnGhost} !px-3.5 !py-2 !text-primary-600`}><LuEye size={17} />View Details</MotionLink>
+                        <MotionLink href={`/members/${m.id}`} title="View details" aria-label="View details" className={`${btnGhost} !px-3.5 !py-2 !text-primary-600`}><LuEye size={17} /><span className="md:sr-only">View Details</span></MotionLink>
                         {(can("Edit members") || can("Manage member information") || can("Delete members")) && <div className="relative">
                           <button aria-label={`Actions for ${fullName(m)}`} onClick={() => setMenu(menu === m.id ? null : m.id)} className="rounded-lg p-2 text-muted hover:bg-background"><MoreHorizontal size={18} /></button>
                           {menu === m.id && (<>

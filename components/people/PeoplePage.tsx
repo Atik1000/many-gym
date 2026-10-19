@@ -1,5 +1,8 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/parts";
+import { LuUsers } from "react-icons/lu";
+
 import { MotionButton } from "@/components/ui/Motion";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -85,7 +88,7 @@ export default function PeoplePage() {
                   <thead className="bg-background text-muted"><tr>{["Person", "Role", "Status", "Assigned Members", "Actions"].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead>
                   <tbody>
                     {!ready && <tr><td colSpan={5} className="p-8 text-center text-muted">Loading…</td></tr>}
-                    {ready && shown.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-muted">No people match your filters.</td></tr>}
+                    {ready && shown.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-muted"><EmptyState icon={LuUsers} title="No people match" hint="Try a different search or filter." /></td></tr>}
                     {pg.view.map((p) => (
                       <tr key={p.id} className="border-t border-line">
                         <td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar name={p.name || p.email} /><div><b className="block">{displayName(p)}</b><span className="text-muted">{p.email}</span></div></div></td>
