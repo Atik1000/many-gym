@@ -7,9 +7,10 @@ import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/ui/parts";
 import { useToast } from "@/components/ui/Toast";
 import { resetDemoData, useGym, useResource } from "@/lib/api";
-import { knownAccountIds, switchAccount } from "@/lib/auth";
+import { switchAccount } from "@/lib/auth";
 import { PEOPLE_KEY, ROLES_KEY, type Person, type Role } from "@/lib/people";
-import { LuChevronDown as ChevronDown, LuLogOut, LuMenu, LuRefreshCw, LuRotateCcw, LuSettings, LuUserPlus } from "react-icons/lu";
+import type { IconType } from "react-icons";
+import { LuArrowLeft, LuCheck, LuChevronRight, LuLogOut, LuMenu, LuRotateCcw, LuSettings, LuUserPlus, LuUsers } from "react-icons/lu";
 import GlobalSearch from "@/components/shell/GlobalSearch";
 import Notifications from "@/components/shell/Notifications";
 import { MotionButton } from "@/components/ui/Motion";
@@ -19,12 +20,13 @@ export default function Topbar() {
   const [gym] = useGym();
   const { user, role, ready, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<"main" | "switch">("main");
   const toast = useToast();
   const router = useRouter();
   const [people] = useResource<Person>(PEOPLE_KEY);
   const [roles] = useResource<Role>(ROLES_KEY);
-  // other accounts already signed in on this device, ready to switch to
-  const others = open ? people.filter((p) => p.id !== user?.id && p.status === "active" && knownAccountIds().includes(p.id)) : [];
+  // every other active account, one click to switch (like Facebook's profile list)
+  const others = open ? people.filter((p) => p.id !== user?.id && p.status === "active") : [];
   return (
     <header className="sticky top-0 z-30 flex h-[60px] items-center gap-3 border-b border-line bg-surface px-4 sm:gap-4 sm:px-7">
       <MotionButton aria-label="Open menu" onClick={() => window.dispatchEvent(new Event(NAV_EVENT))} className="-ml-1 rounded-lg p-2 text-foreground hover:bg-background lg:hidden"><LuMenu size={22} /></MotionButton>
@@ -35,45 +37,54 @@ export default function Topbar() {
       <div className="flex-1" />
       <Notifications />
       <div className="relative">
-        <button onClick={() => setOpen((v) => !v)} aria-label="Account menu" aria-haspopup="menu" aria-expanded={open} className="relative rounded-full">
-          <Avatar name={user?.name || "Admin"} size={36} />
-          <span className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full border border-line bg-surface text-foreground"><ChevronDown size={11} /></span>
+        <button onClick={() => { setView("main"); setOpen((v) => !v); }} aria-label="Account menu" aria-haspopup="menu" aria-expanded={open} className="rounded-full ring-2 ring-transparent transition-shadow hover:ring-line">
+          <Avatar name={user?.name || "Admin"} size={40} />
         </button>
         {open && (
           <>
             <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-            <div role="menu" className="absolute right-0 top-12 z-30 w-[340px] max-w-[calc(100vw-24px)] rounded-xl border border-line bg-surface p-2 shadow-xl">
-              <div className="rounded-xl p-1 shadow-[0_1px_6px_rgba(0,0,0,.12)]">
-                <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-                  <Avatar name={user?.name || "Admin"} size={36} />
-                  <span className="min-w-0"><b className="block truncate">{ready ? user?.name ?? "No user" : "…"}</b><span className="block truncate text-xs text-muted">{role?.name}{gym ? ` · ${gym.overview.name}` : ""}</span></span>
-                </div>
-                {others.length > 0 && <hr className="mx-2 my-1 border-line" />}
-                {others.map((p) => (
-                  <button key={p.id} role="menuitem" onClick={() => { if (switchAccount(p.id)) { setOpen(false); router.replace("/"); } }} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left font-semibold hover:bg-background">
-                    <span className="relative">
-                      <Avatar name={p.name || p.email} size={36} />
-                      <span className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-surface text-muted"><LuRefreshCw size={11} /></span>
-                    </span>
-                    <span className="min-w-0"><b className="block truncate">{p.name || p.email}</b><span className="block truncate text-xs font-normal text-muted">{roles.find((r) => r.id === p.roleId)?.name}</span></span>
-                  </button>
-                ))}
-                <hr className="mx-2 my-1 border-line" />
-                <Link href="/login" role="menuitem" onClick={() => setOpen(false)} className="mb-1 flex items-center justify-center gap-2 rounded-lg bg-background px-3 py-2 font-semibold hover:bg-line">
-                  <LuUserPlus size={16} />Add another account
-                </Link>
-              </div>
-              <Link href="/settings" role="menuitem" onClick={() => setOpen(false)} className="mt-1 flex items-center gap-3 rounded-lg px-2 py-2 font-semibold hover:bg-background">
-                <span className="grid h-9 w-9 place-items-center rounded-full bg-background"><LuSettings size={18} /></span>Account settings
-              </Link>
-              <button role="menuitem" className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left font-semibold hover:bg-background" onClick={() => logout()}>
-                <span className="grid h-9 w-9 place-items-center rounded-full bg-background"><LuLogOut size={18} /></span>Sign out
-              </button>
-              {role?.id === "administrator" && (
-                <button role="menuitem" className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left font-semibold text-bad hover:bg-background"
-                  onClick={async () => { setOpen(false); try { await resetDemoData(); toast("Demo data reset"); } catch { toast("Couldn't reset the demo data"); } }}>
-                  <span className="grid h-9 w-9 place-items-center rounded-full bg-bad-bg"><LuRotateCcw size={18} /></span>Reset demo data
-                </button>
+            <div role="menu" className="absolute right-0 top-12 z-30 w-[360px] max-w-[calc(100vw-24px)] rounded-xl border border-line bg-surface p-2 shadow-xl">
+              {view === "main" ? (
+                <>
+                  <div className="rounded-xl p-1 shadow-[0_1px_6px_rgba(0,0,0,.12)]">
+                    <Link href="/settings" role="menuitem" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-background">
+                      <Avatar name={user?.name || "Admin"} size={40} />
+                      <span className="min-w-0"><b className="block truncate text-[17px]">{ready ? user?.name ?? "No user" : "…"}</b><span className="block truncate text-xs text-muted">{role?.name}{gym ? ` · ${gym.overview.name}` : ""}</span></span>
+                    </Link>
+                    <hr className="mx-2 my-1 border-line" />
+                    <button role="menuitem" onClick={() => setView("switch")} className="flex w-full items-center gap-2 rounded-lg bg-background px-3 py-2 font-semibold hover:bg-line">
+                      <LuUsers size={18} />See all accounts
+                    </button>
+                  </div>
+                  <Row icon={LuSettings} label="Account settings" href="/settings" onGo={() => setOpen(false)} />
+                  {role?.id === "administrator" && (
+                    <Row icon={LuRotateCcw} label="Reset demo data" danger onClick={async () => { setOpen(false); try { await resetDemoData(); toast("Demo data reset"); } catch { toast("Couldn't reset the demo data"); } }} />
+                  )}
+                  <Row icon={LuLogOut} label="Log out" onClick={() => logout()} />
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 px-1 pb-1 pt-0.5">
+                    <button aria-label="Back" onClick={() => setView("main")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-background"><LuArrowLeft size={20} /></button>
+                    <b className="text-[17px]">Switch account</b>
+                  </div>
+                  <div className="max-h-[60vh] overflow-auto">
+                    {[...(user ? [user] : []), ...others].map((p) => {
+                      const mine = p.id === user?.id;
+                      return (
+                        <button key={p.id} role="menuitemradio" aria-checked={mine} onClick={() => { if (mine) return setOpen(false); if (switchAccount(p.id)) { setOpen(false); router.replace("/"); } }}
+                          className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-background">
+                          <Avatar name={p.name || p.email} size={40} />
+                          <span className="min-w-0 flex-1"><b className="block truncate">{p.name || p.email}</b><span className="block truncate text-xs font-normal text-muted">{roles.find((r) => r.id === p.roleId)?.name}</span></span>
+                          <span className={`grid h-5 w-5 place-items-center rounded-full border-2 ${mine ? "border-primary bg-primary text-white" : "border-line"}`}>{mine && <LuCheck size={12} />}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <Link href="/login" role="menuitem" onClick={() => setOpen(false)} className="mt-1 flex items-center gap-3 rounded-lg px-2 py-2 font-semibold hover:bg-background">
+                    <span className="grid h-10 w-10 place-items-center rounded-full bg-background"><LuUserPlus size={18} /></span>Add another account
+                  </Link>
+                </>
               )}
             </div>
           </>
@@ -81,4 +92,11 @@ export default function Topbar() {
       </div>
     </header>
   );
+}
+
+/** One Facebook-style menu row: round icon badge, label, chevron. */
+function Row({ icon: Icon, label, href, onGo, onClick, danger }: { icon: IconType; label: string; href?: string; onGo?: () => void; onClick?: () => void; danger?: boolean }) {
+  const cls = `mt-1 flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left font-semibold hover:bg-background ${danger ? "text-bad" : ""}`;
+  const inner = <><span className={`grid h-10 w-10 place-items-center rounded-full ${danger ? "bg-bad-bg" : "bg-background"}`}><Icon size={20} /></span><span className="flex-1">{label}</span><LuChevronRight size={18} className="text-muted" /></>;
+  return href ? <Link href={href} role="menuitem" onClick={onGo} className={cls}>{inner}</Link> : <button role="menuitem" onClick={onClick} className={cls}>{inner}</button>;
 }

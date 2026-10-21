@@ -32,9 +32,9 @@ export function signOut() {
   if (me) localStorage.setItem(KNOWN_KEY, JSON.stringify(knownAccountIds().filter((id) => id !== me)));
   localStorage.removeItem(SESSION_KEY); notifySession();
 }
-/** Switch to another account that is already signed in on this device. Returns false if it isn't. */
+/** Switch straight to another active account (demo: no password prompt). Returns false if it can't. */
 export function switchAccount(personId: string): boolean {
-  if (!knownAccountIds().includes(personId) || !people().some((p) => p.id === personId && p.status === "active")) return false;
+  if (!people().some((p) => p.id === personId && p.status === "active")) return false;
   localStorage.setItem(SESSION_KEY, personId); notifySession();
   return true;
 }
