@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { LuCamera as Camera, LuFileText, LuImage, LuLoaderCircle as Loader2, LuUsers } from "react-icons/lu";
+import { LuCamera as Camera, LuFileText, LuLoaderCircle as Loader2, LuUsers } from "react-icons/lu";
 import { uploadFile, useGym } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { GENDER_REQUIRED, GYM_TYPES, type GymProfile } from "@/lib/gym-data";
@@ -13,13 +13,15 @@ import TabSkeleton from "./Skeleton";
 type Overview = GymProfile["overview"];
 const MIN_DESC = 120;
 
-function Panel({ icon: Icon, title, sub, className = "", children }: { icon: React.ComponentType<{ size?: number }>; title: string; sub: string; className?: string; children: React.ReactNode }) {
+function Panel({ icon: Icon, title, sub, className = "", children }: { icon?: React.ComponentType<{ size?: number }>; title?: string; sub?: string; className?: string; children: React.ReactNode }) {
   return (
     <section className={`${card} p-5 ${className}`}>
-      <div className="mb-4 flex items-center gap-3">
-        <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary-50 text-primary"><Icon size={18} /></span>
-        <div><h4 className="font-bold leading-tight">{title}</h4><p className="text-[13px] text-muted">{sub}</p></div>
-      </div>
+      {title && Icon && (
+        <div className="mb-4 flex items-center gap-3">
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary-50 text-primary"><Icon size={18} /></span>
+          <div><h4 className="font-bold leading-tight">{title}</h4><p className="text-[13px] text-muted">{sub}</p></div>
+        </div>
+      )}
       {children}
     </section>
   );
@@ -38,7 +40,7 @@ function Appearance({ o, editing, onPick }: { o: Overview; editing: boolean; onP
   };
   const accept = "image/jpeg,image/png,image/webp";
   return (
-    <Panel icon={LuImage} title="Profile appearance" sub="Make a strong first impression.">
+    <Panel>
       <div className="relative h-[170px] overflow-hidden rounded-xl bg-background">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         {o.coverUrl && <img src={o.coverUrl} alt="Cover photo" className="h-full w-full object-cover" />}
