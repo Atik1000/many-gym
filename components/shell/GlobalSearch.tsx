@@ -60,7 +60,7 @@ export default function GlobalSearch() {
       <motion.button whileTap={{ scale: 0.98 }} onClick={() => setOpen(true)} aria-label="Search"
         className="flex items-center gap-2 rounded-[10px] border border-line bg-background p-2 text-muted transition-colors hover:border-primary/40 md:w-[300px] md:px-3 xl:w-[340px]">
         <LuSearch size={18} />
-        <span className="hidden flex-1 text-left md:block">Search members, leads, plans…</span>
+        <span className="hidden flex-1 text-left md:block">Search Manygym</span>
         <kbd className="hidden rounded-md border border-line bg-surface px-1.5 text-[11px] font-semibold md:block">⌘K</kbd>
       </motion.button>
 
@@ -73,7 +73,7 @@ export default function GlobalSearch() {
               initial={{ opacity: 0, y: -16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.98 }} transition={{ type: "spring", stiffness: 460, damping: 34 }}>
               <div className="flex items-center gap-3 border-b border-line px-4">
                 <LuSearch size={19} className="text-muted" />
-                <input ref={input} value={q} onChange={(e) => { setQ(e.target.value); setCursor(0); }} placeholder="Search members, leads, plans…" aria-label="Search"
+                <input ref={input} value={q} onChange={(e) => { setQ(e.target.value); setCursor(0); }} placeholder="Search Manygym" aria-label="Search"
                   className="h-14 flex-1 bg-transparent text-base outline-none"
                   onKeyDown={(e) => {
                     if (e.key === "ArrowDown") { e.preventDefault(); setCursor(Math.min(active + 1, hits.length - 1)); }

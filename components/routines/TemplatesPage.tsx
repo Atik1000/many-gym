@@ -92,7 +92,9 @@ export default function TemplatesPage() {
             <div className="mb-5 flex items-center justify-between gap-3">
               <h3 className="text-2xl font-bold">{!editing ? draft.name : isNew ? "New Template" : "Edit Template"}</h3>
               <div className="flex items-center gap-3">
-                {!editing && can("Edit templates") && <MotionButton className={btnGhost} onClick={() => setEditing(true)}><LuPencil size={17} />Edit</MotionButton>}
+                {can("Edit templates") && (editing
+                  ? <MotionButton className={btnGhost} onClick={() => (isNew ? setDraft(null) : (setDraft(templates.find((t) => t.id === draft.id) ?? null), setEditing(false), setErrors([])))}><LuX size={17} />Cancel</MotionButton>
+                  : <MotionButton className={btnGhost} onClick={() => setEditing(true)}><LuPencil size={17} />Edit</MotionButton>)}
                 <button aria-label="Close" onClick={() => setDraft(null)} className="text-muted"><X size={22} /></button>
               </div>
             </div>

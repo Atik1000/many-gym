@@ -108,7 +108,9 @@ export default function LeadsPage() {
           <section>
             <div className="mb-4 flex items-center justify-between"><h3 className="text-2xl font-bold">{isNew ? "New Lead" : editing ? "Edit Lead" : leadName(draft)}</h3>
               <div className="flex items-center gap-3">
-                {!editing && can("Edit leads") && <MotionButton className={btnGhost} onClick={() => setEditing(true)}><LuPencil size={17} />Edit</MotionButton>}
+                {can(isNew ? "Create leads" : "Edit leads") && (editing
+                  ? <MotionButton className={btnGhost} onClick={() => (isNew ? setDraft(null) : (setDraft(leads.find((x) => x.id === draft.id) ?? null), setEditing(false), setErrors({}), setNewNote("")))}><LuX size={17} />Cancel</MotionButton>
+                  : <MotionButton className={btnGhost} onClick={() => setEditing(true)}><LuPencil size={17} />Edit</MotionButton>)}
                 <button aria-label="Close" onClick={() => setDraft(null)} className="text-muted"><X size={22} /></button>
               </div>
             </div>
