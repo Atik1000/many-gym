@@ -37,6 +37,13 @@ export default function Topbar() {
       </Link>
       <GlobalSearch />
       <div className="flex-1" />
+      {gymName && (
+        <Link href="/gym-profile" title={gymName} className="hidden max-w-[220px] items-center gap-2 rounded-full py-1 pl-1 pr-3 font-semibold hover:bg-background md:flex">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {gym?.overview.profileUrl ? <img src={gym.overview.profileUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" /> : <span className="h-8 w-8 shrink-0 rounded-full bg-background" />}
+          <span className="truncate">{gymName}</span>
+        </Link>
+      )}
       <Notifications />
       <div className="relative">
         <button onClick={() => { setView("main"); setOpen((v) => !v); }} aria-label="Account menu" aria-haspopup="menu" aria-expanded={open} className="rounded-full ring-2 ring-transparent transition-shadow hover:ring-line">
