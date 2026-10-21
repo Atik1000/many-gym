@@ -37,13 +37,6 @@ export default function Topbar() {
       </Link>
       <GlobalSearch />
       <div className="flex-1" />
-      {gymName && (
-        <Link href="/gym-profile" title={gymName} className="hidden max-w-[220px] items-center gap-2 rounded-full py-1 pl-1 pr-3 font-semibold hover:bg-background md:flex">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {gym?.overview.profileUrl ? <img src={gym.overview.profileUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" /> : <span className="h-8 w-8 shrink-0 rounded-full bg-background" />}
-          <span className="truncate">{gymName}</span>
-        </Link>
-      )}
       <Notifications />
       <div className="relative">
         <button onClick={() => { setView("main"); setOpen((v) => !v); }} aria-label="Account menu" aria-haspopup="menu" aria-expanded={open} className="rounded-full ring-2 ring-transparent transition-shadow hover:ring-line">
@@ -60,6 +53,13 @@ export default function Topbar() {
                       <Avatar name={user?.name || "Admin"} size={40} />
                       <span className="min-w-0"><b className="block truncate text-[15px]">{ready ? user?.name ?? "No user" : "…"}</b><span className="block truncate text-xs text-muted">{gymName}</span></span>
                     </Link>
+                    {gymName && (
+                      <Link href="/gym-profile" role="menuitem" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-2 py-2 font-semibold hover:bg-background">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {gym?.overview.profileUrl ? <img src={gym.overview.profileUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" /> : <span className="h-9 w-9 shrink-0 rounded-full bg-background" />}
+                        <span className="min-w-0"><b className="block truncate">{gymName}</b><span className="block text-xs font-normal text-muted">Gym page</span></span>
+                      </Link>
+                    )}
                     <hr className="mx-2 my-1 border-line" />
                     {others.slice(0, 2).map((p) => (
                       <button key={p.id} role="menuitem" onClick={() => pick(p.id)} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left font-semibold hover:bg-background">
