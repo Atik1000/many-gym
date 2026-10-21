@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/ui/parts";
 import { useToast } from "@/components/ui/Toast";
-import { resetDemoData, useResource } from "@/lib/api";
+import { resetDemoData, useGym, useResource } from "@/lib/api";
 import { switchAccount } from "@/lib/auth";
 import { PEOPLE_KEY, ROLES_KEY, type Person, type Role } from "@/lib/people";
 import type { IconType } from "react-icons";
@@ -17,6 +17,8 @@ import { MotionButton } from "@/components/ui/Motion";
 import { NAV_EVENT } from "@/components/Sidebar";
 
 export default function Topbar() {
+  const [gym] = useGym();
+  const gymName = gym?.overview.name ?? "";
   const { user, role, ready, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"main" | "switch">("main");
@@ -49,7 +51,7 @@ export default function Topbar() {
                   <div className="rounded-xl p-1 shadow-[0_1px_6px_rgba(0,0,0,.12)]">
                     <Link href="/settings" role="menuitem" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-background">
                       <Avatar name={user?.name || "Admin"} size={40} />
-                      <b className="min-w-0 truncate text-[15px]">{ready ? user?.name ?? "No user" : "…"}</b>
+                      <span className="min-w-0"><b className="block truncate text-[15px]">{ready ? user?.name ?? "No user" : "…"}</b><span className="block truncate text-xs text-muted">{gymName}</span></span>
                     </Link>
                     <hr className="mx-2 my-1 border-line" />
                     {others.slice(0, 2).map((p) => (
@@ -58,7 +60,7 @@ export default function Topbar() {
                           <Avatar name={p.name || p.email} size={36} />
                           <span className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-surface text-muted"><LuRefreshCw size={11} /></span>
                         </span>
-                        <span className="min-w-0 truncate">{p.name || p.email}</span>
+                        <span className="min-w-0"><b className="block truncate">{p.name || p.email}</b><span className="block truncate text-xs font-normal text-muted">{gymName}</span></span>
                       </button>
                     ))}
                     <hr className="mx-2 my-1 border-line" />
@@ -85,7 +87,7 @@ export default function Topbar() {
                         <button key={p.id} role="menuitemradio" aria-checked={mine} onClick={() => (mine ? setOpen(false) : pick(p.id))}
                           className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-background">
                           <Avatar name={p.name || p.email} size={40} />
-                          <span className="min-w-0 flex-1"><b className="block truncate">{p.name || p.email}</b><span className="block truncate text-xs font-normal text-muted">{roles.find((r) => r.id === p.roleId)?.name}</span></span>
+                          <span className="min-w-0 flex-1"><b className="block truncate">{p.name || p.email}</b><span className="block truncate text-xs font-normal text-muted">{roles.find((r) => r.id === p.roleId)?.name}{gymName ? ` · ${gymName}` : ""}</span></span>
                           <span className={`grid h-5 w-5 place-items-center rounded-full border-2 ${mine ? "border-primary bg-primary text-white" : "border-line"}`}>{mine && <LuCheck size={12} />}</span>
                         </button>
                       );

@@ -61,9 +61,9 @@ export default function Notifications() {
   return (
     <div className="relative">
       <motion.button whileTap={{ scale: 0.9 }} aria-label={`Notifications${unread.length ? `, ${unread.length} new` : ""}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}
-        className="relative rounded-lg p-1.5 text-muted transition-colors hover:bg-background hover:text-foreground">
-        <motion.span className="block" animate={unread.length ? { rotate: [0, -14, 12, -8, 0] } : {}} transition={{ duration: 0.7, delay: 0.6 }}><LuBell size={20} /></motion.span>
-        {unread.length > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-[17px] min-w-[17px] place-items-center rounded-full border-2 border-surface bg-bad px-1 text-[10px] font-bold text-white">{unread.length}</span>}
+        className="relative grid h-10 w-10 place-items-center rounded-full bg-background text-foreground transition-colors hover:bg-line">
+        <motion.span className="block" animate={unread.length ? { rotate: [0, -14, 12, -8, 0] } : {}} transition={{ duration: 0.7, delay: 0.6 }}><LuBell size={22} /></motion.span>
+        {unread.length > 0 && <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full border-2 border-surface bg-bad px-1 text-[10px] font-bold text-white">{unread.length}</span>}
       </motion.button>
       <AnimatePresence>
         {open && (
