@@ -4,7 +4,6 @@ import { EmptyState } from "@/components/ui/parts";
 import { LuUsers } from "react-icons/lu";
 
 import { MotionButton } from "@/components/ui/Motion";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { LuEllipsis as MoreHorizontal, LuPlus as Plus, LuSearch as Search, LuX as X, LuCopy, LuLink, LuSend, LuShieldCheck, LuX } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
@@ -63,15 +62,12 @@ export default function PeoplePage() {
           <p className={hint}>Single use. Send it to them yourself — there&apos;s no email service connected yet.</p>
         </div>
       )}
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-[28px] font-bold tracking-tight">People &amp; Roles</h2>
-        {tab === "people" && can("Invite/add people") && <MotionButton className={btnPrimary} onClick={() => setInviting(true)}><Plus size={18} />Invite Person</MotionButton>}
-      </div>
       <div className={card}>
-        <div className="flex gap-1 border-b border-line px-3">
+        <div className="flex items-center gap-1 border-b border-line px-3">
           {(["people", "roles"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} className={`border-b-2 px-5 py-3.5 font-semibold capitalize ${tab === t ? "border-primary text-primary" : "border-transparent text-muted"}`}>{t}</button>
           ))}
+          {tab === "people" && can("Invite/add people") && <MotionButton className={`${btnPrimary} my-2 ml-auto`} onClick={() => setInviting(true)}><Plus size={18} />Invite Person</MotionButton>}
         </div>
 
         {tab === "roles" ? (!ready ? <p className="p-10 text-center text-muted">Loading…</p> : <RolesTab roles={roles} setRoles={setRoles} people={people} />) : (
@@ -85,16 +81,15 @@ export default function PeoplePage() {
               </div>
               <div className="overflow-x-auto rounded-xl border border-line">
                 <table className="rt w-full min-w-[640px] text-left">
-                  <thead className="bg-background text-muted"><tr>{["Person", "Role", "Status", "Assigned Members", "Actions"].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead>
+                  <thead className="bg-background text-muted"><tr>{["Person", "Role", "Status", "Actions"].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead>
                   <tbody>
-                    {!ready && <tr><td colSpan={5} className="p-8 text-center text-muted">Loading…</td></tr>}
-                    {ready && shown.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-muted"><EmptyState icon={LuUsers} title="No people match" hint="Try a different search or filter." /></td></tr>}
+                    {!ready && <tr><td colSpan={4} className="p-8 text-center text-muted">Loading…</td></tr>}
+                    {ready && shown.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-muted"><EmptyState icon={LuUsers} title="No people match" hint="Try a different search or filter." /></td></tr>}
                     {pg.view.map((p) => (
                       <tr key={p.id} className="border-t border-line">
                         <td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar name={p.name || p.email} /><div><b className="block">{displayName(p)}</b><span className="text-muted">{p.email}</span></div></div></td>
                         <td className="px-4"><Pill tone={p.roleId === "trainer" ? "purple" : "gray"}>{roleName(p.roleId)}</Pill></td>
                         <td className="px-4"><Pill tone={p.status === "active" ? "green" : "amber"}>{p.status === "active" ? "Active" : "Invited"}</Pill></td>
-                        <td className="px-4">{p.roleId === "trainer" && assigned.get(p.id) ? <Link href={`/members?trainer=${p.id}`} className="font-semibold text-primary">{assigned.get(p.id)} members</Link> : "—"}</td>
                         <td className="px-4">
                           {p.status === "invited" && can("Invite/add people") && <MotionButton className={`${btnGhost} mr-2 !px-3 !py-1.5 !text-primary`} onClick={() => makeLink(p)}><LuLink size={17} />Invite link</MotionButton>}
                           {(can("Edit people") || can("Remove people")) && <span className="relative inline-block">
@@ -132,7 +127,7 @@ export default function PeoplePage() {
                   <div className="mt-4 grid grid-cols-2 gap-3"><MotionButton className={btnGhost} onClick={() => setInviting(false)}><LuX size={17} />Cancel</MotionButton><MotionButton className={btnPrimary} onClick={invite}><LuSend size={17} />Send Invitation</MotionButton></div>
                 </section>
               )}
-              <section className="flex items-center justify-between rounded-xl border border-line p-5">
+              <section className="flex h-64 flex-col items-center justify-center gap-4 rounded-xl border border-line p-5 text-center">
                 <div><h3 className="text-lg font-bold">Manage Roles</h3><p className="text-muted">{DEFAULT_ROLES.length} default roles · {custom.length} custom role{custom.length === 1 ? "" : "s"}</p></div>
                 <MotionButton className={btnGhost} onClick={() => setTab("roles")}><LuShieldCheck size={17} />View Roles</MotionButton>
               </section>

@@ -8,6 +8,7 @@ import type { GymProfile } from "@/lib/gym-data";
 import { useToast } from "@/components/ui/Toast";
 import { errorText, hint, input, label } from "@/lib/ui";
 import SaveBar from "./SaveBar";
+import SectionCard, { Field } from "./SectionCard";
 
 // Stand-in for a places-search API (Google Places / Mapbox) — swap `PLACES` for a real fetch later.
 const PLACES = [
@@ -18,7 +19,7 @@ type AddrKey = "address" | "city" | "postcode" | "country";
 
 type Loc = GymProfile["location"];
 
-function Form({ initial, onSave }: { initial: Loc; onSave: (l: Loc) => void }) {
+function Form({ initial, onSave, onDiscard }: { initial: Loc; onSave: (l: Loc) => void; onDiscard: () => void }) {
   const toast = useToast();
   const [q, setQ] = useState("");
   const [results, setResults] = useState<typeof PLACES>([]);
@@ -110,13 +111,39 @@ function Form({ initial, onSave }: { initial: Loc; onSave: (l: Loc) => void }) {
         {field("country", "Country")}
       </div>
       {error && <p className={errorText}>{error}</p>}
-      <SaveBar dirty={dirty} onSave={save} onReset={() => { setAddr(saved.addr); setPin(saved.pin); setError(""); }} />
+      <SaveBar dirty={dirty} alwaysDiscard onSave={save} onReset={onDiscard} />
+    </div>
+  );
+}
+
+function View({ l }: { l: Loc }) {
+  return (
+    <div className="grid gap-5">
+      <div className="relative h-[240px] overflow-hidden rounded-xl border border-line bg-[#e9eef5] bg-[linear-gradient(#fff_2px,transparent_2px),linear-gradient(90deg,#fff_2px,transparent_2px)] bg-[length:64px_64px]">
+        <div className="absolute left-[8%] top-[55%] h-[10px] w-[90%] -rotate-6 bg-[#cfe0f5]" />
+        <div className="absolute left-[60%] top-[8%] h-24 w-32 rounded-xl bg-[#d7ecd6]" />
+        {l.pin && <MapPin size={44} fill="currentColor" stroke="white" aria-label="Gym entrance" style={{ left: `${l.pin.x}%`, top: `${l.pin.y}%` }} className="absolute -translate-x-1/2 -translate-y-full text-primary drop-shadow-lg" />}
+        <span className="absolute bottom-2 right-3 rounded bg-white/80 px-2 py-0.5 text-[11px] text-muted">Map preview — real map connects later</span>
+      </div>
+      <dl className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="md:col-span-2"><Field label="Address">{l.address}</Field></div>
+        <Field label="City">{l.city}</Field>
+        <Field label="Postcode">{l.postcode}</Field>
+        <Field label="Country">{l.country}</Field>
+      </dl>
     </div>
   );
 }
 
 export default function LocationTab() {
   const [gym, setGym, ready] = useGym();
+  const [editing, setEditing] = useState(false);
   if (!ready || !gym) return <TabSkeleton />;
-  return <Form initial={gym.location} onSave={(location) => setGym((g) => ({ ...g, location }))} />;
+  return (
+    <SectionCard title="Location" editing={editing} onToggle={() => setEditing((v) => !v)}>
+      {editing
+        ? <Form initial={gym.location} onSave={(location) => { setGym((g) => ({ ...g, location })); setEditing(false); }} onDiscard={() => setEditing(false)} />
+        : <View l={gym.location} />}
+    </SectionCard>
+  );
 }

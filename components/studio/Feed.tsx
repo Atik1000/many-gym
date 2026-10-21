@@ -5,15 +5,16 @@ import { LuNewspaper } from "react-icons/lu";
 
 import { Reveal } from "@/components/ui/Motion";
 import { MotionButton } from "@/components/ui/Motion";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { LuGlobe as Globe, LuImage as ImageIcon, LuLink2 as Link2, LuLoaderCircle as Loader2, LuLock as Lock, LuMessageSquare as MessageSquare, LuEllipsis as MoreHorizontal, LuPencil as Pencil, LuPin as Pin, LuThumbsUp as ThumbsUp, LuTrash2 as Trash2, LuX as X, LuPlus, LuSend, LuX } from "react-icons/lu";
+import { LuGlobe as Globe, LuImage as ImageIcon, LuLink2 as Link2, LuLoaderCircle as Loader2, LuLock as Lock, LuMessageSquare as MessageSquare, LuEllipsis as MoreHorizontal, LuPencil as Pencil, LuPin as Pin, LuThumbsUp as ThumbsUp, LuTrash2 as Trash2, LuX as X, LuPlay, LuPlus, LuSend, LuX } from "react-icons/lu";
 import { useAuth } from "@/components/AuthProvider";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { uploadFile, useGym, useResource } from "@/lib/api";
 import { uid } from "@/lib/id";
 import { ACCEPT, validateFiles } from "@/lib/media";
-import { timeAgo, type Post, type PostMedia } from "@/lib/posts";
+import { accountSlug, mediaPath, postPath, timeAgo, type Post, type PostMedia } from "@/lib/posts";
 import { btnGhost, btnPrimary, card, errorText, input } from "@/lib/ui";
 
 // a media item in the composer: already-uploaded (no `file`) or newly picked (uploaded when you publish)
@@ -27,22 +28,24 @@ function Logo({ size = 44 }: { size?: number }) {
   return <span style={{ width: size, height: size }} className="grid shrink-0 place-items-center rounded-full bg-black text-[9px] font-extrabold text-white">GYM</span>;
 }
 
-function Media({ items }: { items: PostMedia[] }) {
+/** Each tile links to that file's own page: /studio/<account>/posts/<post>/media/<media>. */
+function Media({ items, account, postId }: { items: PostMedia[]; account: string; postId: string }) {
   if (items.length === 0) return null;
   const cols = items.length === 1 ? 1 : items.length === 2 ? 2 : 3;
   return (
     <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
       {items.map((m) => (
-        <div key={m.id} className={`overflow-hidden rounded-[10px] bg-black ${items.length === 1 ? "aspect-[16/7]" : "aspect-[4/3]"}`}>
+        <Link key={m.id} href={mediaPath(account, postId, m.id)} aria-label={m.kind === "video" ? "Open video" : "Open photo"} className={`relative block overflow-hidden rounded-[10px] bg-black ${items.length === 1 ? "aspect-[16/7]" : "aspect-[4/3]"}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {m.kind === "image" ? <img src={m.url} alt="" className="h-full w-full object-cover" /> : <video src={m.url} controls className="h-full w-full object-cover" />}
-        </div>
+          {m.kind === "image" ? <img src={m.url} alt="" className="h-full w-full object-cover" /> : <video src={m.url} muted preload="metadata" className="h-full w-full object-cover" />}
+          {m.kind === "video" && <span className="absolute inset-0 grid place-items-center"><span className="grid h-12 w-12 place-items-center rounded-full bg-black/60 text-white"><LuPlay size={20} fill="currentColor" /></span></span>}
+        </Link>
       ))}
     </div>
   );
 }
 
-function PostCard({ post, onChange, onEdit, onDelete }: { post: Post; onChange: (p: Post) => void; onEdit: () => void; onDelete: () => void }) {
+export function PostCard({ post, onChange, onEdit, onDelete }: { post: Post; onChange: (p: Post) => void; onEdit?: () => void; onDelete?: () => void }) {
   const { can, user } = useAuth();
   const [gym] = useGym();
   const toast = useToast();
@@ -50,6 +53,8 @@ function PostCard({ post, onChange, onEdit, onDelete }: { post: Post; onChange: 
   const [showComments, setShowComments] = useState(false);
   const [comment, setComment] = useState("");
   const canManage = can("Edit studio information");
+  const account = accountSlug(gym?.overview.name ?? "");
+  const link = postPath(account, post.id);
   const liked = !!user && post.likedBy.includes(user.id);
   const item = "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-background";
 
@@ -67,7 +72,7 @@ function PostCard({ post, onChange, onEdit, onDelete }: { post: Post; onChange: 
         <div>
           <b className="block">{gym?.overview.name ?? "Your gym"}</b>
           <small className="flex items-center gap-1.5 text-muted">
-            {timeAgo(post.createdAt)} · {post.members ? <Lock size={12} /> : <Globe size={12} />} {post.members ? "Gym members only" : "Public"}
+            <Link href={link} className="hover:underline" title="Open post">{timeAgo(post.createdAt)}</Link> · {post.members ? <Lock size={12} /> : <Globe size={12} />} {post.members ? "Gym members only" : "Public"}
           </small>
         </div>
         {post.pinned && <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary"><Pin size={12} />Pinned</span>}
@@ -77,15 +82,15 @@ function PostCard({ post, onChange, onEdit, onDelete }: { post: Post; onChange: 
             <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
             <div className="absolute right-0 top-8 z-20 min-w-[190px] rounded-[10px] border border-line bg-surface p-1.5 shadow-xl" onClick={() => setMenu(false)}>
               {canManage && <button className={item} onClick={() => { onChange({ ...post, pinned: !post.pinned }); toast(post.pinned ? "Post unpinned" : "Post pinned"); }}><Pin size={16} />{post.pinned ? "Unpin post" : "Pin post"}</button>}
-              {canManage && <button className={item} onClick={onEdit}><Pencil size={16} />Edit post</button>}
-              <button className={item} onClick={() => { void navigator.clipboard?.writeText(`${location.origin}/studio#post-${post.id}`); toast("Post link copied"); }}><Link2 size={16} />Copy post link</button>
-              {canManage && <button className={`${item} text-bad`} onClick={onDelete}><Trash2 size={16} />Delete post</button>}
+              {canManage && onEdit && <button className={item} onClick={onEdit}><Pencil size={16} />Edit post</button>}
+              <button className={item} onClick={() => { void navigator.clipboard?.writeText(`${location.origin}${link}`); toast("Post link copied"); }}><Link2 size={16} />Copy post link</button>
+              {canManage && onDelete && <button className={`${item} text-bad`} onClick={onDelete}><Trash2 size={16} />Delete post</button>}
             </div>
           </>)}
         </div>
       </div>
-      {post.text && <p id={`post-${post.id}`} className="my-3 whitespace-pre-wrap text-[15px]">{post.text}</p>}
-      <Media items={post.media} />
+      {post.text && <p className="my-3 whitespace-pre-wrap text-[15px]">{post.text}</p>}
+      <Media items={post.media} account={account} postId={post.id} />
       <div className="flex justify-between border-b border-line py-2.5 text-[13px] text-muted">
         <span className="inline-flex items-center gap-1.5"><span className="grid h-5 w-5 place-items-center rounded-full bg-primary text-white"><ThumbsUp size={11} fill="currentColor" /></span>{post.likes + post.likedBy.length}</span>
         <button onClick={() => setShowComments((v) => !v)} className="hover:underline">{post.comments.length} comment{post.comments.length === 1 ? "" : "s"}</button>
@@ -219,8 +224,6 @@ export default function Feed() {
           </div>
         </div>
       )}
-
-      <div className="mt-4 flex gap-1 border-b border-line px-2"><button className="border-b-2 border-primary px-3.5 py-2.5 font-semibold text-primary">Published</button></div>
 
       {!ready && <div className={`${card} mt-4 h-40 animate-pulse`} />}
       {ready && sorted.length === 0 && <div className={`${card} mt-4 p-10 text-center text-muted`}><EmptyState icon={LuNewspaper} title="No posts yet" hint="Share your first update." /></div>}

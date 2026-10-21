@@ -109,7 +109,7 @@ function Form({ initial, editing, lead }: { initial: Member; editing: boolean; l
   return (
     <>
       <nav className="mb-3 text-muted"><Link href="/members" className="hover:text-foreground">Members</Link> / <b className="text-foreground">{editing ? `Edit ${fullName(initial)}` : "Add Member"}</b></nav>
-      <h2 className="mb-5 text-[28px] font-bold tracking-tight">{editing ? `Edit ${fullName(initial)}` : "Add Member"}</h2>
+      <h2 className="mb-5 text-[28px] font-bold">{editing ? `Edit ${fullName(initial)}` : "Add Member"}</h2>
 
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="grid gap-5">

@@ -23,3 +23,10 @@ export function timeAgo(iso: string, now = Date.now()): string {
   }
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
+
+/** URL-safe account handle derived from the gym's name — the "which account" part of every post link. */
+export const accountSlug = (gymName: string) => gymName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "gym";
+/** Unique link of a post: account + post. */
+export const postPath = (account: string, postId: string) => `/studio/${account}/posts/${postId}`;
+/** Unique link of one media file: account + post + media. */
+export const mediaPath = (account: string, postId: string, mediaId: string) => `${postPath(account, postId)}/media/${mediaId}`;

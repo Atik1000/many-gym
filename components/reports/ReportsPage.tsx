@@ -58,7 +58,7 @@ function CountUp({ text }: { text: string }) {
 }
 
 function Tile({ label, value, note, href }: { label: string; value: string; note?: React.ReactNode; href?: string }) {
-  const inner = (<><div className="text-muted">{label}</div><div className="mt-1 text-[28px] font-bold leading-tight tracking-tight tabular-nums"><CountUp text={value} /></div><div className="mt-1 min-h-[18px] text-[13px] text-muted">{note}</div></>);
+  const inner = (<><div className="text-muted">{label}</div><div className="mt-1 text-[28px] font-bold leading-tight tabular-nums"><CountUp text={value} /></div><div className="mt-1 min-h-[18px] text-[13px] text-muted">{note}</div></>);
   return href ? <Link href={href} className={`${card} block p-5 hover:border-primary`}>{inner}</Link> : <div className={`${card} p-5`}>{inner}</div>;
 }
 
@@ -177,7 +177,7 @@ export default function ReportsPage() {
   return (
     <>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div><h2 className="text-[28px] font-bold tracking-tight">Insights</h2><p className="text-muted">{fmtDate(d.start)} – {fmtDate(d.end)}</p></div>
+        <div><h2 className="text-[28px] font-bold">Insights</h2><p className="text-muted">{fmtDate(d.start)} – {fmtDate(d.end)}</p></div>
         <div className="flex flex-wrap items-center gap-3">
           <div role="group" aria-label="Date range" className="flex flex-wrap gap-1 rounded-xl border border-line bg-surface p-1">
             {RANGES.map((r) => <button key={r.id} aria-pressed={range === r.id} onClick={() => setRange(r.id)} className={`rounded-lg px-3.5 py-1.5 font-semibold ${range === r.id ? "bg-primary-50 text-primary" : "text-muted hover:text-foreground"}`}>{r.label}</button>)}

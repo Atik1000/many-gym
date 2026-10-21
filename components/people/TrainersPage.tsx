@@ -21,7 +21,7 @@ export default function TrainersPage() {
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div><h2 className="text-[28px] font-bold tracking-tight">Trainers</h2><p className="text-muted">Trainers only see the members assigned to them.</p></div>
+        <div><h2 className="text-[28px] font-bold">Trainers</h2><p className="text-muted">Trainers only see the members assigned to them.</p></div>
         <MotionLink href="/people" className={btnGhost}><LuUserPlus size={17} />Invite or manage people</MotionLink>
       </div>
       {!ready ? <div className={`${card} h-[240px] animate-pulse`} /> : trainers.length === 0 ? (

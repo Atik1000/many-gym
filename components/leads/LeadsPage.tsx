@@ -1,12 +1,13 @@
 "use client";
 
+import Offcanvas from "@/components/ui/Offcanvas";
 import { EmptyState } from "@/components/ui/parts";
 import { LuUserPlus } from "react-icons/lu";
 
 import { MotionButton } from "@/components/ui/Motion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LuChevronRight as ChevronRight, LuPlus as Plus, LuSearch as Search, LuTrash2 as Trash2, LuUserCheck as UserCheck, LuX as X, LuSave, LuX } from "react-icons/lu";
+import { LuChevronRight as ChevronRight, LuPlus as Plus, LuSearch as Search, LuTrash2 as Trash2, LuUserCheck as UserCheck, LuX as X, LuPencil, LuSave, LuX } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmModal, MultiSelect, Pagination, Pill, Select, usePaged } from "@/components/ui/parts";
 import { fmtDate, today } from "@/lib/dates";
@@ -28,6 +29,7 @@ export default function LeadsPage() {
   const [stage, setStage] = useState<"all" | Stage>("all");
   const [q, setQ] = useState("");
   const [draft, setDraft] = useState<Lead | null>(null);
+  const [editing, setEditing] = useState(false); // false = read-only details view
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [newNote, setNewNote] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -41,8 +43,8 @@ export default function LeadsPage() {
   const isNew = draft !== null && !leads.some((l) => l.id === draft.id);
   const set = <K extends keyof Lead>(k: K, v: Lead[K]) => setDraft((d) => d && { ...d, [k]: v });
 
-  const open = (l: Lead) => { setDraft(structuredClone(l)); setErrors({}); setNewNote(""); };
-  const create = () => { setDraft({ ...blankLead(), id: uid() }); setErrors({}); setNewNote(""); };
+  const open = (l: Lead) => { setDraft(structuredClone(l)); setEditing(false); setErrors({}); setNewNote(""); };
+  const create = () => { setDraft({ ...blankLead(), id: uid() }); setEditing(true); setErrors({}); setNewNote(""); };
   const addNote = () => { if (newNote.trim() && draft) { set("notes", [...draft.notes, newNote.trim()]); setNewNote(""); } };
 
   /** Validates and saves the open lead. Returns the saved lead, or null if validation failed. */
@@ -54,19 +56,14 @@ export default function LeadsPage() {
     if (Object.keys(e).length) return null;
     const clean: Lead = { ...d, reason: d.stage === "not_joining" ? d.reason : "", customReason: d.stage === "not_joining" && d.reason === "Other" ? d.customReason.trim() : "", firstName: d.firstName.trim(), lastName: d.lastName.trim() };
     setLeads((l) => (l.some((x) => x.id === clean.id) ? l.map((x) => (x.id === clean.id ? clean : x)) : [clean, ...l]));
-    setDraft(clean); setNewNote(""); toast(isNew ? "Lead added" : "Lead saved");
+    setDraft(clean); setEditing(false); setNewNote(""); toast(isNew ? "Lead added" : "Lead saved");
     return clean;
   };
-  const convert = () => { const l = save(); if (l) router.push(`/members/new?lead=${l.id}`); };
+  const convert = () => { const l = editing ? save() : draft; if (l) router.push(`/members/new?lead=${l.id}`); };
 
   return (
     <>
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-[34px] font-bold tracking-tight">Leads</h2>
-        <Can perm="Create leads"><MotionButton className={btnPrimary} onClick={create}><Plus size={18} />Add Lead</MotionButton></Can>
-      </div>
-
-      <div className={`grid items-start gap-5 ${draft ? "xl:grid-cols-[minmax(0,1fr)_560px]" : ""}`}>
+      <div>
         <section className={`${card} overflow-hidden`}>
           <div className="p-4">
             <div className="mb-4 flex flex-wrap gap-2">
@@ -76,8 +73,11 @@ export default function LeadsPage() {
                 </button>
               ))}
             </div>
-            <label className="relative block"><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-              <input className={`${input} pl-10`} placeholder="Search name, phone or email…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label className="relative block w-full max-w-[340px]"><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                <input className={`${input} pl-10`} placeholder="Search name, phone or email…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+              <Can perm="Create leads"><MotionButton className={btnPrimary} onClick={create}><Plus size={18} />Add Lead</MotionButton></Can>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="rt w-full min-w-[640px] text-left">
@@ -103,9 +103,42 @@ export default function LeadsPage() {
           <div className="border-t border-line"><Pagination {...pg} noun="leads" /></div>
         </section>
 
+        <Offcanvas open={!!draft} onClose={() => setDraft(null)}>
         {draft && (
-          <section className={`${card} p-6`}>
-            <div className="mb-4 flex items-center justify-between"><h3 className="text-2xl font-bold">{isNew ? "New Lead" : leadName(draft)}</h3><button aria-label="Close" onClick={() => setDraft(null)} className="text-muted"><X size={22} /></button></div>
+          <section>
+            <div className="mb-4 flex items-center justify-between"><h3 className="text-2xl font-bold">{isNew ? "New Lead" : editing ? "Edit Lead" : leadName(draft)}</h3>
+              <div className="flex items-center gap-3">
+                {!editing && can("Edit leads") && <MotionButton className={btnGhost} onClick={() => setEditing(true)}><LuPencil size={17} />Edit</MotionButton>}
+                <button aria-label="Close" onClick={() => setDraft(null)} className="text-muted"><X size={22} /></button>
+              </div>
+            </div>
+            {!editing ? (
+              <>
+                <div className="mb-4 flex flex-wrap items-center gap-2"><Pill tone={STAGE_TONE[draft.stage]}>{STAGE_LABEL[draft.stage]}</Pill>{draft.goals.map((g) => <Pill key={g} tone="gray">{g}</Pill>)}</div>
+                <dl className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
+                  {([
+                    ["Phone", draft.phone], ["Email", draft.email], ["Interested Plan", planName(draft.planId)],
+                    ["Reason for Not Joining", draft.stage === "not_joining" ? (draft.reason === "Other" ? draft.customReason : draft.reason) : ""],
+                    ["Expected Start Date", draft.expectedStart && fmtDate(draft.expectedStart)], ["Source", draft.source],
+                    ["Assigned To", people.find((p) => p.id === draft.assignedTo)?.name ?? "Unassigned"],
+                    ["Trial Booked", draft.trialBooked && new Date(draft.trialBooked).toLocaleString()],
+                  ] as const).filter(([k, v]) => v || k !== "Reason for Not Joining").map(([k, v]) => (
+                    <div key={k}><dt className="text-[13px] text-muted">{k}</dt><dd className="font-semibold">{v || "—"}</dd></div>
+                  ))}
+                </dl>
+                <h4 className="mb-2 mt-6 text-lg font-bold">Next Moves</h4>
+                {draft.nextMoves.length === 0 ? <p className="text-muted">No next moves.</p> : (
+                  <ul className="grid gap-2">{draft.nextMoves.map((m) => <li key={m.id} className="rounded-[10px] bg-background px-3 py-2"><b>{fmtDate(m.date)}</b><span className="text-muted"> · {m.description || "—"}</span></li>)}</ul>)}
+                <h4 className="mb-2 mt-6 text-lg font-bold">Notes</h4>
+                {draft.notes.length === 0 ? <p className="text-muted">No notes.</p> : (
+                  <ul className="grid gap-2">{draft.notes.map((n, i) => <li key={`${i}-${n}`} className="rounded-[10px] bg-background px-3 py-2">{n}</li>)}</ul>)}
+                <div className="mt-6 flex flex-wrap items-center gap-5 border-t border-line pt-4">
+                  {can("Delete leads") && <button className="inline-flex items-center gap-1.5 font-semibold text-bad" onClick={() => setDeleting(true)}><Trash2 size={16} />Delete lead</button>}
+                  {draft.stage !== "joined" && can("Create members") && <button className="inline-flex items-center gap-1.5 font-semibold text-primary" onClick={convert}><UserCheck size={16} />Convert to member</button>}
+                </div>
+              </>
+            ) : (
+            <>
             <EditableIf perm={isNew ? "Create leads" : "Edit leads"}>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div><label htmlFor="lf" className={label}>First Name <span className="text-bad">*</span></label><input id="lf" className={input} value={draft.firstName} onChange={(e) => set("firstName", e.target.value)} />{errors.firstName && <p className={errorText}>{errors.firstName}</p>}</div>
@@ -158,10 +191,13 @@ export default function LeadsPage() {
                 {!isNew && can("Delete leads") && <button className="inline-flex items-center gap-1.5 font-semibold text-bad" onClick={() => setDeleting(true)}><Trash2 size={16} />Delete lead</button>}
                 {!isNew && draft.stage !== "joined" && can("Create members") && <button className="inline-flex items-center gap-1.5 font-semibold text-primary" onClick={convert}><UserCheck size={16} />Convert to member</button>}
               </div>
-              <div className="flex gap-3"><MotionButton className={btnGhost} onClick={() => setDraft(null)}><LuX size={17} />Cancel</MotionButton><MotionButton className={btnPrimary} disabled={!can(isNew ? "Create leads" : "Edit leads")} onClick={() => save()}><LuSave size={17} />{isNew ? "Add Lead" : "Save Changes"}</MotionButton></div>
+              <div className="flex gap-3"><MotionButton className={btnGhost} onClick={() => (isNew ? setDraft(null) : (setDraft(leads.find((x) => x.id === draft.id) ?? null), setEditing(false), setErrors({}), setNewNote("")))}><LuX size={17} />Cancel</MotionButton><MotionButton className={btnPrimary} disabled={!can(isNew ? "Create leads" : "Edit leads")} onClick={() => save()}><LuSave size={17} />{isNew ? "Add Lead" : "Save Changes"}</MotionButton></div>
             </div>
+            </>
+            )}
           </section>
         )}
+        </Offcanvas>
       </div>
 
       <ConfirmModal open={deleting} title="Delete lead?" onClose={() => setDeleting(false)} body={<><b>{draft && leadName(draft)}</b> will be removed permanently.</>}

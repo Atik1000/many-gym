@@ -42,10 +42,6 @@ async function TabsCard({ searchParams }: { searchParams: PageProps<"/gym-profil
 function Inner({ searchParams }: PageProps<"/gym-profile">) {
   return (
     <>
-      <div className="mb-5">
-        <h2 className="text-[28px] font-bold tracking-tight">Gym Profile</h2>
-        <p className="text-muted">This is what members and visitors see on your public profile.</p>
-      </div>
       <Suspense fallback={<div className={`${card} h-[400px] animate-pulse`} />}>
         <TabsCard searchParams={searchParams} />
       </Suspense>

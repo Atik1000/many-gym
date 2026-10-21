@@ -54,7 +54,7 @@ function NavContent({ group, onNavigate, collapsed, onToggle }: { group: string;
   return (
     <>
       <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between gap-2 px-2"}`}>
-        {!collapsed && <h2 className="truncate text-[22px] font-extrabold tracking-tight">{title}</h2>}
+        {!collapsed && <h2 className="truncate text-[22px] font-extrabold">{title}</h2>}
         {onToggle && (
           <MotionButton aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={onToggle}
             className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-background text-foreground hover:bg-line"><Toggle size={19} /></MotionButton>

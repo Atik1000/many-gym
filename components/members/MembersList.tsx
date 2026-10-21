@@ -63,12 +63,11 @@ export default function MembersList() {
 
   return (
     <>
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-[34px] font-bold tracking-tight">Members</h2>
-        <Can perm="Create members"><MotionLink href="/members/new" className={btnPrimary}><Plus size={18} />Add Member</MotionLink></Can>
-      </div>
-      <div className={`${card} mb-4 inline-flex max-w-full gap-1 overflow-x-auto p-1.5`}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className={`${card} inline-flex max-w-full gap-1 overflow-x-auto p-1.5`}>
         {TABS.map(([id, t]) => <button key={id} onClick={() => f(setTab)(id)} className={`whitespace-nowrap rounded-[10px] px-5 py-2.5 font-medium ${tab === id ? "bg-primary-50 font-semibold text-primary" : "text-foreground hover:bg-background"}`}>{t}</button>)}
+      </div>
+      <Can perm="Create members"><MotionLink href="/members/new" className={btnPrimary}><Plus size={18} />Add Member</MotionLink></Can>
       </div>
 
       <div className={`${card} overflow-hidden`}>

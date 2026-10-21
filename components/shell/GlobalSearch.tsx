@@ -58,7 +58,7 @@ export default function GlobalSearch() {
   return (
     <>
       <motion.button whileTap={{ scale: 0.98 }} onClick={() => setOpen(true)} aria-label="Search"
-        className="ml-auto flex items-center gap-2 rounded-[10px] border border-line bg-background p-2 text-muted transition-colors hover:border-primary/40 md:w-[300px] md:px-3 xl:w-[340px]">
+        className="flex items-center gap-2 rounded-[10px] border border-line bg-background p-2 text-muted transition-colors hover:border-primary/40 md:w-[300px] md:px-3 xl:w-[340px]">
         <LuSearch size={18} />
         <span className="hidden flex-1 text-left md:block">Search members, leads, plans…</span>
         <kbd className="hidden rounded-md border border-line bg-surface px-1.5 text-[11px] font-semibold md:block">⌘K</kbd>

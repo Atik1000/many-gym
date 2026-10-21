@@ -28,7 +28,11 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: 14px;
+  letter-spacing: normal;
 }
+
+/* one typeface and one letter-spacing everywhere, including form controls */
+button, input, select, textarea { font-family: inherit; letter-spacing: inherit; }
 
 button:not(:disabled), [role="button"] { cursor: pointer; }
 :focus-visible { outline: 2px solid color-mix(in srgb, var(--color-primary) 60%, transparent); outline-offset: 2px; }

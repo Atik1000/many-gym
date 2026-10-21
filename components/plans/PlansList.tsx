@@ -66,12 +66,7 @@ export default function PlansList() {
 
   return (
     <>
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-[28px] font-bold tracking-tight">Membership Plans</h2>
-        <Can perm="Create plans"><MotionLink href="/plans/new" className={btnPrimary}><Plus size={18} />Create Plan</MotionLink></Can>
-      </div>
-
-      <div className={`${card} mb-4 grid grid-cols-1 gap-3 p-4 md:grid-cols-[minmax(0,1fr)_200px_200px]`}>
+      <div className={`${card} mb-4 grid grid-cols-1 gap-3 p-4 md:grid-cols-[minmax(0,1fr)_200px_200px_auto]`}>
         <label className="relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input className={`${input} pl-10`} placeholder="Search plans…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -82,6 +77,7 @@ export default function PlansList() {
         <select aria-label="Type" className={input} value={type} onChange={(e) => setType(e.target.value as typeof type)}>
           <option value="all">All Types</option><option value="time">Time based</option><option value="session">Session based</option>
         </select>
+        <Can perm="Create plans"><MotionLink href="/plans/new" className={`${btnPrimary} whitespace-nowrap`}><Plus size={18} />Create Plan</MotionLink></Can>
       </div>
 
       <div className="mb-3 flex gap-1 border-b border-line px-2">

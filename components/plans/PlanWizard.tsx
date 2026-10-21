@@ -276,7 +276,7 @@ function Wizard({ initial, editing }: { initial: Plan; editing: boolean }) {
 
   return (
     <>
-      <h2 className="mb-5 text-[28px] font-bold tracking-tight">{editing ? `Edit ${initial.name}` : "Create Membership Plan"}</h2>
+      <h2 className="mb-5 text-[28px] font-bold">{editing ? `Edit ${initial.name}` : "Create Membership Plan"}</h2>
       <ol className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2">
         {STEPS.map((t, i) => {
           const n = i + 1, complete = editing ? n < step : n <= done && n !== step, current = n === step;

@@ -2,7 +2,7 @@
 
 import { MotionButton } from "@/components/ui/Motion";
 import { useState } from "react";
-import { LuChevronRight as ChevronRight, LuPlus as Plus, LuSearch as Search, LuTrash2 as Trash2, LuX as X, LuSave, LuX } from "react-icons/lu";
+import { LuChevronRight as ChevronRight, LuPlus as Plus, LuSearch as Search, LuTrash2 as Trash2, LuX as X, LuPencil, LuSave, LuX } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmModal, MultiSelect, Pagination, Pill, Select, usePaged } from "@/components/ui/parts";
 import { useResource } from "@/lib/api";
@@ -10,6 +10,7 @@ import { btnGhost, btnPrimary, card, errorText, input, label } from "@/lib/ui";
 import { GOALS, LEVELS, blankDays, blankRoutine, cleanRoutine, newSession, validateRoutine, type Routine } from "@/lib/routines";
 import { uid } from "@/lib/id";
 import RoutineEditor from "./RoutineEditor";
+import RoutineViewer from "./RoutineViewer";
 import { Can, EditableIf, useAuth } from "@/components/AuthProvider";
 
 export const ROUTINES_KEY = "routines";
@@ -22,6 +23,7 @@ export default function TemplatesPage() {
   const [q, setQ] = useState("");
   const [format, setFormat] = useState("all");
   const [draft, setDraft] = useState<Routine | null>(null); // null = nothing open
+  const [editing, setEditing] = useState(false); // false = read-only details view
   const [errors, setErrors] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
   const [editorKey, setEditorKey] = useState(0); // remount editor so its day/session tab resets
@@ -29,8 +31,8 @@ export default function TemplatesPage() {
   const shownAll = templates.filter((t) => (format === "all" || t.format === format) && t.name.toLowerCase().includes(q.trim().toLowerCase()));
   const pg = usePaged(shownAll, 6, `${format}|${q}`);
   const shown = pg.view;
-  const open = (t: Routine) => { setDraft(structuredClone(t)); setErrors([]); setEditorKey((k) => k + 1); };
-  const create = () => { setDraft(blankRoutine("weekly")); setErrors([]); setEditorKey((k) => k + 1); };
+  const open = (t: Routine) => { setDraft(structuredClone(t)); setEditing(false); setErrors([]); setEditorKey((k) => k + 1); };
+  const create = () => { setDraft(blankRoutine("weekly")); setEditing(true); setErrors([]); setEditorKey((k) => k + 1); };
   const isNew = draft !== null && !templates.some((t) => t.id === draft.id);
 
   const setFormatOf = (f: Routine["format"]) => setDraft((d) => d && ({
@@ -47,22 +49,19 @@ export default function TemplatesPage() {
     const clean = cleanRoutine({ ...draft, id: draft.id || uid() });
     setTemplates((l) => (l.some((t) => t.id === clean.id) ? l.map((t) => (t.id === clean.id ? clean : t)) : [clean, ...l]));
     setDraft(clean);
+    setEditing(false);
     toast(isNew ? "Template created" : "Template saved");
   };
 
   return (
     <>
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-[28px] font-bold tracking-tight">Routine Templates</h2>
-        <Can perm="Create templates"><MotionButton className={btnPrimary} onClick={create}><Plus size={18} />Create Template</MotionButton></Can>
-      </div>
-
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
         <aside className={`${card} p-4`}>
           <label className="relative block">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <input className={`${input} pl-10`} placeholder="Search templates…" value={q} onChange={(e) => setQ(e.target.value)} />
           </label>
+          <Can perm="Create templates"><MotionButton className={`${btnPrimary} mt-3 w-full`} onClick={create}><Plus size={18} />Create Template</MotionButton></Can>
           <label className="mt-4 block"><span className={label}>Format</span>
             <Select value={format} onChange={(e) => setFormat(e.target.value)}><option value="all">All Formats</option><option value="weekly">Weekly</option><option value="session">Session-Based</option></Select>
           </label>
@@ -90,10 +89,26 @@ export default function TemplatesPage() {
           </section>
         ) : (
           <section className={`${card} p-6`}>
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-2xl font-bold">{isNew ? "New Template" : "Edit Template"}</h3>
-              <button aria-label="Close editor" onClick={() => setDraft(null)} className="text-muted"><X size={22} /></button>
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <h3 className="text-2xl font-bold">{!editing ? draft.name : isNew ? "New Template" : "Edit Template"}</h3>
+              <div className="flex items-center gap-3">
+                {!editing && can("Edit templates") && <MotionButton className={btnGhost} onClick={() => setEditing(true)}><LuPencil size={17} />Edit</MotionButton>}
+                <button aria-label="Close" onClick={() => setDraft(null)} className="text-muted"><X size={22} /></button>
+              </div>
             </div>
+            {!editing ? (
+              <>
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <Pill tone="purple">{draft.format === "weekly" ? "Weekly" : "Session-Based"}</Pill>
+                  <Pill tone={levelTone[draft.level]}>{draft.level}</Pill>
+                  {draft.goals.map((g) => <Pill key={g} tone="gray">{g}</Pill>)}
+                </div>
+                {draft.notes && <p className="mb-5 text-muted">{draft.notes}</p>}
+                <hr className="mb-5 border-line" />
+                <RoutineViewer key={draft.id} routine={draft} />
+              </>
+            ) : (
+            <>
             <EditableIf perm={isNew ? "Create templates" : "Edit templates"}>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div><label htmlFor="tn" className={label}>Template Name <span className="text-bad">*</span></label>
@@ -114,10 +129,12 @@ export default function TemplatesPage() {
             <div className="mt-6 flex items-center justify-between border-t border-line pt-4">
               {!isNew && can("Delete templates") ? <button className="inline-flex items-center gap-1.5 font-semibold text-bad" onClick={() => setDeleting(true)}><Trash2 size={16} />Delete template</button> : <span />}
               <div className="flex gap-3">
-                <MotionButton className={btnGhost} onClick={() => setDraft(null)}><LuX size={17} />Cancel</MotionButton>
+                <MotionButton className={btnGhost} onClick={() => (isNew ? setDraft(null) : (setDraft(templates.find((t) => t.id === draft.id) ?? null), setEditing(false), setErrors([])))}><LuX size={17} />Cancel</MotionButton>
                 <MotionButton className={btnPrimary} disabled={!can(isNew ? "Create templates" : "Edit templates")} onClick={save}><LuSave size={17} />Save Template</MotionButton>
               </div>
             </div>
+            </>
+            )}
           </section>
         )}
       </div>

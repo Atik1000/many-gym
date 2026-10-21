@@ -5,14 +5,15 @@ import { MotionButton } from "@/components/ui/Motion";
 import { useState } from "react";
 import { useGym } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
-import { DAYS, type DayHours } from "@/lib/gym-data";
+import { DAYS, fmtTime, type DayHours } from "@/lib/gym-data";
 import { btnGhost, errorText, input } from "@/lib/ui";
 import SaveBar from "./SaveBar";
+import SectionCard from "./SectionCard";
 import TabSkeleton from "./Skeleton";
 
 type Hours = Record<string, DayHours>;
 
-function Form({ initial, onSave }: { initial: Hours; onSave: (h: Hours) => void }) {
+function Form({ initial, onSave, onDiscard }: { initial: Hours; onSave: (h: Hours) => void; onDiscard: () => void }) {
   const toast = useToast();
   const [saved, setSaved] = useState(initial);
   const [hours, setHours] = useState(initial);
@@ -53,13 +54,35 @@ function Form({ initial, onSave }: { initial: Hours; onSave: (h: Hours) => void 
           </div>
         ))}
       </div>
-      <SaveBar dirty={dirty} onSave={save} onReset={() => { setHours(saved); setErrors({}); }} />
+      <SaveBar dirty={dirty} alwaysDiscard onSave={save} onReset={onDiscard} />
+    </div>
+  );
+}
+
+function View({ hours }: { hours: Hours }) {
+  return (
+    <div className="divide-y divide-line rounded-xl border border-line">
+      {DAYS.map((d) => (
+        <div key={d} className="flex flex-wrap items-center gap-4 px-4 py-3">
+          <span className="w-28 font-semibold">{d}</span>
+          {hours[d]?.open
+            ? <><span className="text-ok">Open</span><span className="ml-auto">{fmtTime(hours[d].start)} – {fmtTime(hours[d].end)}</span></>
+            : <><span className="text-muted">Closed</span><span className="ml-auto text-muted">—</span></>}
+        </div>
+      ))}
     </div>
   );
 }
 
 export default function HoursTab() {
   const [gym, setGym, ready] = useGym();
+  const [editing, setEditing] = useState(false);
   if (!ready || !gym) return <TabSkeleton />;
-  return <Form initial={gym.hours} onSave={(hours) => setGym((g) => ({ ...g, hours }))} />;
+  return (
+    <SectionCard title="Opening hours" editing={editing} onToggle={() => setEditing((v) => !v)}>
+      {editing
+        ? <Form initial={gym.hours} onSave={(hours) => { setGym((g) => ({ ...g, hours })); setEditing(false); }} onDiscard={() => setEditing(false)} />
+        : <View hours={gym.hours} />}
+    </SectionCard>
+  );
 }

@@ -43,7 +43,7 @@ export default function PlanDetail() {
     <>
       <nav className="mb-3 text-muted"><Link href="/plans" className="hover:text-foreground">Membership Plans</Link> <span className="mx-1.5">/</span> <b className="text-foreground">{plan.name}</b></nav>
       <div className="mb-5 flex items-center gap-4">
-        <h2 className="text-[34px] font-bold tracking-tight">{plan.name}</h2>
+        <h2 className="text-[34px] font-bold">{plan.name}</h2>
         <StatusBadge status={plan.status} />
         <div className="ml-auto flex items-center gap-3">
           <Can perm="Edit plans"><MotionLink href={`/plans/${plan.id}/edit`} className={btnPrimary}><Pencil size={17} />Edit Plan</MotionLink></Can>

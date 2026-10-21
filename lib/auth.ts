@@ -17,8 +17,27 @@ const passwords = () => read<Record<string, string>>(PASS_KEY, {});
 const people = () => readResource<Person>(PEOPLE_KEY);
 const notifySession = () => window.dispatchEvent(new Event("manygym:session"));
 
-function startSession(personId: string) { localStorage.setItem(SESSION_KEY, personId); notifySession(); }
-export function signOut() { localStorage.removeItem(SESSION_KEY); notifySession(); }
+// Accounts that have signed in on this device (like Facebook's saved profiles). Only these can be switched to without a password.
+const KNOWN_KEY = "manygym.accounts.v1";
+export const knownAccountIds = () => read<string[]>(KNOWN_KEY, []);
+export function rememberAccount(personId: string) {
+  const ids = knownAccountIds();
+  if (!ids.includes(personId)) localStorage.setItem(KNOWN_KEY, JSON.stringify([...ids, personId]));
+}
+
+function startSession(personId: string) { rememberAccount(personId); localStorage.setItem(SESSION_KEY, personId); notifySession(); }
+/** Signing out forgets this account on the device, so signing back in needs the password again. */
+export function signOut() {
+  const me = localStorage.getItem(SESSION_KEY);
+  if (me) localStorage.setItem(KNOWN_KEY, JSON.stringify(knownAccountIds().filter((id) => id !== me)));
+  localStorage.removeItem(SESSION_KEY); notifySession();
+}
+/** Switch to another account that is already signed in on this device. Returns false if it isn't. */
+export function switchAccount(personId: string): boolean {
+  if (!knownAccountIds().includes(personId) || !people().some((p) => p.id === personId && p.status === "active")) return false;
+  localStorage.setItem(SESSION_KEY, personId); notifySession();
+  return true;
+}
 
 // brute-force brake: 5 wrong passwords lock that email for a minute
 const tries = new Map<string, { n: number; until: number }>();

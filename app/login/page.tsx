@@ -31,7 +31,7 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-background px-4 py-10">
       <div className="w-full max-w-[420px]">
-        <div className="mb-6 flex items-center justify-center gap-2.5 text-[26px] font-extrabold tracking-tight">
+        <div className="mb-6 flex items-center justify-center gap-2.5 text-[26px] font-extrabold">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#7a5cff] to-primary-600 text-xl text-white">m</span>manygym
         </div>
         <form onSubmit={submit} className={`${card} p-7`}>

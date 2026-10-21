@@ -26,7 +26,7 @@ export default function StudioHeader() {
         {o.profileUrl ? <img src={o.profileUrl} alt="" className="h-24 w-24 shrink-0 rounded-full border-[4px] border-white bg-[#0e0e14] object-cover shadow sm:h-[140px] sm:w-[140px] sm:border-[5px]" />
           : <div className="grid h-24 w-24 shrink-0 place-items-center rounded-full border-[4px] sm:h-[140px] sm:w-[140px] sm:border-[5px] border-white bg-[#0e0e14] text-center font-extrabold text-white shadow">{o.name}</div>}
         <div className="min-w-0 flex-1 pb-1.5">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{o.name}</h2>
+          <h2 className="text-2xl font-bold sm:text-3xl">{o.name}</h2>
           <div className="text-base text-muted sm:text-[17px]">{gym.tagline}</div>
           <div className="mt-1 flex items-center gap-1.5 text-muted"><MapPin size={16} />{gym.location.city}, {gym.location.country}</div>
         </div>

@@ -107,7 +107,7 @@ export default function MemberDetail() {
       <div className="mb-5 flex flex-wrap items-center gap-5">
         <Avatar name={fullName(m)} src={m.photo} size={96} />
         <div>
-          <h2 className="text-[34px] font-bold tracking-tight">{fullName(m)}</h2>
+          <h2 className="text-[34px] font-bold">{fullName(m)}</h2>
           <div className="flex flex-wrap items-center gap-3 text-muted"><span>Member ID {m.memberNo}</span><span>|</span><span>Joined {fmtDate(m.joinedAt)}</span>
             <Pill tone={STATUS_TONE[st]}><Dot tone={STATUS_TONE[st]} />{cap(st)}</Pill>
             {m.joiningStatus === "sent_invitation" && <Pill tone="amber">Invitation sent</Pill>}</div>

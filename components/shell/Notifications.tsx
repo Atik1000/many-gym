@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { LuBanknote, LuBell, LuCalendarClock, LuPartyPopper, LuTimer } from "react-icons/lu";
@@ -13,6 +13,11 @@ import { MEMBERS_KEY, currentMembership, fullName, isExpiringSoon, paymentStatus
 
 type Alert = { key: string; icon: IconType; tone: string; title: string; detail: string; href: string };
 
+const READ_KEY = "notifications-read";
+const READ_EVENT = "manygym:notifications-read";
+const subscribeRead = (cb: () => void) => { window.addEventListener(READ_EVENT, cb); window.addEventListener("storage", cb); return () => { window.removeEventListener(READ_EVENT, cb); window.removeEventListener("storage", cb); }; };
+const idOf = (a: Alert) => `${a.key}|${a.title}|${a.detail}`;
+
 const names = (list: string[]) => (list.length <= 2 ? list.join(" and ") : `${list.slice(0, 2).join(", ")} +${list.length - 2} more`);
 
 /** The bell: things that need attention today, worked out from the data the signed-in role can already see. */
@@ -21,6 +26,9 @@ export default function Notifications() {
   const [members] = useResource<Member>(MEMBERS_KEY);
   const [leads] = useResource<Lead>(LEADS_KEY);
   const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const stored = useSyncExternalStore(subscribeRead, () => { try { return localStorage.getItem(READ_KEY) ?? "[]"; } catch { return "[]"; } }, () => "[]");
+  const read = useMemo<string[]>(() => { try { return JSON.parse(stored); } catch { return []; } }, [stored]);
 
   const alerts = useMemo<Alert[]>(() => {
     const out: Alert[] = [];
@@ -42,28 +50,48 @@ export default function Notifications() {
     return out;
   }, [members, leads, can, trainerOnly, user]);
 
+  const markRead = (a: Alert) => {
+    const next = [...new Set([...read, idOf(a)])];
+    try { localStorage.setItem(READ_KEY, JSON.stringify(next)); window.dispatchEvent(new Event(READ_EVENT)); } catch { /* storage unavailable */ }
+  };
+  const isUnread = (a: Alert) => !read.includes(idOf(a));
+  const unread = alerts.filter(isUnread);
+  const shown = filter === "unread" ? unread : alerts;
+
   return (
     <div className="relative">
-      <motion.button whileTap={{ scale: 0.9 }} aria-label={`Notifications${alerts.length ? `, ${alerts.length} new` : ""}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}
+      <motion.button whileTap={{ scale: 0.9 }} aria-label={`Notifications${unread.length ? `, ${unread.length} new` : ""}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}
         className="relative rounded-lg p-1.5 text-muted transition-colors hover:bg-background hover:text-foreground">
-        <motion.span className="block" animate={alerts.length ? { rotate: [0, -14, 12, -8, 0] } : {}} transition={{ duration: 0.7, delay: 0.6 }}><LuBell size={20} /></motion.span>
-        {alerts.length > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-[17px] min-w-[17px] place-items-center rounded-full border-2 border-surface bg-bad px-1 text-[10px] font-bold text-white">{alerts.length}</span>}
+        <motion.span className="block" animate={unread.length ? { rotate: [0, -14, 12, -8, 0] } : {}} transition={{ duration: 0.7, delay: 0.6 }}><LuBell size={20} /></motion.span>
+        {unread.length > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-[17px] min-w-[17px] place-items-center rounded-full border-2 border-surface bg-bad px-1 text-[10px] font-bold text-white">{unread.length}</span>}
       </motion.button>
       <AnimatePresence>
         {open && (
           <>
             <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
             <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.14 }}
-              className="fixed inset-x-3 top-[64px] z-30 origin-top-right rounded-xl border border-line bg-surface p-2 shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:w-[340px]">
-              <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted">Needs attention</p>
-              {alerts.length === 0 && <p className="px-3 py-6 text-center text-muted">You&apos;re all caught up.</p>}
-              {alerts.map((a, i) => (
-                <motion.div key={a.key} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
-                  <Link href={a.href} onClick={() => setOpen(false)} className="flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-background">
-                    <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full ${a.tone}`}><a.icon size={18} /></span>
-                    <span className="min-w-0"><b className="block font-semibold">{a.title}</b><span className="block truncate text-[13px] text-muted">{a.detail}</span></span>
-                  </Link>
-                </motion.div>
+              className="fixed inset-x-3 top-[64px] z-30 origin-top-right rounded-xl border border-line bg-surface p-2 shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:w-[360px]">
+              <p className="px-3 pb-1 pt-2 text-[22px] font-bold leading-tight">Notifications</p>
+              <div className="flex gap-1.5 px-3 pb-1 pt-1" role="tablist" aria-label="Filter notifications">
+                {(["all", "unread"] as const).map((f) => (
+                  <button key={f} role="tab" aria-selected={filter === f} onClick={() => setFilter(f)}
+                    className={`rounded-full px-3.5 py-1.5 text-[14px] font-semibold capitalize transition-colors ${filter === f ? "bg-primary-50 text-primary" : "text-foreground hover:bg-background"}`}>{f}</button>
+                ))}
+              </div>
+              {shown.length === 0 && <p className="px-3 py-6 text-center text-muted">{filter === "unread" ? "No unread notifications." : "You\u2019re all caught up."}</p>}
+              {([["New", shown.filter(isUnread)], ["Earlier", shown.filter((a) => !isUnread(a))]] as const).map(([label, list]) => list.length > 0 && (
+                <div key={label}>
+                  <p className="px-3 pb-1 pt-3 text-[15px] font-bold">{label}</p>
+                  {list.map((a, i) => (
+                    <motion.div key={a.key} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
+                      <Link href={a.href} onClick={() => { markRead(a); setOpen(false); }} className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-background">
+                        <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-full ${a.tone}`}><a.icon size={26} /></span>
+                        <span className="min-w-0 flex-1"><b className="block text-[14px] font-semibold">{a.title}</b><span className="block truncate text-[13px] text-muted">{a.detail}</span></span>
+                        {isUnread(a) && <span aria-label="Unread" className="h-3 w-3 shrink-0 rounded-full bg-primary" />}
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
               ))}
             </motion.div>
           </>

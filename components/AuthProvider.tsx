@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { LuLock as Lock, LuArrowRight } from "react-icons/lu";
 import { PEOPLE_KEY, ROLES_KEY, type Person, type Role } from "@/lib/people";
 import { useResource } from "@/lib/api";
-import { SESSION_KEY, signOut } from "@/lib/auth";
+import { SESSION_KEY, rememberAccount, signOut } from "@/lib/auth";
 import { NAV } from "@/lib/nav";
 import { btnPrimary, card } from "@/lib/ui";
 
@@ -43,6 +43,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const role = useMemo(() => roles.find((r) => r.id === user?.roleId) ?? null, [roles, user]);
   const signedOut = pReady && !user; // no session, or that person was removed
   useEffect(() => { if (signedOut) router.replace("/login"); }, [signedOut, router]);
+  useEffect(() => { if (user) rememberAccount(user.id); }, [user]); // sessions started before accounts were remembered
 
   const value = useMemo<Auth>(() => {
     const granted = new Set(Object.values(role?.permissions ?? {}).flat());
