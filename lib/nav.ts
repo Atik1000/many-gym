@@ -1,4 +1,4 @@
-import { LuChartColumn as BarChart3, LuCreditCard as CreditCard, LuFileText as FileText, LuHouse as Home, LuShieldCheck as ShieldCheck, LuStore as Store, LuUserPlus as UserPlus, LuUsers as Users } from "react-icons/lu";
+import { LuMessageSquare as MessageSquare, LuChartColumn as BarChart3, LuCreditCard as CreditCard, LuFileText as FileText, LuHouse as Home, LuShieldCheck as ShieldCheck, LuStore as Store, LuUserPlus as UserPlus, LuUsers as Users } from "react-icons/lu";
 import type { IconType } from "react-icons";
 
 export type NavItem = { href: string; label: string; icon: IconType; ready: boolean; perm?: string };
@@ -13,6 +13,7 @@ export const NAV: NavItem[] = [
   { href: "/leads", perm: "View leads", label: "Leads", icon: UserPlus, ready: true },
   { href: "/routines", perm: "View templates", label: "Routine Templates", icon: FileText, ready: true },
   { href: "/people", perm: "View people", label: "People & Roles", icon: ShieldCheck, ready: true },
+  { href: "/messages", label: "Messages", icon: MessageSquare, ready: true },
 ];
 
 // pages reachable without a sidebar entry still need a title for the sidebar header

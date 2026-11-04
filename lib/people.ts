@@ -11,8 +11,19 @@ export const PERMISSION_GROUPS: { group: string; actions: string[] }[] = [
 ];
 
 export type Permissions = Record<string, string[]>;
-export type Role = { id: string; name: string; description?: string; builtIn: boolean; permissions: Permissions };
-export type Person = { id: string; name: string; email: string; roleId: string; status: "active" | "invited" };
+export type Role = { id: string; name: string; slug?: string; description?: string; builtIn: boolean; permissions: Permissions };
+export type Person = {
+  id: string;
+  name: string;
+  email: string;
+  /** The server's role id (a UUID) — never a readable name, so don't compare it to one. */
+  roleId: string;
+  /** The role's display name, carried on the person so screens don't need the roles list to label them. */
+  roleName: string;
+  /** The role's slug, e.g. "trainer" — what role *kind* checks should use. */
+  roleSlug?: string;
+  status: "active" | "invited";
+};
 
 const all = (g: string) => PERMISSION_GROUPS.find((x) => x.group === g)!.actions;
 
@@ -36,17 +47,25 @@ export const SEED_ROLES = (): Role[] => [
   },
 ];
 
-export const SEED_PEOPLE = (): Person[] => [
+export const SEED_PEOPLE = (): Person[] => (<Person[]>[
   { id: "p-olivia", name: "Olivia Parker", email: "olivia.parker@example.com", roleId: "administrator", status: "active" },
   { id: "p-sarah", name: "Sarah Collins", email: "sarah.collins@example.com", roleId: "staff", status: "active" },
   { id: "p-alex", name: "Alex Morgan", email: "alex.morgan@example.com", roleId: "trainer", status: "active" },
   { id: "p-priya", name: "Priya Shah", email: "priya.shah@example.com", roleId: "trainer", status: "active" },
   { id: "p-jamie", name: "Jamie Reed", email: "jamie.reed@example.com", roleId: "membership-manager", status: "invited" },
   { id: "p-emma", name: "", email: "emma@example.com", roleId: "trainer", status: "invited" },
-];
+]).map((p) => ({ ...p, roleName: p.roleId, roleSlug: p.roleId }));
 
 export const PEOPLE_KEY = "people";
 export const ROLES_KEY = "roles";
 export const displayName = (p: Person) => p.name || "Invitation pending";
+
+/**
+ * Role *kind* checks. Role ids are server-assigned UUIDs, so a screen can't ask whether `roleId === "trainer"`;
+ * it has to go by the role's slug (or its name, when the server doesn't send one).
+ */
+const roleKey = (p: Person) => (p.roleSlug || p.roleName || "").toLowerCase().replace(/[\s_]+/g, "-");
+export const isTrainer = (p: Person) => roleKey(p).includes("trainer");
+export const isAdministrator = (p: Person) => /admin|owner/.test(roleKey(p));
 export const permCount = (r: Role) => Object.values(r.permissions).reduce((n, a) => n + a.length, 0);
 export const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());

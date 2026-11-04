@@ -11,12 +11,26 @@ export type Membership = {
   extras: { name: string; price: number }[]; start: string; end: string; sessionsTotal: number; sessionsUsed: number; payments: Payment[];
 };
 export type Member = {
-  id: string; memberNo: string; firstName: string; lastName: string; email: string; phone: string;
+  id: string;
+  /** The user account behind this member, when they have one — needed to message or follow them. */
+  userId?: string;
+  memberNo: string; firstName: string; lastName: string; email: string; phone: string;
   address: string; city: string; country: string; dob: string; sex: string; nationality: string;
   emergency: { name: string; phone: string; relationship: string };
-  memberships: Membership[]; trainerId: string; routine: Routine | null;
+  memberships: Membership[];
+  /** Staff-assignment id of the assigned trainer — matches a `Person.id` in the people list. */
+  trainerId: string;
+  /** The trainer's user-account id, when the API reports it. `trainerId` lives in a different id space. */
+  trainerUserId?: string;
+  routine: Routine | null;
   joiningStatus: "joined" | "sent_invitation"; notes: string; joinedAt: string; hold: "" | "paused" | "cancelled";
   photo: string; // small data-URL thumbnail ("" = none)
+  /**
+   * What the server already worked out for the directory listing. `GET /members/` returns a summary row with no
+   * subscriptions, so for list rows these are the only truth available; a member loaded from `GET /members/{id}/`
+   * has real `memberships` and the helpers below prefer those.
+   */
+  derived?: { status?: MemberStatus; payment?: PaymentStatus; planName?: string; expiry?: string };
 };
 
 export type MemberStatus = "scheduled" | "active" | "paused" | "expired" | "cancelled";
@@ -24,6 +38,10 @@ export type PaymentStatus = "paid" | "partial" | "unpaid";
 export const MEMBERS_KEY = "members";
 export const PAYMENT_METHODS = ["Card", "Cash", "Bank transfer", "Direct debit", "Other"];
 export const EXPIRING_DAYS = 14;
+
+/** True when `userId` is the trainer assigned to this member. */
+export const isAssignedTrainer = (m: Member, userId: string | undefined) =>
+  !!userId && (m.trainerUserId === userId || m.trainerId === userId);
 
 export const fullName = (m: Pick<Member, "firstName" | "lastName">) => `${m.firstName} ${m.lastName}`.trim();
 export const currentMembership = (m: Member) => [...m.memberships].sort((a, b) => b.start.localeCompare(a.start))[0];
@@ -39,15 +57,27 @@ export function paymentStatus(ms: Membership): PaymentStatus {
 export function memberStatus(m: Member, now = today()): MemberStatus {
   if (m.hold) return m.hold;
   const ms = currentMembership(m);
-  if (!ms) return "expired";
+  if (!ms) return m.derived?.status ?? "expired";
   if (now < ms.start) return "scheduled";
   if (now > ms.end) return "expired";
   return "active";
 }
 export const isExpiringSoon = (m: Member, now = today()) => {
-  const ms = currentMembership(m);
-  return memberStatus(m, now) === "active" && !!ms && daysBetween(now, ms.end) <= EXPIRING_DAYS;
+  const end = currentMembership(m)?.end ?? m.derived?.expiry;
+  return memberStatus(m, now) === "active" && !!end && daysBetween(now, end) <= EXPIRING_DAYS;
 };
+
+/** Payment state of a member, whether or not their subscriptions have been loaded. */
+export function memberPaymentStatus(m: Member): PaymentStatus {
+  const ms = currentMembership(m);
+  return ms ? paymentStatus(ms) : m.derived?.payment ?? "paid";
+}
+/** Amount owed across loaded subscriptions (0 for a summary row, which carries no amounts). */
+export const memberBalance = (m: Member) => m.memberships.reduce((s, ms) => s + balance(ms), 0);
+/** Plan shown in the directory: the loaded subscription's plan, else the server's summary. */
+export const memberPlanName = (m: Member) => currentMembership(m)?.planName ?? m.derived?.planName ?? "";
+/** Expiry shown in the directory. */
+export const memberExpiry = (m: Member) => currentMembership(m)?.end ?? m.derived?.expiry ?? "";
 
 /** Time-based: end = start + duration − 1 day (1 Oct + 1 month → 31 Oct). Session packs: admin chooses the expiry. */
 export function endDate(plan: Plan, start: string): string {
@@ -65,7 +95,7 @@ export function buildMembership(plan: Plan, start: string, end: string, extras: 
 
 export const memberNo = (n: number) => `MG-${String(n).padStart(5, "0")}`;
 export const blankMember = (): Member => ({
-  id: "", memberNo: "", firstName: "", lastName: "", email: "", phone: "", address: "", city: "", country: "", dob: "", sex: "", nationality: "",
+  id: "", userId: undefined, memberNo: "", firstName: "", lastName: "", email: "", phone: "", address: "", city: "", country: "", dob: "", sex: "", nationality: "",
   emergency: { name: "", phone: "", relationship: "" }, memberships: [], trainerId: "", routine: null, joiningStatus: "sent_invitation", notes: "", joinedAt: today(), hold: "", photo: "",
 });
 

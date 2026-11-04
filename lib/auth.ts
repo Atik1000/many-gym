@@ -1,76 +1,306 @@
 "use client";
 
-// Front-end-only sign-in. There's no server, so "login" checks the dummy people stored in this browser and remembers
-// the person in localStorage. Replace signIn/… with calls to a real login API later; the rest of the app only uses
-// `useAuth()` (components/AuthProvider.tsx).
-import { readResource, writeResource } from "./api";
-import { PEOPLE_KEY, type Person } from "./people";
+/**
+ * Sign-in against the Many Gym API.
+ *
+ * The server issues a JWT pair that carries the *context* it was minted in: `personal`, or `gym` with a gym id
+ * and the permission scopes that gym grants this user. The admin panel needs a gym-context token, so signing in
+ * is two calls — `POST /auth/login/`, then `POST /auth/switch-context/` for the first gym the account can reach.
+ *
+ * Known gap: the API has no refresh endpoint. When the access token expires the only route back is a fresh
+ * sign-in, which `setUnauthorizedHandler` turns into a redirect to /login.
+ */
+import * as api from "./api/endpoints";
+import type * as T from "./api/types";
+import { ApiError, getTokens, setTokens, type Tokens } from "./api/http";
+import { firstAvailable } from "./api/fallback";
+import { invalidateAll } from "./api";
 
-export const SESSION_KEY = "manygym.session.v1";
-const PASS_KEY = "manygym.passwords.v1";
-/** Every seeded person signs in with this until they set their own. */
-export const DEMO_PASSWORD = "manygym123";
 export const MIN_PASSWORD = 8;
 
-const read = <T,>(key: string, fallback: T): T => { try { return JSON.parse(localStorage.getItem(key) ?? "null") ?? fallback; } catch { return fallback; } };
-const passwords = () => read<Record<string, string>>(PASS_KEY, {});
-const people = () => readResource<Person>(PEOPLE_KEY);
+/**
+ * Identity, password and OTP are published twice — once under `/auth/*` and once under `/users/*` — with
+ * identical contracts and no stated canonical. Each call tries `/auth/*` first and falls back to `/users/*`,
+ * so the app works whichever a deployment actually serves.
+ */
+const either = <X,>(feature: string, authCall: () => Promise<X>, usersCall: () => Promise<X>) =>
+  firstAvailable(feature, [
+    { path: `/auth/${feature}`, call: authCall },
+    { path: `/users/${feature}`, call: usersCall },
+  ]);
+/** Kept for the "which account am I" lookups the UI does; the real session lives in the token store. */
+export const SESSION_KEY = "manygym.session.v1";
+const KNOWN_KEY = "manygym.accounts.v1";
+const ME_KEY = "manygym.me.v1";
+
+const read = <X,>(key: string, fallback: X): X => {
+  try {
+    return (JSON.parse(localStorage.getItem(key) ?? "null") as X) ?? fallback;
+  } catch {
+    return fallback;
+  }
+};
 const notifySession = () => window.dispatchEvent(new Event("manygym:session"));
 
-// Accounts that have signed in on this device (like Facebook's saved profiles). Only these can be switched to without a password.
-const KNOWN_KEY = "manygym.accounts.v1";
+export type Me = {
+  userId: string;
+  email: string;
+  name: string;
+  gymId: string | null;
+  gymName: string | null;
+  /** Permission scopes from the gym-context token, e.g. "members:read". */
+  scopes: string[];
+  isOwner: boolean;
+  roleName: string;
+  accessibleGyms: { id: string; name: string; role: string; isOwner: boolean }[];
+};
+
+export const cachedMe = (): Me | null => read<Me | null>(ME_KEY, null);
+
+// Accounts that have signed in on this device, so the account switcher can list them.
 export const knownAccountIds = () => read<string[]>(KNOWN_KEY, []);
-export function rememberAccount(personId: string) {
+export function rememberAccount(id: string) {
   const ids = knownAccountIds();
-  if (!ids.includes(personId)) localStorage.setItem(KNOWN_KEY, JSON.stringify([...ids, personId]));
+  if (!ids.includes(id)) localStorage.setItem(KNOWN_KEY, JSON.stringify([...ids, id]));
 }
 
-function startSession(personId: string) { rememberAccount(personId); localStorage.setItem(SESSION_KEY, personId); notifySession(); }
-/** Signing out forgets this account on the device, so signing back in needs the password again. */
-export function signOut() {
-  const me = localStorage.getItem(SESSION_KEY);
-  if (me) localStorage.setItem(KNOWN_KEY, JSON.stringify(knownAccountIds().filter((id) => id !== me)));
-  localStorage.removeItem(SESSION_KEY); notifySession();
-}
-/** Switch straight to another active account (demo: no password prompt). Returns false if it can't. */
-export function switchAccount(personId: string): boolean {
-  if (!people().some((p) => p.id === personId && p.status === "active")) return false;
-  localStorage.setItem(SESSION_KEY, personId); notifySession();
-  return true;
+/** Loads `/auth/me/` and folds in whatever context the current token carries. */
+export async function loadMe(): Promise<Me | null> {
+  const tokens = getTokens();
+  if (!tokens) return null;
+  let profile: T.UserProfileMeResponse;
+  try {
+    profile = await either("me", () => api.authMeRetrieve(), () => api.usersMeRetrieve());
+  } catch {
+    return null;
+  }
+  const user = profile.user ?? ({} as T.User);
+  const gyms = (profile.accessible_gyms ?? []).map((g) => ({
+    id: String(g.gym_id ?? ""),
+    name: String(g.name ?? ""),
+    role: String(g.role ?? ""),
+    isOwner: !!g.is_owner,
+  }));
+  const active = gyms.find((g) => g.id === tokens.gym_id);
+  const me: Me = {
+    userId: String(user.id ?? ""),
+    email: String(user.email ?? ""),
+    name: `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || String(user.email ?? ""),
+    gymId: tokens.gym_id,
+    gymName: tokens.gym_name ?? active?.name ?? null,
+    scopes: tokens.scopes ?? [],
+    isOwner: active?.isOwner ?? false,
+    roleName: active?.role ?? (active?.isOwner ? "Owner" : ""),
+    accessibleGyms: gyms,
+  };
+  localStorage.setItem(ME_KEY, JSON.stringify(me));
+  localStorage.setItem(SESSION_KEY, me.userId);
+  rememberAccount(me.userId);
+  return me;
 }
 
-// brute-force brake: 5 wrong passwords lock that email for a minute
-const tries = new Map<string, { n: number; until: number }>();
+/** Swaps the personal token for one scoped to `gymId`. */
+export async function enterGym(gymId: string): Promise<string | null> {
+  try {
+    const res = await api.authSwitchContextCreate({ context_type: "gym", gym_id: gymId });
+    if (!res.tokens?.access) return "The server didn't return a token for that gym.";
+    setTokens(res.tokens as Tokens);
+    invalidateAll();
+    await loadMe();
+    notifySession();
+    return null;
+  } catch (e) {
+    return e instanceof ApiError ? e.message : "Couldn't open that gym.";
+  }
+}
 
 /** Returns an error message, or null when signed in. */
-export function signIn(emailRaw: string, password: string): string | null {
+export async function signIn(emailRaw: string, password: string): Promise<string | null> {
   const email = emailRaw.trim().toLowerCase();
-  const t = tries.get(email) ?? { n: 0, until: 0 };
-  if (t.until > Date.now()) return `Too many attempts. Try again in ${Math.ceil((t.until - Date.now()) / 1000)} seconds.`;
-  const person = people().find((p) => p.email.toLowerCase() === email && p.status === "active");
-  if (person && password === (passwords()[person.id] ?? DEMO_PASSWORD)) { tries.delete(email); startSession(person.id); return null; }
-  t.n += 1; if (t.n >= 5) { t.n = 0; t.until = Date.now() + 60_000; }
-  tries.set(email, t);
-  return "Wrong email or password";
+  try {
+    const res = await api.authLoginCreate({ email, password });
+    if (!res.tokens?.access) return "The server didn't return a session token.";
+    setTokens(res.tokens as Tokens);
+    invalidateAll();
+
+    const me = await loadMe();
+    // The admin panel is gym-scoped, so land in a gym straight away when the account has one.
+    const first = me?.accessibleGyms[0];
+    if (first && !getTokens()?.gym_id) {
+      const problem = await enterGym(first.id);
+      if (problem) return problem;
+    }
+    notifySession();
+    return null;
+  } catch (e) {
+    if (e instanceof ApiError) return e.message;
+    return "Couldn't sign in. Check your connection and try again.";
+  }
 }
 
-export function changePassword(personId: string, current: string, next: string): string | null {
-  if ((passwords()[personId] ?? DEMO_PASSWORD) !== current) return "Your current password is wrong";
+export async function signOut() {
+  const refresh = getTokens()?.refresh;
+  try {
+    if (refresh) await api.authLogoutCreate({ refresh });
+  } catch {
+    // Revoking server-side is best-effort; the local session goes either way.
+  }
+  const me = cachedMe();
+  if (me) localStorage.setItem(KNOWN_KEY, JSON.stringify(knownAccountIds().filter((id) => id !== me.userId)));
+  setTokens(null);
+  localStorage.removeItem(ME_KEY);
+  localStorage.removeItem(SESSION_KEY);
+  invalidateAll();
+  notifySession();
+}
+
+/**
+ * Switches which gym the admin panel is pointed at. (The old demo switched *people*; with real auth a session
+ * belongs to one account, and what can change is the gym context.)
+ */
+export async function switchAccount(gymId: string): Promise<boolean> {
+  return (await enterGym(gymId)) === null;
+}
+
+export async function changePassword(current: string, next: string): Promise<string | null> {
   if (next.length < MIN_PASSWORD) return `Use at least ${MIN_PASSWORD} characters`;
-  localStorage.setItem(PASS_KEY, JSON.stringify({ ...passwords(), [personId]: next }));
-  return null;
+  try {
+    await either("change-password", () => api.authChangePasswordCreate({ current_password: current, new_password: next }), () => api.usersChangePasswordCreate({ current_password: current, new_password: next }));
+    return null;
+  } catch (e) {
+    if (e instanceof ApiError) {
+      const fields = e.fieldErrors();
+      return fields.current_password ?? fields.new_password ?? e.message;
+    }
+    return "Couldn't change your password.";
+  }
 }
 
-/** The invited person for an invitation link (the link's code is their id in this front-end demo). */
-export const invitedPerson = (code: string) => people().find((p) => p.id === code && p.status === "invited") ?? null;
+// ---------------------------------------------------------------- registration
 
-export function acceptInvite(code: string, name: string, password: string): string | null {
-  const p = invitedPerson(code);
-  if (!p) return "This invitation link is invalid or has already been used";
+export type RegisterOutcome = {
+  /** A message to show, or null when the account was created. */
+  error: string | null;
+  /** True when the email is already registered but still awaiting OTP verification. */
+  needsVerification?: boolean;
+};
+
+export async function register(input: {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+}): Promise<RegisterOutcome> {
+  try {
+    const payload = {
+      email: input.email.trim().toLowerCase(),
+      password: input.password,
+      first_name: input.firstName,
+      last_name: input.lastName,
+      phone: input.phone || undefined,
+    };
+    await either("register", () => api.authRegisterCreate(payload), () => api.usersRegisterCreate(payload));
+    return { error: null };
+  } catch (e) {
+    if (e instanceof ApiError) {
+      const f = e.fieldErrors();
+      const message = f.email ?? f.password ?? f.first_name ?? f.last_name ?? e.message;
+      // 409 on an account that exists but hasn't verified: the next step is the code, not a new account.
+      // The API says as much in its own message ("Please verify your OTP or request a new one").
+      const needsVerification = e.status === 409 && /unverified|verify/i.test(`${message} ${e.code}`);
+      return { error: message, needsVerification };
+    }
+    return { error: "Couldn't create that account." };
+  }
+}
+
+/** Verifies the 6-digit signup code and signs the person straight in. */
+export async function verifySignup(email: string, otp: string): Promise<string | null> {
+  try {
+    const payload = { email: email.trim().toLowerCase(), otp_code: otp.trim() };
+    const res = await either("verify-signup-otp", () => api.authVerifySignupOtpCreate(payload), () => api.usersVerifySignupOtpCreate(payload));
+    const tokens = (res as { tokens?: Tokens }).tokens;
+    if (tokens?.access) {
+      setTokens(tokens);
+      invalidateAll();
+      await loadMe();
+      notifySession();
+    }
+    return null;
+  } catch (e) {
+    return e instanceof ApiError ? e.message : "Couldn't verify that code.";
+  }
+}
+
+export const resendOtp = async (email: string): Promise<string | null> => {
+  try {
+    const payload = { email: email.trim().toLowerCase() };
+    await either("resend-otp", () => api.authResendOtpCreate(payload), () => api.usersResendOtpCreate(payload));
+    return null;
+  } catch (e) {
+    return e instanceof ApiError ? e.message : "Couldn't resend the code.";
+  }
+};
+
+export const forgotPassword = async (email: string): Promise<string | null> => {
+  try {
+    const payload = { email: email.trim().toLowerCase() };
+    await either("forgot-password", () => api.authForgotPasswordCreate(payload), () => api.usersForgotPasswordCreate(payload));
+    return null;
+  } catch (e) {
+    return e instanceof ApiError ? e.message : "Couldn't send a reset code.";
+  }
+};
+
+/** Checks a reset code without consuming it, so the UI can fail fast before asking for a new password. */
+export const verifyResetOtp = async (email: string, otp: string): Promise<string | null> => {
+  try {
+    const payload = { email: email.trim().toLowerCase(), otp_code: otp.trim() };
+    await either("verify-reset-otp", () => api.authVerifyResetOtpCreate(payload), () => api.usersVerifyResetOtpCreate(payload));
+    return null;
+  } catch (e) {
+    return e instanceof ApiError ? e.message : "That code isn't valid.";
+  }
+};
+
+export const resetPassword = async (email: string, otp: string, next: string): Promise<string | null> => {
+  if (next.length < MIN_PASSWORD) return `Use at least ${MIN_PASSWORD} characters`;
+  try {
+    const payload = { email: email.trim().toLowerCase(), otp_code: otp.trim(), new_password: next };
+    await either("reset-password", () => api.authResetPasswordCreate(payload), () => api.usersResetPasswordCreate(payload));
+    return null;
+  } catch (e) {
+    return e instanceof ApiError ? e.message : "Couldn't reset that password.";
+  }
+};
+
+// ---------------------------------------------------------------- staff invitations
+
+/**
+ * Staff invitations. The API's own flow is: an owner invites by email
+ * (`POST /access-control/staff/`), the person registers normally, and the assignment activates — there is
+ * **no endpoint that redeems an invitation code**, so the old /accept?code=… screen has nothing to call.
+ * `acceptInvite` therefore registers the account and reports anything the server rejects.
+ */
+export async function acceptInvite(email: string, name: string, password: string): Promise<string | null> {
   if (!name.trim()) return "Enter your name";
   if (password.length < MIN_PASSWORD) return `Use at least ${MIN_PASSWORD} characters`;
-  localStorage.setItem(PASS_KEY, JSON.stringify({ ...passwords(), [p.id]: password }));
-  writeResource<Person>(PEOPLE_KEY, (l) => l.map((x) => (x.id === p.id ? { ...x, name: name.trim(), status: "active" as const } : x)));
-  startSession(p.id);
-  return null;
+  const [firstName, ...rest] = name.trim().split(/\s+/);
+  const { error } = await register({ email, password, firstName, lastName: rest.join(" ") || firstName });
+  return error;
+}
+
+/** Renames the signed-in account (`PATCH /auth/me/`). */
+export async function updateMyName(name: string): Promise<string | null> {
+  const [firstName, ...rest] = name.trim().split(/\s+/);
+  try {
+    const payload = { first_name: firstName, last_name: rest.join(" ") || "" };
+    await either("me-update", () => api.authMePartialUpdate(payload), () => api.usersMePartialUpdate(payload));
+    await loadMe();
+    notifySession();
+    return null;
+  } catch (e) {
+    return e instanceof ApiError ? e.message : "Couldn't update your name.";
+  }
 }
