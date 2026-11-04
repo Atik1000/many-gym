@@ -22,19 +22,46 @@ whatever they were doing. A long editing session will lose work.
 
 *Client:* `lib/api/http.ts` treats every `401` as terminal and redirects to `/login`.
 
-### 2. No general file upload endpoint
+### 2. File upload works, but only through multipart — the JSON form silently can't
 
-Gallery items (`POST /gyms/gallery/`) and post media both take a `media_url` string that must already point at
-hosted content. There is no general multipart upload and no presigned-URL endpoint, so "upload a photo" cannot
-work end to end. `GymGalleryCreateRequest` lists a `file` field, but no endpoint documents a
-`multipart/form-data` body for it.
+**Correction to an earlier reading of this.** The API *does* accept direct binary uploads, on four fields:
 
-The **one** exception is `PATCH /posts/{post_id}/media/{media_id}/thumbnail/`, which really does take a binary
-`thumbnail_image` (≤10MB, JPEG/PNG/WebP/BMP/GIF/HEIC/TIFF). That it exists makes the gap elsewhere look like an
-oversight rather than a deliberate URL-only design.
+| Endpoint | Binary field |
+|---|---|
+| `POST /gyms/gallery/` | `file` — "Direct file upload (picture or video)" |
+| `PATCH /gyms/profile/overview/` | `profile_picture`, `cover_photo` (≤10MB, converted to WebP) |
+| `PATCH /posts/{id}/media/{id}/thumbnail/` | `thumbnail_image` |
 
-*Client:* `uploadFile()` previews the picked file locally and anything still holding a `data:` or `blob:` URL is
-dropped at save time. The video-thumbnail control is the only real upload in the app.
+What makes this easy to miss is that each of those endpoints advertises three content types, and the JSON
+variant takes a `media_url`/`profile_picture_url` **capped at 1000 characters**. Sending a data: URL there —
+the obvious thing for a client that has just read a file — fails with:
+
+```
+400 {"media_url": ["Ensure this field has no more than 1000 characters."]}
+```
+
+So the upload path is the multipart one, and nothing in the error points you at it.
+
+Post *media* is the remaining gap: `MediaItemInputRequest` has only `media_url`, with no binary field, so
+images attached to a feed post still need a URL that is already hosted.
+
+*Client:* `uploadFile()` keeps the picked `File` alongside its preview, and the gallery and overview saves send
+it as `multipart/form-data`. The earlier code put a data: URL in `media_url`, which the API rejected — the
+reason uploaded photos never appeared.
+
+### 2b. Uploaded media comes back as a server-relative path
+
+An upload returns `media_url` and `resolved_media_url` as paths, not URLs:
+
+```json
+{"media_url": "/media/gyms/gallery/original/3dc8c4cd…_gallery-qa.png"}
+```
+
+Rendered as-is, that resolves against the *app's* origin and 404s anywhere other than the API host — which is
+every deployment. The schema types these as plain strings and says nothing about it.
+
+*Client:* `mediaUrl()` in `lib/api/http.ts` prefixes any relative path with the API base, and every media field
+(gallery, post media, avatars, gym profile and cover) goes through it.
 
 ### 3. Staff invitations can't be redeemed
 

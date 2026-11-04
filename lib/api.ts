@@ -392,7 +392,15 @@ async function saveGym(prev: GymProfile, next: GymProfile) {
 
 // ---------------------------------------------------------------- media
 
-export type Uploaded = { url: string; kind: "image" | "video"; name: string; size: number };
+export type Uploaded = {
+  /** A local preview URL, for showing the picture before it is saved. */
+  url: string;
+  /** The picked file itself — what actually gets uploaded. */
+  file: File;
+  kind: "image" | "video";
+  name: string;
+  size: number;
+};
 const MB = 1024 * 1024;
 
 const readAsDataUrl = (blob: Blob) =>
@@ -420,9 +428,11 @@ async function shrinkImage(file: File): Promise<string> {
 }
 
 /**
- * The API exposes **no file upload endpoint** — gallery items and post media accept a `media_url` that must
- * already be hosted somewhere. So a picked file is previewed locally and cannot be persisted: anything with a
- * `data:`/`blob:` URL is dropped on save. Point this at a real upload/S3-presign route once one exists.
+ * Prepares a picked file: a local preview to show immediately, plus the file itself for the upload.
+ *
+ * The gallery and gym-profile endpoints take a binary `multipart/form-data` field, so the **file** is what
+ * gets sent. The data: URL is only for the preview — the JSON form caps `media_url` at 1000 characters and
+ * rejects it. The server resizes and converts to WebP itself, so the original is uploaded untouched.
  */
 export async function uploadFile(file: File): Promise<Uploaded> {
   const isImg = IMAGE_TYPES.includes(file.type);
@@ -430,8 +440,8 @@ export async function uploadFile(file: File): Promise<Uploaded> {
   if (!isImg && !isVid) throw new Error(`${file.name}: unsupported format`);
   if (isImg && file.size > 10 * MB) throw new Error(`${file.name}: photo exceeds 10 MB`);
   if (isVid && file.size > 200 * MB) throw new Error(`${file.name}: video exceeds 200 MB`);
-  if (isImg) return { url: await shrinkImage(file), kind: "image", name: file.name, size: file.size };
-  return { url: URL.createObjectURL(file), kind: "video", name: file.name, size: file.size };
+  const url = isImg ? await shrinkImage(file) : URL.createObjectURL(file);
+  return { url, file, kind: isImg ? "image" : "video", name: file.name, size: file.size };
 }
 
 /** Refetch everything from the server (replaces the old "reset demo data"). */

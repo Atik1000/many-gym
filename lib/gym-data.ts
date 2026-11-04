@@ -48,6 +48,11 @@ export type GalleryItem = {
   caption: string;
   /** Background optimisation state, e.g. "failed" — the raw URL still renders. */
   processing?: string;
+  /**
+   * The picked file, held until the gallery is saved. The gallery endpoint wants a binary upload, so the
+   * data: URL used for the local preview cannot be sent in its place. Not persisted.
+   */
+  file?: File;
 };
 export type GymProfile = {
   id: "gym";

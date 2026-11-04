@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { LuCamera as Camera, LuFileText, LuLoaderCircle as Loader2, LuUsers } from "react-icons/lu";
 import { uploadFile, useGym } from "@/lib/api";
+import { setPendingGymImage } from "@/lib/api/adapters";
 import { useToast } from "@/components/ui/Toast";
 import { GENDER_REQUIRED, GYM_TYPES, type GymProfile } from "@/lib/gym-data";
 import { card, errorText, hint, input, label } from "@/lib/ui";
@@ -166,7 +167,11 @@ function Form({ initial, onSave, onDiscard }: { initial: Overview; onSave: (o: O
   const dirty = JSON.stringify(f) !== JSON.stringify(initial);
 
   const pick = async (key: "profileUrl" | "coverUrl", file: File) => {
-    try { set(key, (await uploadFile(file)).url); } catch (e) { toast((e as Error).message); }
+    try {
+      const up = await uploadFile(file);
+      set(key, up.url);          // preview straight away
+      setPendingGymImage(key, up.file); // the real upload happens on save, as multipart
+    } catch (e) { toast((e as Error).message); }
   };
 
   const save = () => {

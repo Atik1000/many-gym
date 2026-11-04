@@ -31,7 +31,8 @@ function Form({ initial, onSave }: { initial: GalleryItem[]; onSave: (g: Gallery
     await Promise.all(files.map(async (file) => {
       try {
         const up = await uploadFile(file);
-        setItems((l) => [...l, { id: uid(), url: up.url, kind: up.kind, category: "General", caption: "" }]); // category defaults to General
+        // `file` rides along so the save can POST the real binary; `url` is only the local preview.
+        setItems((l) => [...l, { id: uid(), url: up.url, file: up.file, kind: up.kind, category: "General", caption: "" }]); // category defaults to General
       } catch (e) { setErrors((l) => [...l, (e as Error).message]); }
       finally { setUploading((n) => n - 1); }
     }));

@@ -12,6 +12,20 @@
 
 export const API_BASE = process.env.NEXT_PUBLIC_MANYGYM_API_BASE ?? "https://v0.manygym.com";
 
+/**
+ * Resolves a media path the API returns into something a browser can load.
+ *
+ * Uploads come back as server-relative paths like `/media/gyms/gallery/original/<file>.png`. Rendered as-is
+ * they resolve against the *app's* origin, so on any host other than the API they 404. Absolute URLs and
+ * data:/blob: previews are passed through untouched.
+ */
+export function mediaUrl(url: string | null | undefined): string {
+  const u = (url ?? "").trim();
+  if (!u) return "";
+  if (/^(https?:|data:|blob:)/i.test(u)) return u;
+  return `${API_BASE}${u.startsWith("/") ? "" : "/"}${u}`;
+}
+
 export type Tokens = {
   access: string;
   refresh: string;

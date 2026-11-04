@@ -8,7 +8,7 @@
  */
 import * as api from "./endpoints";
 import type * as T from "./types";
-import { currentGymId } from "./http";
+import { currentGymId, mediaUrl, request } from "./http";
 import { firstAvailable } from "./fallback";
 
 import type { GalleryItem, GymProfile } from "../gym-data";
@@ -170,7 +170,7 @@ export const memberFromApi = (m: T.MemberDetail | T.MemberList): Member => {
     joinedAt: str(d.created_at).slice(0, 10),
     invitationSentAt: str(d.invitation_sent_at) || undefined,
     hold: held === "paused" ? "paused" : held === "cancelled" ? "cancelled" : "",
-    photo: str(d.profile_photo_url),
+    photo: mediaUrl(d.profile_photo_url),
     derived: {
       status: LIST_STATUS[str((m as T.MemberList).membership_status)],
       payment: LIST_PAYMENT[str((m as T.MemberList).payment_status)],
@@ -538,14 +538,14 @@ export const postFromApi = (p: T.GymPostDetail | T.GymPostList): Post => {
   return {
     id: str(d.id),
     text: str(d.content_text),
-    author: { name: str(d.author_name), avatarUrl: str(d.author_avatar_url), userId: str(d.author_user_id) },
+    author: { name: str(d.author_name), avatarUrl: mediaUrl(d.author_avatar_url), userId: str(d.author_user_id) },
     media: (d.media_attachments ?? []).map((raw): PostMedia => {
       const m = raw as unknown as Record<string, string | undefined>;
       return {
         id: str(m.id),
         // Same URL preference as the gallery — post media is optimised the same way.
-        url: str(m.resolved_media_url || m.optimized_url || m.media_url || m.original_url),
-        thumbnailUrl: str(m.resolved_thumbnail_url || m.thumbnail_url) || undefined,
+        url: mediaUrl(m.resolved_media_url || m.optimized_url || m.media_url || m.original_url),
+        thumbnailUrl: mediaUrl(m.resolved_thumbnail_url || m.thumbnail_url) || undefined,
         kind: m.media_type === "video" ? "video" : "image",
       };
     }),
@@ -651,8 +651,8 @@ export async function loadGym(): Promise<GymProfile | null> {
       secondaryType: TYPE_IN[str(detail.secondary_type)] ?? "",
       gender: GENDER_IN[str(detail.gender_required)] ?? "everyone",
       minAge: detail.min_age == null ? "" : String(detail.min_age),
-      profileUrl: str(detail.profile_picture_url),
-      coverUrl: str(detail.cover_photo_url),
+      profileUrl: mediaUrl(detail.profile_picture_url),
+      coverUrl: mediaUrl(detail.cover_photo_url),
     },
     location: {
       address: str(loc.address),
@@ -677,8 +677,8 @@ export async function loadGym(): Promise<GymProfile | null> {
       const i = raw as unknown as Record<string, string | undefined>;
       return {
         id: str(i.id),
-        url: str(i.resolved_media_url || i.optimized_url || i.media_url || i.original_url),
-        thumbnailUrl: str(i.resolved_thumbnail_url || i.thumbnail_url) || undefined,
+        url: mediaUrl(i.resolved_media_url || i.optimized_url || i.media_url || i.original_url),
+        thumbnailUrl: mediaUrl(i.resolved_thumbnail_url || i.thumbnail_url) || undefined,
         kind: i.media_type === "video" ? "video" : "image",
         category: CATEGORY_IN[str(i.category)] ?? "General",
         caption: str(i.caption),
@@ -687,6 +687,20 @@ export async function loadGym(): Promise<GymProfile | null> {
     }),
   };
 }
+
+/**
+ * Files picked for the gym's profile picture and cover photo, held until the overview is saved.
+ *
+ * `PATCH /gyms/profile/overview/` takes them as binary `profile_picture` / `cover_photo` multipart fields;
+ * the URL fields cap at 1000 characters and reject a data: preview. The GymProfile model carries only the
+ * preview URL, so the files are stashed here rather than widening it.
+ */
+const pendingGymImages: { profile_picture?: File; cover_photo?: File } = {};
+export const setPendingGymImage = (which: "profileUrl" | "coverUrl", file: File | null) => {
+  const key = which === "profileUrl" ? "profile_picture" : "cover_photo";
+  if (file) pendingGymImages[key] = file;
+  else delete pendingGymImages[key];
+};
 
 export const gymProfile = {
   saveOverview: (p: GymProfile) => {
@@ -700,6 +714,18 @@ export const gymProfile = {
         profile_picture_url: p.overview.profileUrl && !p.overview.profileUrl.startsWith("data:") ? p.overview.profileUrl : undefined,
         cover_photo_url: p.overview.coverUrl && !p.overview.coverUrl.startsWith("data:") ? p.overview.coverUrl : undefined,
     };
+    // A picked file has to go as multipart; only then can the server store and optimise it.
+    const files = Object.entries(pendingGymImages).filter(([, f]) => f) as [string, File][];
+    if (files.length) {
+      const form = new FormData();
+      for (const [k, v] of Object.entries(body)) {
+        if (v !== undefined && !/^(profile_picture|cover_photo)_url$/.test(k)) form.append(k, String(v));
+      }
+      for (const [k, f] of files) form.append(k, f);
+      const q = new URLSearchParams(gym() ? { gym_id: gym()! } : {}).toString();
+      return request<T.GymDetail>("PATCH", `/api/v1/gyms/profile/overview/${q ? `?${q}` : ""}`, { form })
+        .then((r) => { setPendingGymImage("profileUrl", null); setPendingGymImage("coverUrl", null); return r; });
+    }
     // Same pair of paths on the write side.
     return firstAvailable("gym-profile-save", [
       { path: "PATCH /gyms/profile/overview/", call: () => api.gymsProfileOverviewPartialUpdate(body, G()) },
@@ -733,16 +759,29 @@ export const gymProfile = {
   catalog: () => api.amenitiesCatalogRetrieve(),
   syncAmenities: (free_amenity_ids: string[], paid: { amenity_id: string; default_price: string }[]) =>
     api.amenitiesGymAmenitiesSyncUpdate({ free_amenity_ids, paid_amenities: paid }, G()),
-  addGalleryItem: (item: GalleryItem) =>
-    api.gymsGalleryCreate(
-      {
-        media_url: item.url,
-        media_type: item.kind === "video" ? "video" : "picture",
-        category: CATEGORY_OUT[item.category] ?? "general",
-        caption: item.caption || undefined,
-      },
-      G(),
-    ),
+  /**
+   * `POST /gyms/gallery/` takes `multipart/form-data` with a binary `file` — the documented way to upload.
+   * The JSON form only accepts a `media_url` of at most 1000 characters, so a data: URL preview is rejected
+   * outright; the picked File has to be sent instead.
+   */
+  addGalleryItem: (item: GalleryItem) => {
+    const category = CATEGORY_OUT[item.category] ?? "general";
+    const kind = item.kind === "video" ? "video" : "picture";
+    if (item.file) {
+      const form = new FormData();
+      form.append("file", item.file);
+      form.append("media_type", kind);
+      form.append("category", category);
+      if (item.caption) form.append("caption", item.caption);
+      const q = new URLSearchParams(gym() ? { gym_id: gym()! } : {}).toString();
+      return request<T.GymGalleryItem>("POST", `/api/v1/gyms/gallery/${q ? `?${q}` : ""}`, { form });
+    }
+    // No File: an already-hosted URL (and never a data:/blob: preview, which the API would reject).
+    if (/^(data:|blob:)/i.test(item.url)) {
+      return Promise.reject(new Error("That image hasn't been uploaded yet."));
+    }
+    return api.gymsGalleryCreate({ media_url: item.url, media_type: kind, category, caption: item.caption || undefined }, G());
+  },
   removeGalleryItem: (id: string) => api.gymsGalleryDestroy(id, G()),
   reorderGallery: (ids: string[]) =>
     api.gymsGalleryReorderPartialUpdate({ items: ids.map((id, i) => ({ id, order_index: i })) }, G()),
