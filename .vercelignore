@@ -1,0 +1,5 @@
+# Not needed at runtime — reference material and tooling only.
+docs
+postman
+scripts
+.github
