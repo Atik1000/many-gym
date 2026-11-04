@@ -8,14 +8,14 @@ import Link from "next/link";
 import { LuMail as Mail, LuUserPlus, LuUsers } from "react-icons/lu";
 import { Avatar, Pagination, Pill, usePaged } from "@/components/ui/parts";
 import { MEMBERS_KEY, fullName, memberStatus, type Member } from "@/lib/members";
-import { PEOPLE_KEY, type Person } from "@/lib/people";
+import { PEOPLE_KEY, type Person, isTrainer } from "@/lib/people";
 import { useResource } from "@/lib/api";
 import { btnGhost, card } from "@/lib/ui";
 
 export default function TrainersPage() {
   const [people, , ready] = useResource<Person>(PEOPLE_KEY);
   const [members] = useResource<Member>(MEMBERS_KEY);
-  const trainers = people.filter((p) => p.roleId === "trainer");
+  const trainers = people.filter(isTrainer);
   const pg = usePaged(trainers, 6);
 
   return (

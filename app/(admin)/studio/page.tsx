@@ -2,6 +2,7 @@ import { Guard } from "@/components/AuthProvider";
 import About from "@/components/studio/About";
 import Feed from "@/components/studio/Feed";
 import StudioHeader from "@/components/studio/StudioHeader";
+import Audience from "@/components/studio/Audience";
 
 export const metadata = { title: "Studio · manygym" };
 
@@ -12,6 +13,7 @@ export default function Page() {
       <StudioHeader />
       <div className="mt-5 grid grid-cols-1 items-start gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
         <About />
+        <Audience />
         <Feed />
       </div>
     </Guard>

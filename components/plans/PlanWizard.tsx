@@ -257,20 +257,26 @@ function Wizard({ initial, editing }: { initial: Plan; editing: boolean }) {
     setDone((d) => Math.max(d, step));
     setStep((s) => s + 1);
   };
-  const finish = () => {
+  const [saving, setSaving] = useState(false);
+  const finish = async () => {
     for (let s = 1; s <= 3; s++) { // steps 4–5 are optional
       const e = validateStep(s, p);
       if (Object.keys(e).length) { setStep(s); setErrors(e); return; }
     }
-    const id = save(p);
+    setSaving(true);
+    const id = await save(p); // the server mints the id
+    setSaving(false);
+    if (!id) return toast("Couldn't save the plan");
     toast(editing ? "Plan updated" : "Plan created");
     router.push(`/plans/${id}`);
   };
-  const saveDraft = () => {
+  const saveDraft = async () => {
     if (!p.name.trim()) { setStep(1); setErrors({ name: "Give the plan a name to save a draft" }); return; }
-    save({ ...p, status: "draft" });
-    toast("Draft saved");
-    router.push("/plans");
+    setSaving(true);
+    const id = await save({ ...p, status: "draft" });
+    setSaving(false);
+    toast(id ? "Draft saved" : "Couldn't save the draft");
+    if (id) router.push("/plans");
   };
   const goTo = (s: number) => { if (s <= done + 1 || editing) { setStep(s); setErrors({}); } };
 
@@ -309,11 +315,11 @@ function Wizard({ initial, editing }: { initial: Plan; editing: boolean }) {
           ? <MotionLink href={editing ? `/plans/${initial.id}` : "/plans"} className={btnGhost}><ArrowLeft size={17} />Cancel</MotionLink>
           : <MotionButton className={btnGhost} onClick={() => { setStep(step - 1); setErrors({}); }}><ArrowLeft size={17} />Previous</MotionButton>}
         <div className="flex flex-wrap gap-3">
-          {!editing && <MotionButton className={btnGhost} onClick={saveDraft}><LuSave size={17} />Save Draft</MotionButton>}
+          {!editing && <MotionButton className={btnGhost} disabled={saving} onClick={saveDraft}><LuSave size={17} />Save Draft</MotionButton>}
           {step < 5
             ? <MotionButton className={btnPrimary} onClick={next}>Next: {STEPS[step]}<ArrowRight size={17} /></MotionButton>
-            : <MotionButton className={btnPrimary} onClick={finish}><LuSave size={17} />{editing ? "Save changes" : "Create plan"}</MotionButton>}
-          {editing && step < 5 && <MotionButton className={btnGhost} onClick={finish}><LuSave size={17} />Save changes</MotionButton>}
+            : <MotionButton className={btnPrimary} disabled={saving} onClick={finish}><LuSave size={17} />{saving ? "Saving…" : editing ? "Save changes" : "Create plan"}</MotionButton>}
+          {editing && step < 5 && <MotionButton className={btnGhost} disabled={saving} onClick={finish}><LuSave size={17} />Save changes</MotionButton>}
         </div>
       </div>
     </>

@@ -1,57 +1,83 @@
 "use client";
 
+/**
+ * Invitation link: /accept?code=<token>
+ *
+ * `POST /members/accept-invitation/` redeems an onboarding token for a member. The endpoint requires a signed-in
+ * session, so someone arriving without one is sent to sign in (or register) first and returned here.
+ *
+ * Staff invitations are different: `POST /access-control/staff/` emails them, but no endpoint redeems a staff
+ * invite code — see docs/api/known-issues.md.
+ */
 import { LuUserPlus } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useResource } from "@/lib/api";
-import { acceptInvite } from "@/lib/auth";
-import type { Person } from "@/lib/people";
-import { btnPrimary, card, errorText, input, label } from "@/lib/ui";
+import * as api from "@/lib/api/endpoints";
+import { ApiError, getTokens } from "@/lib/api/http";
+import { btnPrimary, card, errorText, hint } from "@/lib/ui";
 
-// Opened from an invitation link: /accept?code=…  (read on the client so the page itself stays static)
 export default function AcceptPage() {
   const router = useRouter();
-  const [people, , ready] = useResource<Person>("people");
   const [code, setCode] = useState<string | null | undefined>(undefined);
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
+  const [signedIn, setSignedIn] = useState(false);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => { const c = new URLSearchParams(window.location.search).get("code"); void Promise.resolve().then(() => setCode(c)); }, []);
-  const person = people.find((p) => p.id === code && p.status === "invited");
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get("code");
+    const tokens = getTokens();
+    void Promise.resolve().then(() => { setCode(c); setSignedIn(!!tokens); });
+  }, []);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const problem = acceptInvite(code ?? "", name, password);
-    if (problem) return setError(problem);
-    router.replace("/");
+  const accept = async () => {
+    if (!code) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api.membersAcceptInvitationCreate({ token: code, invitation_token: code });
+      router.replace("/");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Couldn't accept that invitation.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <main className="grid min-h-screen place-items-center bg-background px-4 py-10">
       <div className={`${card} w-full max-w-[420px] p-7`}>
-        {!ready || code === undefined ? (
+        {code === undefined ? (
           <div className="h-40 animate-pulse rounded-lg bg-background" />
-        ) : !person ? (
+        ) : !code ? (
           <>
             <h1 className="text-xl font-bold">Invitation not valid</h1>
-            <p className="mt-1 text-muted">This link is invalid or was already used. Ask an Administrator to send a new one.</p>
+            <p className="mt-1 text-muted">This link is missing its invitation code. Ask whoever invited you to send a new one.</p>
+          </>
+        ) : !signedIn ? (
+          <>
+            <h1 className="text-xl font-bold">Sign in to accept</h1>
+            <p className="mb-5 mt-1 text-muted">Accepting an invitation needs a manygym account. Sign in or create one, then open this link again.</p>
+            <MotionLinkRow href={`/login?next=${encodeURIComponent(`/accept?code=${code}`)}`} />
           </>
         ) : (
-          <form onSubmit={submit}>
-            <h1 className="text-xl font-bold">Join manygym</h1>
-            <p className="mb-5 mt-1 text-muted">Set up your account for <b className="text-foreground">{person.email}</b>.</p>
-            <label htmlFor="name" className={label}>Your name</label>
-            <input id="name" required autoFocus maxLength={80} className={input} value={name} onChange={(e) => setName(e.target.value)} />
-            <label htmlFor="pw" className={`${label} mt-4`}>Choose a password</label>
-            <input id="pw" type="password" required minLength={8} autoComplete="new-password" className={input} value={password} onChange={(e) => setPassword(e.target.value)} />
-            <p className="mt-1 text-xs text-muted">At least 8 characters.</p>
-            {error && <p role="alert" className={`${errorText} mt-3 text-[13px]`}>{error}</p>}
-            <MotionButton type="submit" className={`${btnPrimary} mt-5 w-full`}><LuUserPlus size={17} />Create account &amp; sign in</MotionButton>
-          </form>
+          <>
+            <span className="mb-3 grid h-12 w-12 place-items-center rounded-full bg-primary-50 text-primary"><LuUserPlus size={22} /></span>
+            <h1 className="text-xl font-bold">Accept your invitation</h1>
+            <p className="mb-5 mt-1 text-muted">You&apos;ve been invited to join a gym on manygym.</p>
+            {error && <p role="alert" className={`${errorText} mb-3 text-[13px]`}>{error}</p>}
+            <MotionButton className={`${btnPrimary} w-full`} disabled={busy} onClick={accept}>
+              {busy ? "Accepting…" : "Accept invitation"}
+            </MotionButton>
+            <p className={hint}>Invitation links can only be used once.</p>
+          </>
         )}
       </div>
     </main>
   );
+}
+
+function MotionLinkRow({ href }: { href: string }) {
+  return <Link href={href} className={`${btnPrimary} w-full justify-center`}>Go to sign in</Link>;
 }

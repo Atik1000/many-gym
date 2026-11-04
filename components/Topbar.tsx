@@ -6,9 +6,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/ui/parts";
 import { useToast } from "@/components/ui/Toast";
-import { resetDemoData, useGym, useResource } from "@/lib/api";
+import { resetDemoData, useGym } from "@/lib/api";
 import { switchAccount } from "@/lib/auth";
-import { PEOPLE_KEY, ROLES_KEY, type Person, type Role } from "@/lib/people";
 import type { IconType } from "react-icons";
 import { LuArrowLeft, LuCheck, LuChevronRight, LuLogOut, LuMenu, LuRefreshCw, LuRotateCcw, LuSettings, LuUserPlus, LuUsers } from "react-icons/lu";
 import GlobalSearch from "@/components/shell/GlobalSearch";
@@ -19,16 +18,18 @@ import { NAV_EVENT } from "@/components/Sidebar";
 export default function Topbar() {
   const [gym] = useGym();
   const gymName = gym?.overview.name ?? "";
-  const { user, role, ready, logout } = useAuth();
+  const { user, role, me, ready, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"main" | "switch">("main");
   const toast = useToast();
   const router = useRouter();
-  const [people] = useResource<Person>(PEOPLE_KEY);
-  const [roles] = useResource<Role>(ROLES_KEY);
-  // every other active account, one click to switch (like Facebook's profile list)
-  const others = open ? people.filter((p) => p.id !== user?.id && p.status === "active") : [];
-  const pick = (id: string) => { if (switchAccount(id)) { setOpen(false); router.replace("/"); } };
+  // A session belongs to one account; what it can switch between is the gyms that account can reach.
+  const gyms = me?.accessibleGyms ?? [];
+  const others = open ? gyms.filter((g) => g.id !== me?.gymId) : [];
+  const pick = async (id: string) => {
+    if (await switchAccount(id)) { setOpen(false); router.replace("/"); }
+    else toast("Couldn't open that gym");
+  };
   return (
     <header className="sticky top-0 z-30 flex h-[60px] items-center gap-3 border-b border-line bg-surface px-4 sm:gap-4 sm:px-7">
       <MotionButton aria-label="Open menu" onClick={() => window.dispatchEvent(new Event(NAV_EVENT))} className="-ml-1 rounded-lg p-2 text-foreground hover:bg-background lg:hidden"><LuMenu size={22} /></MotionButton>
@@ -57,20 +58,20 @@ export default function Topbar() {
                     {others.slice(0, 2).map((p) => (
                       <button key={p.id} role="menuitem" onClick={() => pick(p.id)} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left font-semibold hover:bg-background">
                         <span className="relative">
-                          <Avatar name={p.name || p.email} size={36} />
+                          <Avatar name={p.name} size={36} />
                           <span className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-surface text-muted"><LuRefreshCw size={11} /></span>
                         </span>
-                        <span className="min-w-0"><b className="block truncate">{p.name || p.email}</b><span className="block truncate text-xs font-normal text-muted">{roles.find((r) => r.id === p.roleId)?.name}</span></span>
+                        <span className="min-w-0"><b className="block truncate">{p.name}</b><span className="block truncate text-xs font-normal text-muted">{p.isOwner ? "Owner" : p.role}</span></span>
                       </button>
                     ))}
                     <hr className="mx-2 my-1 border-line" />
                     <button role="menuitem" onClick={() => setView("switch")} className="flex w-full items-center justify-center gap-2 rounded-lg bg-background px-3 py-2 font-semibold hover:bg-line">
-                      <LuUsers size={18} />See all profiles
+                      <LuUsers size={18} />See all gyms
                     </button>
                   </div>
                   <Row icon={LuSettings} label="Settings & privacy" href="/settings" onGo={() => setOpen(false)} />
-                  {role?.id === "administrator" && (
-                    <Row icon={LuRotateCcw} label="Reset demo data" danger onClick={async () => { setOpen(false); try { await resetDemoData(); toast("Demo data reset"); } catch { toast("Couldn't reset the demo data"); } }} />
+                  {me?.isOwner && (
+                    <Row icon={LuRotateCcw} label="Reload from server" onClick={async () => { setOpen(false); try { await resetDemoData(); toast("Reloaded"); } catch { toast("Couldn't reload"); } }} />
                   )}
                   <Row icon={LuLogOut} label="Log out" onClick={() => logout()} />
                 </>
@@ -78,7 +79,7 @@ export default function Topbar() {
                 <>
                   <div className="flex items-center gap-2 px-1 pb-1 pt-0.5">
                     <button aria-label="Back" onClick={() => setView("main")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-background"><LuArrowLeft size={20} /></button>
-                    <b className="text-[17px]">Switch account</b>
+                    <b className="text-[17px]">Switch gym</b>
                   </div>
                   <div className="max-h-[60vh] overflow-auto">
                     <Link href="/gym-profile" role="menuitem" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-background">
@@ -86,13 +87,13 @@ export default function Topbar() {
                       <span className="min-w-0 flex-1"><b className="block truncate">{gymName || "Your gym"}</b><span className="block text-xs font-normal text-muted">Gym page</span></span>
                     </Link>
                     <hr className="mx-2 my-1 border-line" />
-                    {[...(user ? [user] : []), ...others].map((p) => {
-                      const mine = p.id === user?.id;
+                    {gyms.map((p) => {
+                      const mine = p.id === me?.gymId;
                       return (
                         <button key={p.id} role="menuitemradio" aria-checked={mine} onClick={() => (mine ? setOpen(false) : pick(p.id))}
                           className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-background">
-                          <Avatar name={p.name || p.email} size={40} />
-                          <span className="min-w-0 flex-1"><b className="block truncate">{p.name || p.email}</b><span className="block truncate text-xs font-normal text-muted">{roles.find((r) => r.id === p.roleId)?.name}</span></span>
+                          <Avatar name={p.name} size={40} />
+                          <span className="min-w-0 flex-1"><b className="block truncate">{p.name}</b><span className="block truncate text-xs font-normal text-muted">{p.isOwner ? "Owner" : p.role}</span></span>
                           <span className={`grid h-5 w-5 place-items-center rounded-full border-2 ${mine ? "border-primary bg-primary text-white" : "border-line"}`}>{mine && <LuCheck size={12} />}</span>
                         </button>
                       );

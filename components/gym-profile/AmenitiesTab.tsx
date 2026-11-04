@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { useGym } from "@/lib/api";
+import * as api from "@/lib/api/endpoints";
 import { AMENITY_GROUPS } from "@/lib/gym-data";
 import { amenityIcon } from "@/lib/icons";
 import TabSkeleton from "./Skeleton";
@@ -10,16 +11,52 @@ import SaveBar from "./SaveBar";
 import SectionCard from "./SectionCard";
 
 type Sel = { free: string[]; paid: string[] };
+type Group = { group: string; items: string[] };
 
-function Collection({ title, desc, selected, disabled, onToggle }: {
-  title: string; desc: string; selected: string[]; disabled: string[]; onToggle: (a: string) => void;
+/**
+ * `GET /amenities/catalog/` — the master list every amenity write refers to by id.
+ *
+ * The options have to come from here: the gym-profile and plan endpoints take catalog **ids**, and this app
+ * resolves them from the amenity's name, so an option that isn't in the catalog can't be saved. The static list
+ * in `lib/gym-data.ts` is only a fallback for when the call fails, so the tab isn't empty.
+ */
+function useAmenityCatalog(): { groups: Group[]; fromServer: boolean } {
+  const [groups, setGroups] = useState<Group[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    void api.amenitiesCatalogRetrieve()
+      .then((payload) => {
+        if (!live) return;
+        const byGroup = new Map<string, Set<string>>();
+        const walk = (node: unknown) => {
+          if (Array.isArray(node)) return node.forEach(walk);
+          if (!node || typeof node !== "object") return;
+          const o = node as Record<string, unknown>;
+          if (typeof o.name === "string" && (typeof o.id === "string" || typeof o.amenity_id === "string")) {
+            const g = String(o.group_display ?? o.group_name ?? o.group ?? "Other");
+            (byGroup.get(g) ?? byGroup.set(g, new Set()).get(g)!).add(o.name);
+          }
+          Object.values(o).forEach(walk);
+        };
+        walk(payload);
+        const rows = [...byGroup].map(([group, items]) => ({ group, items: [...items] }));
+        setGroups(rows.length ? rows : null);
+      })
+      .catch(() => live && setGroups(null));
+    return () => { live = false; };
+  }, []);
+  return { groups: groups ?? AMENITY_GROUPS.map((g) => ({ group: g.group, items: [...g.items] })), fromServer: !!groups };
+}
+
+function Collection({ title, desc, selected, disabled, onToggle, groups }: {
+  title: string; desc: string; selected: string[]; disabled: string[]; onToggle: (a: string) => void; groups: Group[];
 }) {
   return (
     <section>
       <h3 className="text-base font-bold">{title} <span className="ml-1 rounded-full bg-primary-50 px-2 py-0.5 text-xs font-semibold text-primary">{selected.length} selected</span></h3>
       <p className="mb-4 mt-0.5 text-muted">{desc}</p>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        {AMENITY_GROUPS.map(({ group, items }) => (
+        {groups.map(({ group, items }) => (
           <fieldset key={group}>
             <legend className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{group}</legend>
             <div className="grid gap-1.5">
@@ -46,21 +83,27 @@ function Form({ initial, onSave, onDiscard }: { initial: Sel; onSave: (s: Sel) =
   const toast = useToast();
   const [saved, setSaved] = useState(initial);
   const [sel, setSel] = useState(initial);
+  const { groups, fromServer } = useAmenityCatalog();
   const dirty = JSON.stringify(sel) !== JSON.stringify(saved);
   const flip = (list: string[], a: string) => (list.includes(a) ? list.filter((x) => x !== a) : [...list, a]);
 
   return (
     <div className="grid gap-8">
+      {!fromServer && (
+        <p className="rounded-xl bg-warn-bg px-4 py-2.5 text-warn">
+          Couldn&apos;t load the gym&apos;s amenity catalogue, so this is a default list — selections may not save.
+        </p>
+      )}
       <Collection
         title="Free amenities" desc="Included for every member."
-        selected={sel.free} disabled={[]}
+        selected={sel.free} disabled={[]} groups={groups}
         // marking something free removes it from paid, so an amenity is never in both lists
         onToggle={(a) => setSel((s) => ({ free: flip(s.free, a), paid: s.paid.filter((x) => x !== a) }))}
       />
       <hr className="border-line" />
       <Collection
         title="Paid amenities" desc="Available as an extra cost. Anything already marked free is unavailable here."
-        selected={sel.paid} disabled={sel.free}
+        selected={sel.paid} disabled={sel.free} groups={groups}
         onToggle={(a) => setSel((s) => ({ ...s, paid: flip(s.paid, a) }))}
       />
       <SaveBar dirty={dirty} alwaysDiscard onSave={() => { onSave(sel); setSaved(sel); toast("Amenities saved"); }} onReset={onDiscard} />

@@ -8,15 +8,15 @@ import { animate } from "framer-motion";
 import { LuDownload as Download } from "react-icons/lu";
 import { Can } from "@/components/AuthProvider";
 import { useToast } from "@/components/ui/Toast";
-import { addDays, daysBetween, fmtDate, today } from "@/lib/dates";
+import { daysBetween, fmtDate, today } from "@/lib/dates";
 import { LEADS_KEY, type Lead } from "@/lib/leads";
 import { MEMBERS_KEY, type Member } from "@/lib/members";
-import { PEOPLE_KEY, type Person } from "@/lib/people";
 import { money } from "@/lib/plans";
-import { RANGES, allPayments, bucketRevenue, kpis, leadFunnel, leadSources, membersByPlan, membersByStatus, niceScale, notJoiningReasons, outstandingList, paymentsCsv, rangeBounds, trainerLoad, type Bucket, type RangeId, type Row } from "@/lib/reports";
+import { RANGES, niceScale, outstandingList, type Bucket, type RangeId, type Row } from "@/lib/reports";
 import { useResource } from "@/lib/api";
+import { useInsights } from "@/lib/api/insights";
 import { btnGhost, card } from "@/lib/ui";
-import { isExpiringSoon, currentMembership, fullName } from "@/lib/members";
+import { isExpiringSoon, memberExpiry, memberPlanName, fullName } from "@/lib/members";
 
 // ---- tooltip: follows the pointer on hover, anchors to the mark on keyboard focus ----
 type Tip = { x: number; y: number; title: string; value: string } | null;
@@ -144,34 +144,42 @@ function Columns({ buckets, unit }: { buckets: Bucket[]; unit: "day" | "week" | 
 export default function ReportsPage() {
   const toast = useToast();
   const [members, , mReady] = useResource<Member>(MEMBERS_KEY);
-  const [leads, , lReady] = useResource<Lead>(LEADS_KEY);
-  const [people] = useResource<Person>(PEOPLE_KEY);
+  const [, , lReady] = useResource<Lead>(LEADS_KEY);
   const [range, setRange] = useState<RangeId>("30d");
   const now = today();
+  // Every aggregate comes from the reporting endpoints: member/lead list rows carry no payment data at all,
+  // and the lists are paginated, so anything computed here would only describe the first page.
+  const ins = useInsights(range);
 
   const d = useMemo(() => {
-    const payments = allPayments(members);
-    // "All time" must reach back to the first payment AND the first join, or early members would be left out of the counts
-    const earliest = [...payments.map((p) => p.date), ...members.map((m) => m.joinedAt)].sort()[0] ?? now;
-    const { start, end } = rangeBounds(range, now, earliest);
+    const { start, end, series } = ins;
     const len = daysBetween(start, end) + 1;
-    const prev = payments.filter((p) => p.date >= addDays(start, -len) && p.date < start).reduce((s, p) => s + p.amount, 0);
-    const k = kpis(members, leads, payments, start, end, now);
+    const unit: "day" | "week" | "month" = len <= 35 ? "day" : len <= 120 ? "week" : "month";
     return {
-      payments, start, end, prev, len, k, ...bucketRevenue(payments, start, end),
-      inRange: payments.filter((p) => p.date >= start && p.date <= end),
-      status: membersByStatus(members, now), plans: membersByPlan(members), funnel: leadFunnel(leads), reasons: notJoiningReasons(leads), sources: leadSources(leads),
-      trainers: trainerLoad(members, (id) => people.find((p) => p.id === id)?.name || "Unknown"),
-      owing: outstandingList(members),
-      expiring: members.filter((m) => isExpiringSoon(m, now)).map((m) => ({ id: m.id, name: fullName(m), plan: currentMembership(m).planName, end: currentMembership(m).end })).sort((a, b) => a.end.localeCompare(b.end)),
+      start, end, len, unit, buckets: series,
+      k: {
+        totalMembers: ins.kpi.totalMembers, active: ins.kpi.active, newMembers: ins.kpi.newMembers,
+        revenue: ins.kpi.revenue, expiringSoon: ins.kpi.expiringSoon,
+        leadConversion: ins.kpi.leadConversion, leadCount: ins.kpi.leadCount,
+        // No endpoint reports outstanding balances across the gym; it lives per member dossier only.
+        outstanding: 0,
+      },
+      status: ins.byStatus, plans: ins.byPlan, funnel: ins.funnel, reasons: ins.reasons,
+      sources: ins.sources, trainers: ins.trainers, byMethod: ins.byMethod,
+      owing: [] as ReturnType<typeof outstandingList>,
+      expiring: members
+        .filter((m) => isExpiringSoon(m, now))
+        .map((m) => ({ id: m.id, name: fullName(m), plan: memberPlanName(m), end: memberExpiry(m) }))
+        .sort((a, b) => a.end.localeCompare(b.end)),
     };
-  }, [members, leads, people, range, now]);
+  }, [ins, members, now]);
 
   const owingPg = usePaged(d.owing, 5), expiringPg = usePaged(d.expiring, 5);
 
-  if (!mReady || !lReady) return <div className={`${card} h-[400px] animate-pulse`} />;
+  if (ins.loading || !mReady || !lReady) return <div className={`${card} h-[400px] animate-pulse`} />;
   const { k } = d;
-  const delta = range === "all" ? null : d.prev > 0 ? Math.round(((k.revenue - d.prev) / d.prev) * 100) : null;
+  // The revenue report covers one window only, so there is no previous period to compare against.
+  const delta: number | null = null;
   const tab = (rows: Row[]) => ({ cols: ["Name", "Count"], rows: rows.map((r) => [r.label, r.value]) });
 
   return (
@@ -183,11 +191,15 @@ export default function ReportsPage() {
             {RANGES.map((r) => <button key={r.id} aria-pressed={range === r.id} onClick={() => setRange(r.id)} className={`rounded-lg px-3.5 py-1.5 font-semibold ${range === r.id ? "bg-primary-50 text-primary" : "text-muted hover:text-foreground"}`}>{r.label}</button>)}
           </div>
           <Can perm="Manage reports">
-            <MotionButton className={btnGhost} disabled={d.inRange.length === 0} onClick={() => {
-              const url = URL.createObjectURL(new Blob([paymentsCsv([...d.inRange])], { type: "text/csv" }));
-              const a = document.createElement("a"); a.href = url; a.download = `payments-${d.start}-to-${d.end}.csv`; a.click(); URL.revokeObjectURL(url);
-              toast(`Exported ${d.inRange.length} payment${d.inRange.length === 1 ? "" : "s"}`);
-            }}><Download size={16} />Export payments</MotionButton>
+            {/* The API has no endpoint that lists payments — they exist only inside a member dossier — so the
+                export is the revenue report's daily totals rather than one row per payment. */}
+            <MotionButton className={btnGhost} disabled={d.buckets.length === 0} onClick={() => {
+              const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+              const csv = ["Date,Revenue", ...d.buckets.map((b) => [b.from, b.value.toFixed(2)].map(esc).join(","))].join("\n");
+              const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+              const a = document.createElement("a"); a.href = url; a.download = `revenue-${d.start}-to-${d.end}.csv`; a.click(); URL.revokeObjectURL(url);
+              toast(`Exported ${d.buckets.length} day${d.buckets.length === 1 ? "" : "s"} of revenue`);
+            }}><Download size={16} />Export revenue</MotionButton>
           </Can>
         </div>
       </div>

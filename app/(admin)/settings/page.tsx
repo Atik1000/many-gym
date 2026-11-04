@@ -3,12 +3,11 @@
 import { LuKeyRound, LuSave } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
 import { useState } from "react";
-import { writeResource } from "@/lib/api";
-import { changePassword } from "@/lib/auth";
-import type { Person } from "@/lib/people";
+import { changePassword, updateMyName } from "@/lib/auth";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/components/ui/Toast";
 import { Pill } from "@/components/ui/parts";
+import GymSettings from "@/components/settings/GymSettings";
 import { btnPrimary, card, errorText, hint, input, label } from "@/lib/ui";
 
 // Account settings for the signed-in person: their display name and password.
@@ -21,17 +20,18 @@ export default function SettingsPage() {
   if (!ready || !user) return <div className={`${card} h-[300px] animate-pulse`} />;
   const shownName = name ?? user.name;
 
-  const saveName = (e: React.FormEvent) => {
+  const saveName = async (e: React.FormEvent) => {
     e.preventDefault(); setNameErr("");
     const n = shownName.trim();
     if (!n || n.length > 80) return setNameErr("Enter a name (up to 80 characters)");
-    writeResource<Person>("people", (l) => l.map((p) => (p.id === user.id ? { ...p, name: n } : p)));
+    const problem = await updateMyName(n);
+    if (problem) return setNameErr(problem);
     setNameDraft(null); toast("Name updated");
   };
-  const savePassword = (e: React.FormEvent) => {
+  const savePassword = async (e: React.FormEvent) => {
     e.preventDefault(); setPwErr("");
     if (next !== again) return setPwErr("The new passwords don't match");
-    const problem = changePassword(user.id, current, next);
+    const problem = await changePassword(current, next);
     if (problem) return setPwErr(problem);
     setCurrent(""); setNext(""); setAgain(""); toast("Password changed");
   };
@@ -62,6 +62,7 @@ export default function SettingsPage() {
           <MotionButton className={`${btnPrimary} mt-4`} ><LuKeyRound size={17} />Change password</MotionButton>
         </form>
       </section>
+      <GymSettings />
     </div>
   );
 }

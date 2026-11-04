@@ -3,17 +3,10 @@
 import { LuLogIn } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "@/lib/auth";
-import { btnPrimary, card, errorText, hint, input, label } from "@/lib/ui";
-
-// The seeded accounts all share one dummy password — shown here only because this is demo data.
-const DEMO = [
-  { name: "Olivia Parker", role: "Administrator", email: "olivia.parker@example.com" },
-  { name: "Sarah Collins", role: "Staff", email: "sarah.collins@example.com" },
-  { name: "Alex Morgan", role: "Trainer", email: "alex.morgan@example.com" },
-  { name: "Ines Duarte", role: "Membership Manager", email: "ines.duarte@example.com" },
-];
+import { btnPrimary, card, errorText, input, label } from "@/lib/ui";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,9 +14,12 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   const router = useRouter();
-  const submit = (e: React.FormEvent) => {
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const problem = signIn(email, password);
+    setBusy(true);
+    const problem = await signIn(email, password);
+    setBusy(false);
     if (problem) return setError(problem);
     router.replace("/");
   };
@@ -41,22 +37,13 @@ export default function LoginPage() {
           <input id="email" type="email" autoComplete="username" required autoFocus className={input} value={email} onChange={(e) => setEmail(e.target.value)} />
           <label htmlFor="password" className={`${label} mt-4`}>Password</label>
           <input id="password" type="password" autoComplete="current-password" required className={input} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <p className="mt-2 text-right"><Link href="/forgot" className="font-semibold text-primary">Forgot your password?</Link></p>
           {error && <p role="alert" className={`${errorText} mt-3 text-[13px]`}>{error}</p>}
-          <MotionButton type="submit" className={`${btnPrimary} mt-5 w-full`}><LuLogIn size={17} />Sign in</MotionButton>
+          <MotionButton type="submit" disabled={busy} className={`${btnPrimary} mt-5 w-full`}><LuLogIn size={17} />{busy ? "Signing in…" : "Sign in"}</MotionButton>
+          <p className="mt-4 text-center text-muted">
+            New here? <Link href="/signup" className="font-semibold text-primary">Create an account</Link>
+          </p>
         </form>
-        <div className={`${card} mt-4 p-5`}>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Demo accounts · password <code className="rounded bg-background px-1 normal-case">manygym123</code></p>
-          <div className="grid gap-1">
-            {DEMO.map((d) => (
-              <button key={d.email} type="button" onClick={() => { setEmail(d.email); setPassword("manygym123"); setError(""); }}
-                className="flex items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-background">
-                <span><b className="font-semibold">{d.name}</b><span className="block text-xs text-muted">{d.email}</span></span>
-                <span className="text-xs text-muted">{d.role}</span>
-              </button>
-            ))}
-          </div>
-          <p className={hint}>Click one to fill the form, then press Sign in.</p>
-        </div>
       </div>
     </main>
   );

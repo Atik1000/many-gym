@@ -1,16 +1,19 @@
 "use client";
 
 import { createContext, useCallback, useContext } from "react";
-import { useResource } from "@/lib/api";
+import { refreshResource, useResource } from "@/lib/api";
+import { planActions } from "@/lib/api/actions";
+import { plans as plansApi, resolveAmenityIds } from "@/lib/api/adapters";
 import type { Plan } from "@/lib/plans";
 
 // Plans come from the API. This context keeps the save/remove/patch helpers the plan pages already use.
 type Ctx = {
   plans: Plan[];
   ready: boolean;
-  save: (p: Plan) => string;
-  remove: (id: string) => void;
-  patch: (id: string, p: Partial<Plan>) => void;
+  /** Resolves to the id the server assigned, or null if the save failed. */
+  save: (p: Plan) => Promise<string | null>;
+  remove: (id: string) => Promise<void>;
+  patch: (id: string, p: Partial<Plan>) => Promise<void>;
 };
 const PlansCtx = createContext<Ctx | null>(null);
 export const usePlans = () => {
@@ -19,25 +22,38 @@ export const usePlans = () => {
   return c;
 };
 
-const slug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-
 export default function PlansProvider({ children }: { children: React.ReactNode }) {
-  const [plans, setPlans, ready] = useResource<Plan>("plans");
+  const [plans, , ready] = useResource<Plan>("plans");
 
-  const save = useCallback((p: Plan) => {
-    let id = p.id;
-    if (!id) { // new plan: a readable, unique id from its name
-      const base = slug(p.name) || "plan";
-      id = base; let n = 2;
-      while (plans.some((x) => x.id === id)) id = `${base}-${n++}`;
+  /**
+   * Creates or updates a plan and returns the id the **server** assigned — ids are UUIDs minted on POST, so they
+   * can't be guessed locally. Amenities go through their own PUT, since the plan body can't carry them.
+   */
+  const save = useCallback(async (p: Plan): Promise<string | null> => {
+    try {
+      const amenityIds = await resolveAmenityIds([...p.freeAmenities, ...p.paidAmenities]);
+      const saved = p.id ? await plansApi.update(p, amenityIds) : await plansApi.create(p, amenityIds);
+      if (amenityIds.length) await plansApi.syncAmenities(saved.id, amenityIds);
+      await refreshResource("plans");
+      return saved.id;
+    } catch {
+      return null;
     }
-    const saved = { ...p, id };
-    setPlans((l) => (l.some((x) => x.id === id) ? l.map((x) => (x.id === id ? saved : x)) : [saved, ...l]));
-    return id;
-  }, [plans, setPlans]);
+  }, []);
 
-  const remove = useCallback((id: string) => setPlans((l) => l.filter((p) => p.id !== id)), [setPlans]);
-  const patch = useCallback((id: string, p: Partial<Plan>) => setPlans((l) => l.map((x) => (x.id === id ? { ...x, ...p } : x))), [setPlans]);
+  const remove = useCallback(async (id: string) => {
+    await plansApi.remove(id).catch(() => null);
+    await refreshResource("plans");
+  }, []);
+
+  /** A status change is its own transition endpoint; anything else is a normal field update. */
+  const patch = useCallback(async (id: string, p: Partial<Plan>) => {
+    if (p.status) return void (await planActions.setStatus(id, p.status));
+    const current = plans.find((x) => x.id === id);
+    if (!current) return;
+    await plansApi.update({ ...current, ...p }).catch(() => null);
+    await refreshResource("plans");
+  }, [plans]);
 
   return <PlansCtx.Provider value={{ plans, ready, save, remove, patch }}>{children}</PlansCtx.Provider>;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LuArrowLeft, LuChevronLeft, LuChevronRight, LuCopy, LuLink2 } from "react-icons/lu";
 import { EmptyState } from "@/components/ui/parts";
@@ -9,6 +9,11 @@ import { MotionButton } from "@/components/ui/Motion";
 import { useToast } from "@/components/ui/Toast";
 import { useGym, useResource } from "@/lib/api";
 import { accountSlug, mediaPath, postPath, timeAgo, type Post } from "@/lib/posts";
+import { postActions } from "@/lib/api/actions";
+import * as api from "@/lib/api/endpoints";
+import { postFromApi } from "@/lib/api/adapters";
+import { currentGymId } from "@/lib/api/http";
+import { LuImagePlus } from "react-icons/lu";
 import { btnGhost, card, hint, input, label } from "@/lib/ui";
 import { PostCard } from "./Feed";
 
@@ -31,9 +36,31 @@ function LinkBox({ title, path }: { title: string; path: string }) {
 function useRoutePost(account: string, postId: string) {
   const [posts, setPosts, ready] = useResource<Post>("posts");
   const [gym, , gymReady] = useGym();
-  const post = posts.find((p) => p.id === postId);
+  const [fetched, setFetched] = useState<Post | null>(null);
+  const [tried, setTried] = useState(false);
+  const cached = posts.find((p) => p.id === postId);
+
+  // A post opened straight from its link may not be in the loaded feed page, so fall back to
+  // `GET /posts/{id}/` rather than showing "not found" for a post that exists.
+  useEffect(() => {
+    const gymId = currentGymId();
+    if (cached || !ready || !gymId || tried) return;
+    let live = true;
+    void Promise.resolve()
+      .then(() => {
+        if (!live) return;
+        setTried(true);
+        return api.postsRetrieve(postId, { gym_id: gymId });
+      })
+      .then((r) => live && r && setFetched(postFromApi(r)))
+      .catch(() => live && setFetched(null));
+    return () => { live = false; };
+  }, [cached, ready, postId, tried]);
+
+  const post = cached ?? fetched ?? undefined;
+  const settled = ready && gymReady && (!!cached || tried);
   const ok = !!post && !!gym && accountSlug(gym.overview.name) === account;
-  return { post, ok, ready: ready && gymReady, account, gymName: gym?.overview.name ?? "", setPosts };
+  return { post, ok, ready: settled, account, gymName: gym?.overview.name ?? "", setPosts };
 }
 
 const NotFound = () => (
@@ -86,11 +113,42 @@ export function MediaView({ account, postId, mediaId }: { account: string; postI
           <p className="font-semibold">{gymName}</p>
           <p className="text-[13px] text-muted">{timeAgo(post.createdAt)} · {m.kind === "video" ? "Video" : "Photo"} {index + 1} of {media.length}</p>
           {post.text && <p className="mt-3 whitespace-pre-wrap">{post.text}</p>}
+          {m.kind === "video" && <VideoThumbnail postId={post.id} mediaId={m.id} />}
           <p className={`${hint} mt-3`}>This file&apos;s link includes the account and the post it came from.</p>
         </div>
       </div>
       <LinkBox title="Media link" path={mediaPath(account, post.id, m.id)} />
       <LinkBox title="Post link" path={postPath(account, post.id)} />
     </div>
+  );
+}
+
+
+/**
+ * A custom poster frame for a video — `PATCH /posts/{id}/media/{mediaId}/thumbnail/`.
+ *
+ * This is the only endpoint in the API that accepts a real file upload (multipart `thumbnail_image`, ≤10MB);
+ * every other media field takes a URL that must already be hosted.
+ */
+function VideoThumbnail({ postId, mediaId }: { postId: string; mediaId: string }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) return toast("Choose an image under 10 MB");
+    setBusy(true);
+    const problem = await postActions.setVideoThumbnail(postId, mediaId, file);
+    setBusy(false);
+    toast(problem ?? "Thumbnail updated");
+  };
+
+  return (
+    <label className="mt-3 inline-flex cursor-pointer items-center gap-2 font-semibold text-primary">
+      <input type="file" accept="image/*" className="hidden" disabled={busy} onChange={pick} />
+      <LuImagePlus size={16} />{busy ? "Uploading…" : "Set a custom thumbnail"}
+    </label>
   );
 }

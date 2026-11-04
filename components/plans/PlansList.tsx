@@ -6,7 +6,7 @@ import { LuCreditCard } from "react-icons/lu";
 import { MotionButton, MotionLink } from "@/components/ui/Motion";
 import { Pagination, usePaged } from "@/components/ui/parts";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LuArchive as Archive, LuCopy as Copy, LuEllipsisVertical as MoreVertical, LuPencil as Pencil, LuPlus as Plus, LuPower as Power, LuSearch as Search, LuTrash2 as Trash2, LuEye, LuX } from "react-icons/lu";
 import Modal from "@/components/ui/Modal";
@@ -15,6 +15,7 @@ import { btnGhost, btnPrimary, card, input } from "@/lib/ui";
 import { durationLabel, money, num, type Plan, type PlanStatus, type PlanType } from "@/lib/plans";
 import { StatusBadge, TypeBadge } from "./Badges";
 import { usePlans } from "./PlansProvider";
+import * as api from "@/lib/api/endpoints";
 import { Can, useAuth } from "@/components/AuthProvider";
 
 const TABS: { id: "all" | PlanStatus; label: string }[] = [
@@ -51,8 +52,27 @@ function RowMenu({ plan, onDelete }: { plan: Plan; onDelete: () => void }) {
   );
 }
 
+/** `GET /plans/metrics/` — the server's own pricing aggregates, documented without a response schema. */
+function usePlanMetrics() {
+  const [m, setM] = useState<Record<string, unknown> | null>(null);
+  useEffect(() => {
+    let live = true;
+    void api.plansMetricsRetrieve()
+      .then((r) => live && setM((r ?? {}) as Record<string, unknown>))
+      .catch(() => live && setM(null));
+    return () => { live = false; };
+  }, []);
+  return m;
+}
+
 export default function PlansList() {
   const { plans, ready, remove } = usePlans();
+  const metrics = usePlanMetrics();
+  // The metrics response has no schema in the spec, so show the numeric fields it actually returns.
+  const metricRows = Object.entries(metrics ?? {})
+    .filter(([, v]) => typeof v === "number" || (typeof v === "string" && v !== "" && !Number.isNaN(Number(v))))
+    .slice(0, 4)
+    .map(([k, v]) => [k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()), /price|revenue|fee|value/i.test(k) ? money(Number(v)) : String(v)] as const);
   const toast = useToast();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | PlanStatus>("all");
@@ -66,6 +86,13 @@ export default function PlansList() {
 
   return (
     <>
+      {metricRows.length > 0 && (
+        <div className={`${card} mb-4 flex flex-wrap gap-x-8 gap-y-3 p-4`}>
+          {metricRows.map(([k, v]) => (
+            <span key={k}><span className="block text-xs uppercase tracking-wide text-muted">{k}</span><b className="text-lg">{v}</b></span>
+          ))}
+        </div>
+      )}
       <div className={`${card} mb-4 grid grid-cols-1 gap-3 p-4 md:grid-cols-[minmax(0,1fr)_200px_200px_auto]`}>
         <label className="relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />

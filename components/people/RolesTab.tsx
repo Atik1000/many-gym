@@ -6,13 +6,14 @@ import { LuChartColumn as ChartColumn, LuCreditCard as CreditCard, LuFileText as
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmModal, MultiSelect, Pill } from "@/components/ui/parts";
 import { PERMISSION_GROUPS, permCount, type Person, type Role } from "@/lib/people";
-import { uid } from "@/lib/id";
 import { btnGhost, btnPrimary, errorText, input, label } from "@/lib/ui";
 import { useAuth } from "@/components/AuthProvider";
+import { roleActions } from "@/lib/api/actions";
+import { permissionIdsForLabels } from "@/lib/permissions";
 
 const ICON: Record<string, typeof Home> = { Studio: Home, Reports: ChartColumn, "Gym Profile": Store, "Membership Plans": CreditCard, Members: Users, Leads: UserPlus, "Routine Templates": FileText, "People & Roles": ShieldCheck };
 
-export default function RolesTab({ roles, setRoles, people }: { roles: Role[]; setRoles: (f: (l: Role[]) => Role[]) => void; people: Person[] }) {
+export default function RolesTab({ roles, people }: { roles: Role[]; people: Person[] }) {
   const toast = useToast();
   const { can } = useAuth();
   const [sel, setSel] = useState<string | null>(roles.find((r) => !r.builtIn)?.id ?? roles[0]?.id ?? null);
@@ -27,15 +28,31 @@ export default function RolesTab({ roles, setRoles, people }: { roles: Role[]; s
   // default roles are fixed; custom roles need Edit/Create roles
   const readOnly = !!draft?.builtIn || !can(isNew ? "Create roles" : "Edit roles");
 
-  const save = () => {
+  /**
+   * Roles are stored server-side as a set of permission **ids**, so the labels this editor works in are resolved
+   * against `GET /access-control/permissions/` first. Anything that doesn't resolve is reported rather than
+   * silently dropped.
+   */
+  const save = async () => {
     if (!draft) return;
     const name = draft.name.trim();
     if (!name) return setErr("Role name is required");
     if (roles.some((r) => r.id !== draft.id && r.name.toLowerCase() === name.toLowerCase())) return setErr("A role with this name already exists");
     const clean = Object.fromEntries(Object.entries(draft.permissions).filter(([, a]) => a.length));
-    const saved = { ...draft, name, id: draft.id || uid(), permissions: clean };
-    setRoles((l) => (l.some((r) => r.id === saved.id) ? l.map((r) => (r.id === saved.id ? saved : r)) : [...l, saved]));
-    setSel(saved.id); setDraft(saved); setErr(""); toast(isNew ? "Role created" : "Role saved");
+    const labels = Object.values(clean).flat();
+    const { ids, unmatched } = permissionIdsForLabels(labels);
+    if (labels.length && !ids.length) return setErr("Couldn't read the permission list from the server. Reload and try again.");
+
+    const problem = draft.id
+      ? await roleActions.update(draft.id, { name, description: draft.description, permissionIds: ids })
+      : await roleActions.create(name, draft.description ?? "", ids);
+    if (problem) return setErr(problem);
+
+    setErr("");
+    toast(unmatched.length
+      ? `Role saved — ${unmatched.length} permission${unmatched.length === 1 ? "" : "s"} aren't offered by the API`
+      : draft.id ? "Role saved" : "Role created");
+    setDraft({ ...draft, name, permissions: clean });
   };
 
   const defaults = roles.filter((r) => r.builtIn), customs = roles.filter((r) => !r.builtIn);
@@ -95,7 +112,7 @@ export default function RolesTab({ roles, setRoles, people }: { roles: Role[]; s
 
       <ConfirmModal open={deleting} title="Delete role?" confirmLabel="Delete" onClose={() => setDeleting(false)}
         body={inUse > 0 ? <>{inUse} {inUse === 1 ? "person has" : "people have"} this role. Move them to another role before deleting it.</> : <>“{draft?.name}” will be removed.</>}
-        onConfirm={() => { if (inUse === 0 && draft) { setRoles((l) => l.filter((r) => r.id !== draft.id)); setSel(null); setDraft(null); toast("Role deleted"); } setDeleting(false); }} />
+        onConfirm={async () => { if (inUse === 0 && draft) { const e = await roleActions.remove(draft.id); setSel(null); setDraft(null); toast(e ?? "Role deleted"); } setDeleting(false); }} />
     </div>
   );
 }

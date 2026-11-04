@@ -3,12 +3,13 @@
 import { MotionButton, MotionLink } from "@/components/ui/Motion";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useRecord } from "@/lib/api";
 import { useState } from "react";
 import { LuArrowLeft as ArrowLeft, LuEllipsisVertical as MoreVertical, LuPencil as Pencil, LuArrowLeft, LuX } from "react-icons/lu";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { btnGhost, btnPrimary, card } from "@/lib/ui";
-import { durationLabel, instalmentsTotal, money, num, totalAtJoining } from "@/lib/plans";
+import { durationLabel, instalmentsTotal, money, num, totalAtJoining, type Plan } from "@/lib/plans";
 import { StatusBadge, TypeBadge } from "./Badges";
 import { usePlans } from "./PlansProvider";
 import { Can, useAuth } from "@/components/AuthProvider";
@@ -27,7 +28,9 @@ export default function PlanDetail() {
   const { can } = useAuth();
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const plan = plans.find((p) => p.id === id);
+  // `GET /plans/` omits included amenities and the instalment schedule, so load the full plan.
+  const [full] = useRecord<Plan>("plans", id);
+  const plan = full ?? plans.find((p) => p.id === id);
 
   if (!ready) return <div className={`${card} h-[300px] animate-pulse`} />;
   if (!plan) return (

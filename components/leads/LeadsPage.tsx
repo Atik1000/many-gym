@@ -12,10 +12,13 @@ import { useToast } from "@/components/ui/Toast";
 import { ConfirmModal, MultiSelect, Pagination, Pill, Select, usePaged } from "@/components/ui/parts";
 import { fmtDate, today } from "@/lib/dates";
 import { BASE_REASONS, CUSTOM_REASONS_KEY, FITNESS_GOALS, LEADS_KEY, SOURCES, STAGES, STAGE_LABEL, STAGE_TONE, blankLead, leadName, nextMoveOf, validateLead, type Lead, type Stage } from "@/lib/leads";
-import { PEOPLE_KEY, type Person } from "@/lib/people";
+import { PEOPLE_KEY, type Person, isTrainer } from "@/lib/people";
 import { type Plan } from "@/lib/plans";
 import { uid } from "@/lib/id";
-import { useResource } from "@/lib/api";
+import { readResource, refreshResource, useResource } from "@/lib/api";
+import { leads as leadsApi } from "@/lib/api/adapters";
+import { ApiError } from "@/lib/api/http";
+import { leadActions } from "@/lib/api/actions";
 import { btnGhost, btnPrimary, card, errorText, hint, input, label } from "@/lib/ui";
 import { Can, EditableIf, useAuth } from "@/components/AuthProvider";
 
@@ -34,7 +37,7 @@ export default function LeadsPage() {
   const [newNote, setNewNote] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  const assignable = people.filter((p) => p.roleId !== "trainer" && p.status === "active"); // "admin/staff selection"
+  const assignable = people.filter((p) => !isTrainer(p) && p.status === "active"); // "admin/staff selection"
   const reasons = [...BASE_REASONS.filter((r) => r !== "Other"), ...customReasons.map((r) => r.label), "Other"];
   const count = (s: "all" | Stage) => (s === "all" ? leads.length : leads.filter((l) => l.stage === s).length);
   const shown = leads.filter((l) => (stage === "all" || l.stage === stage) && `${leadName(l)} ${l.phone} ${l.email}`.toLowerCase().includes(q.trim().toLowerCase()));
@@ -45,21 +48,71 @@ export default function LeadsPage() {
 
   const open = (l: Lead) => { setDraft(structuredClone(l)); setEditing(false); setErrors({}); setNewNote(""); };
   const create = () => { setDraft({ ...blankLead(), id: uid() }); setEditing(true); setErrors({}); setNewNote(""); };
-  const addNote = () => { if (newNote.trim() && draft) { set("notes", [...draft.notes, newNote.trim()]); setNewNote(""); } };
+  // Notes are their own endpoint and append-only — POST /leads/{id}/notes/. A note on a lead that
+  // hasn't been created yet is held in the draft and posted right after the lead is saved.
+  const addNote = async () => {
+    const text = newNote.trim();
+    if (!text || !draft) return;
+    if (isNew) { set("notes", [...draft.notes, text]); setNewNote(""); return; }
+    const problem = await leadActions.addNote(draft.id, text);
+    if (problem) return toast(problem);
+    set("notes", [...draft.notes, text]); setNewNote("");
+  };
 
-  /** Validates and saves the open lead. Returns the saved lead, or null if validation failed. */
-  const save = (): Lead | null => {
+  /**
+   * Validates and saves the open lead.
+   *
+   * The lead goes straight to `POST`/`PATCH /leads/` rather than through the list diff, because its notes and
+   * next moves are separate endpoints that need the lead's **server** id — and on creation that id only exists
+   * once the POST returns. Posting them against a locally generated id would 404.
+   */
+  const save = async (): Promise<Lead | null> => {
     if (!draft) return null;
     const pendingNote = newNote.trim(); // don't lose a note typed but not added
     const d = pendingNote ? { ...draft, notes: [...draft.notes, pendingNote] } : draft;
     const e = validateLead(d); setErrors(e);
     if (Object.keys(e).length) return null;
     const clean: Lead = { ...d, reason: d.stage === "not_joining" ? d.reason : "", customReason: d.stage === "not_joining" && d.reason === "Other" ? d.customReason.trim() : "", firstName: d.firstName.trim(), lastName: d.lastName.trim() };
-    setLeads((l) => (l.some((x) => x.id === clean.id) ? l.map((x) => (x.id === clean.id ? clean : x)) : [clean, ...l]));
-    setDraft(clean); setEditing(false); setNewNote(""); toast(isNew ? "Lead added" : "Lead saved");
-    return clean;
+    const existing = leads.find((x) => x.id === clean.id);
+
+    let saved: Lead;
+    try {
+      saved = existing ? await leadsApi.update(clean) : await leadsApi.create(clean);
+    } catch (err) {
+      const fields = err instanceof ApiError ? err.fieldErrors() : {};
+      setErrors(Object.keys(fields).length ? fields : { form: err instanceof ApiError ? err.message : "Couldn't save that lead." });
+      return null;
+    }
+
+    const knownMoves = new Set((existing?.nextMoves ?? []).map((x) => x.id));
+    for (const mv of clean.nextMoves) {
+      if (knownMoves.has(mv.id)) {
+        if (existing?.nextMoves.some((x) => x.id === mv.id && (x.date !== mv.date || x.description !== mv.description))) {
+          await leadActions.updateNextMove(saved.id, mv.id, { date: mv.date, description: mv.description });
+        }
+      } else if (mv.date && mv.description.trim()) {
+        await leadActions.addNextMove(saved.id, mv.date, mv.description.trim());
+      }
+    }
+    const knownNotes = new Set(existing?.notes ?? []);
+    for (const note of clean.notes) if (!knownNotes.has(note)) await leadActions.addNote(saved.id, note);
+
+    await refreshResource(LEADS_KEY);
+    const fresh = readResource<Lead>(LEADS_KEY).find((x) => x.id === saved.id) ?? saved;
+    setDraft(fresh); setEditing(false); setNewNote(""); toast(existing ? "Lead saved" : "Lead added");
+    return fresh;
   };
-  const convert = () => { const l = editing ? save() : draft; if (l) router.push(`/members/new?lead=${l.id}`); };
+
+  /** POST /leads/{id}/convert/ creates the member server-side and links it back to the lead. */
+  const convert = async () => {
+    const l = editing ? await save() : draft;
+    if (!l) return;
+    const problem = await leadActions.convert(l.id, { planId: l.planId || undefined, start: l.expectedStart || undefined });
+    if (problem) return toast(problem);
+    toast("Lead converted to a member");
+    setDraft(null);
+    router.push("/members");
+  };
 
   return (
     <>
@@ -193,6 +246,7 @@ export default function LeadsPage() {
                 {!isNew && can("Delete leads") && <button className="inline-flex items-center gap-1.5 font-semibold text-bad" onClick={() => setDeleting(true)}><Trash2 size={16} />Delete lead</button>}
                 {!isNew && draft.stage !== "joined" && can("Create members") && <button className="inline-flex items-center gap-1.5 font-semibold text-primary" onClick={convert}><UserCheck size={16} />Convert to member</button>}
               </div>
+              {errors.form && <p role="alert" className={`${errorText} mb-2`}>{errors.form}</p>}
               <div className="flex gap-3"><MotionButton className={btnGhost} onClick={() => (isNew ? setDraft(null) : (setDraft(leads.find((x) => x.id === draft.id) ?? null), setEditing(false), setErrors({}), setNewNote("")))}><LuX size={17} />Cancel</MotionButton><MotionButton className={btnPrimary} disabled={!can(isNew ? "Create leads" : "Edit leads")} onClick={() => save()}><LuSave size={17} />{isNew ? "Add Lead" : "Save Changes"}</MotionButton></div>
             </div>
             </>

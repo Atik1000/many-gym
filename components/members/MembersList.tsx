@@ -7,9 +7,9 @@ import { useState } from "react";
 import { LuEllipsis as MoreHorizontal, LuPlus as Plus, LuSearch as Search, LuEye } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { Avatar, ConfirmModal, Dot, Pagination, Pill, Select } from "@/components/ui/parts";
-import { balance, currentMembership, fullName, isExpiringSoon, memberStatus, paymentStatus, MEMBERS_KEY, type Member, type MemberStatus, type PaymentStatus } from "@/lib/members";
+import { currentMembership, fullName, isExpiringSoon, memberBalance, memberExpiry, memberPaymentStatus, memberPlanName, memberStatus, MEMBERS_KEY, type Member, type MemberStatus, type PaymentStatus , isAssignedTrainer} from "@/lib/members";
 import { fmtDate, today } from "@/lib/dates";
-import { PEOPLE_KEY, type Person } from "@/lib/people";
+import { PEOPLE_KEY, type Person, isTrainer } from "@/lib/people";
 import { money, type Plan } from "@/lib/plans";
 import { useResource } from "@/lib/api";
 import { btnGhost, btnPrimary, card, input } from "@/lib/ui";
@@ -39,20 +39,21 @@ export default function MembersList() {
   // changing any filter returns to page 1
   const f = <T,>(fn: (v: T) => void) => (v: T) => { fn(v); setPage(1); };
 
-  const trainers = people.filter((p) => p.roleId === "trainer");
+  const trainers = people.filter(isTrainer);
   const trainerName = (id: string) => people.find((p) => p.id === id)?.name || "Unassigned";
   const now = today();
+  // Directory rows carry a plan *name* only, so the plan filter matches by name when there is no loaded subscription.
+  const planNameOf = (id: string) => plans.find((p) => p.id === id)?.name ?? "";
 
   const rows = members.filter((m) => {
-    const ms = currentMembership(m); if (!ms) return false;
-    if (trainerOnly && m.trainerId !== user?.id) return false; // trainers only see their assigned members
+    if (trainerOnly && !isAssignedTrainer(m, user?.id)) return false; // trainers only see their assigned members
     const st = memberStatus(m, now);
     if (tab === "active" && st !== "active") return false;
     if (tab === "expiring" && !isExpiringSoon(m, now)) return false;
     if (tab === "expired" && st !== "expired") return false;
     if (tab === "scheduled" && st !== "scheduled") return false;
-    if (planF !== "all" && ms.planId !== planF) return false;
-    if (payF !== "all" && paymentStatus(ms) !== payF) return false;
+    if (planF !== "all" && currentMembership(m)?.planId !== planF && memberPlanName(m) !== planNameOf(planF)) return false;
+    if (payF !== "all" && memberPaymentStatus(m) !== payF) return false;
     if (trainerF === "none" ? m.trainerId : trainerF !== "all" && m.trainerId !== trainerF) return false;
     return `${fullName(m)} ${m.email} ${m.phone}`.toLowerCase().includes(q.trim().toLowerCase());
   });
@@ -85,17 +86,19 @@ export default function MembersList() {
               {!ready && <tr><td colSpan={7} className="p-10 text-center text-muted">Loading members…</td></tr>}
               {ready && view.length === 0 && <tr><td colSpan={7} className="p-12 text-center text-muted">{members.length ? "No members match your filters." : "No members yet. Add your first member."}</td></tr>}
               {view.map((m) => {
-                const ms = currentMembership(m); const st = memberStatus(m, now); const pay = paymentStatus(ms); const soon = isExpiringSoon(m, now);
+                const ms = currentMembership(m); const st = memberStatus(m, now); const pay = memberPaymentStatus(m); const soon = isExpiringSoon(m, now);
+                const owed = memberBalance(m); const expiry = memberExpiry(m);
                 return (
                   <tr key={m.id} className="border-t border-line">
                     <td className="px-5 py-3.5"><Link href={`/members/${m.id}`} className="flex items-center gap-3"><Avatar name={fullName(m)} src={m.photo} size={44} /><span><b className="block">{fullName(m)}</b><span className="text-muted">{m.email}</span></span></Link></td>
-                    <td className="px-5">{ms.planName}</td>
+                    <td className="px-5">{memberPlanName(m) || <span className="text-muted">No plan</span>}</td>
                     <td className="px-5"><Pill tone={STATUS_TONE[st]}><Dot tone={STATUS_TONE[st]} />{label(st)}</Pill>{m.joiningStatus === "sent_invitation" && <span className="mt-1 block text-xs text-muted">Invitation sent</span>}</td>
-                    <td className="px-5"><Pill tone={PAY_TONE[pay]}><Dot tone={PAY_TONE[pay]} />{PAY_LABEL[pay]}</Pill>{pay !== "paid" && <span className="mt-1 block text-[13px] text-muted">{money(balance(ms))} due</span>}</td>
+                    <td className="px-5"><Pill tone={PAY_TONE[pay]}><Dot tone={PAY_TONE[pay]} />{PAY_LABEL[pay]}</Pill>{pay !== "paid" && owed > 0 && <span className="mt-1 block text-[13px] text-muted">{money(owed)} due</span>}</td>
                     <td className="px-5">
-                      {ms.type === "session" ? <><b className="block font-medium">{ms.sessionsTotal - ms.sessionsUsed} of {ms.sessionsTotal} left</b><span className="text-[13px] text-muted">Expires {fmtDate(ms.end)}</span></>
-                        : st === "scheduled" ? <><span className="block">Starts {fmtDate(ms.start)}</span><span className="text-muted">Ends {fmtDate(ms.end)}</span></>
-                        : <><span className={`block ${soon ? "font-semibold text-warn" : ""}`}>{fmtDate(ms.end)}</span>{soon && <span className="text-[13px] text-warn">Expiring soon</span>}</>}
+                      {ms?.type === "session" ? <><b className="block font-medium">{ms.sessionsTotal - ms.sessionsUsed} of {ms.sessionsTotal} left</b><span className="text-[13px] text-muted">Expires {fmtDate(ms.end)}</span></>
+                        : ms && st === "scheduled" ? <><span className="block">Starts {fmtDate(ms.start)}</span><span className="text-muted">Ends {fmtDate(ms.end)}</span></>
+                        : expiry ? <><span className={`block ${soon ? "font-semibold text-warn" : ""}`}>{fmtDate(expiry)}</span>{soon && <span className="text-[13px] text-warn">Expiring soon</span>}</>
+                        : <span className="text-muted">—</span>}
                     </td>
                     <td className="px-5">{trainerName(m.trainerId)}</td>
                     <td className="px-5">

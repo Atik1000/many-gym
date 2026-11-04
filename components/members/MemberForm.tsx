@@ -8,12 +8,15 @@ import { LuArrowLeft as ArrowLeft, LuCamera as Camera, LuArrowLeft, LuSave } fro
 import { useToast } from "@/components/ui/Toast";
 import { Avatar, Select } from "@/components/ui/parts";
 import { today } from "@/lib/dates";
-import { MEMBERS_KEY, PAYMENT_METHODS, balance, blankMember, buildMembership, charges, endDate, fullName, memberNo, type Member } from "@/lib/members";
-import { PEOPLE_KEY, isValidEmail, type Person } from "@/lib/people";
+import { MEMBERS_KEY, PAYMENT_METHODS, balance, blankMember, buildMembership, charges, endDate, fullName, type Member } from "@/lib/members";
+import { PEOPLE_KEY, isValidEmail, type Person, isTrainer } from "@/lib/people";
 import { money, num, type Plan } from "@/lib/plans";
-import { blankRoutine, copyRoutine, type Routine } from "@/lib/routines";
+import { blankRoutine, type Routine } from "@/lib/routines";
 import { uid } from "@/lib/id";
-import { useGym, useResource } from "@/lib/api";
+import { refreshResource, useGym, useResource } from "@/lib/api";
+import { members as membersApi, resolveAmenityIds } from "@/lib/api/adapters";
+import { memberActions } from "@/lib/api/actions";
+import { ApiError } from "@/lib/api/http";
 import { btnGhost, btnPrimary, card, errorText, hint, input, label } from "@/lib/ui";
 
 import { LEADS_KEY, type Lead } from "@/lib/leads";
@@ -44,6 +47,7 @@ const Field = ({ id, title, req, error, children, wide }: { id: string; title: s
 function Form({ initial, editing, lead }: { initial: Member; editing: boolean; lead?: Lead }) {
   const toast = useToast(); const router = useRouter();
   const [members, setMembers] = useResource<Member>(MEMBERS_KEY);
+  const [saving, setSaving] = useState(false);
   const [gym] = useGym();
   const [people] = useResource<Person>(PEOPLE_KEY);
   const [plans] = useResource<Plan>("plans");
@@ -62,10 +66,10 @@ function Form({ initial, editing, lead }: { initial: Member; editing: boolean; l
   const extraList = Object.entries(extras).map(([name, p]) => ({ name, price: num(p) }));
   const ms = plan ? buildMembership(plan, start, end, extraList) : null;
   const total = ms ? charges(ms) : 0;
-  const trainers = people.filter((p) => p.roleId === "trainer" && p.status === "active");
+  const trainers = people.filter((p) => isTrainer(p) && p.status === "active");
   const set = <K extends keyof Member>(k: K, v: Member[K]) => setM((x) => ({ ...x, [k]: v }));
 
-  const submit = () => {
+  const submit = async () => {
     const e: Errors = {};
     if (!m.firstName.trim()) e.firstName = "First name is required";
     if (!m.lastName.trim()) e.lastName = "Last name is required";
@@ -90,16 +94,37 @@ function Form({ initial, editing, lead }: { initial: Member; editing: boolean; l
       setMembers((l) => l.map((x) => (x.id === base.id ? base : x)));
       toast("Member updated"); router.push(`/members/${base.id}`); return;
     }
+
+    /*
+     * Creation goes straight to `POST /members/`, not through the list diff, for two reasons: the create body
+     * carries the first subscription and payment (the PATCH body can't), and the id is minted by the server —
+     * navigating to a locally generated one would land on a member that doesn't exist.
+     */
     const full: Membership2 = ms!;
     if (num(payAmount) > 0) full.payments.push({ id: uid(), amount: num(payAmount), method: payMethod, date: payDate });
-    const tpl = templates.find((t) => t.id === routineChoice);
-    const routine = routineChoice === "custom" ? { ...blankRoutine("weekly"), id: uid(), name: `${base.firstName}'s routine` } : tpl ? copyRoutine(tpl) : null;
-    const nextNo = Math.max(0, ...members.map((x) => parseInt(x.memberNo.replace(/\D/g, ""), 10) || 0)) + 1;
-    const created: Member = { ...base, id: uid(), memberNo: memberNo(nextNo), memberships: [full], routine, joinedAt: today() };
-    setMembers((l) => [created, ...l]);
-    if (lead) setLeads((l) => l.map((x) => (x.id === lead.id ? { ...x, stage: "joined", reason: "", customReason: "" } : x))); // converting closes the lead
-    // spec: creating a member emails a confirmation link; joining_status stays sent_invitation until they confirm
-    toast(`Confirmation email sent to ${created.email}`); router.push(`/members/${created.id}`);
+    setSaving(true);
+    try {
+      const amenityIds = await resolveAmenityIds(extraList.map((x) => x.name));
+      const created = await membersApi.create({ ...base, memberships: [full], joinedAt: today() }, amenityIds);
+
+      // A routine is a separate endpoint, so it's assigned once the member exists.
+      if (routineChoice === "custom") await memberActions.assignCustomRoutine(created.id, { ...blankRoutine("weekly"), id: uid(), name: `${base.firstName}'s routine` });
+      else if (routineChoice) {
+        const tpl = templates.find((t) => t.id === routineChoice);
+        if (tpl) await memberActions.assignTemplate(created.id, tpl.id, tpl.name);
+      }
+
+      if (lead) setLeads((l) => l.map((x) => (x.id === lead.id ? { ...x, stage: "joined", reason: "", customReason: "" } : x))); // converting closes the lead
+      await refreshResource(MEMBERS_KEY);
+      toast(`Confirmation email sent to ${created.email}`);
+      router.push(`/members/${created.id}`);
+    } catch (err) {
+      const fields = err instanceof ApiError ? err.fieldErrors() : {};
+      setErrors(Object.keys(fields).length ? fields : { form: err instanceof ApiError ? err.message : "Couldn't create that member." });
+      document.querySelector("[data-error]")?.scrollIntoView({ block: "center" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const text = (k: "firstName" | "lastName" | "email" | "phone" | "address" | "city" | "country" | "nationality", props: React.InputHTMLAttributes<HTMLInputElement> = {}) =>
@@ -214,9 +239,11 @@ function Form({ initial, editing, lead }: { initial: Member; editing: boolean; l
         </aside>
       </div>
 
+      {errors.form && <p role="alert" data-error className={`${errorText} mt-4`}>{errors.form}</p>}
+
       <div className="mt-6 flex items-center justify-between">
         <MotionLink href={editing ? `/members/${initial.id}` : "/members"} className={btnGhost}><ArrowLeft size={17} />Cancel</MotionLink>
-        <MotionButton className={btnPrimary} onClick={submit}><LuSave size={17} />{editing ? "Save changes" : "Add Member"}</MotionButton>
+        <MotionButton className={btnPrimary} disabled={saving} onClick={submit}><LuSave size={17} />{saving ? "Saving…" : editing ? "Save changes" : "Add Member"}</MotionButton>
       </div>
     </>
   );

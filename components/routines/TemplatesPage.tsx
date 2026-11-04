@@ -5,10 +5,11 @@ import { useState } from "react";
 import { LuChevronRight as ChevronRight, LuPlus as Plus, LuSearch as Search, LuTrash2 as Trash2, LuX as X, LuPencil, LuSave, LuX } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmModal, MultiSelect, Pagination, Pill, Select, usePaged } from "@/components/ui/parts";
-import { useResource } from "@/lib/api";
+import { refreshResource, useResource } from "@/lib/api";
+import { routines as routinesApi } from "@/lib/api/adapters";
+import { ApiError } from "@/lib/api/http";
 import { btnGhost, btnPrimary, card, errorText, input, label } from "@/lib/ui";
 import { GOALS, LEVELS, blankDays, blankRoutine, cleanRoutine, newSession, validateRoutine, type Routine } from "@/lib/routines";
-import { uid } from "@/lib/id";
 import RoutineEditor from "./RoutineEditor";
 import RoutineViewer from "./RoutineViewer";
 import { Can, EditableIf, useAuth } from "@/components/AuthProvider";
@@ -41,16 +42,43 @@ export default function TemplatesPage() {
     sessions: f === "session" && d.sessions.length === 0 ? [newSession()] : d.sessions,
   }));
 
-  const save = () => {
+  const [saving, setSaving] = useState(false);
+  /**
+   * Saves straight through the API rather than the list diff, so the draft can adopt the id the **server**
+   * assigned. Keeping a locally generated id would make the next save target a template that doesn't exist.
+   */
+  const save = async () => {
     if (!draft) return;
     const errs = validateRoutine(draft);
     setErrors(errs);
     if (errs.length) return;
-    const clean = cleanRoutine({ ...draft, id: draft.id || uid() });
-    setTemplates((l) => (l.some((t) => t.id === clean.id) ? l.map((t) => (t.id === clean.id ? clean : t)) : [clean, ...l]));
-    setDraft(clean);
-    setEditing(false);
-    toast(isNew ? "Template created" : "Template saved");
+    const clean = cleanRoutine(draft);
+    setSaving(true);
+    try {
+      // Renaming or re-tagging a template is a PATCH; only a change to the days needs a full PUT.
+      const before = templates.find((t) => t.id === clean.id);
+      const daysChanged =
+        !before ||
+        JSON.stringify({ d: before.days, s: before.sessions, f: before.format }) !==
+          JSON.stringify({ d: clean.days, s: clean.sessions, f: clean.format });
+      const saved = !clean.id
+        ? await routinesApi.create(clean)
+        : daysChanged
+          ? await routinesApi.update(clean)
+          : await routinesApi.patchMeta(clean);
+      await refreshResource("routines");
+      setDraft(saved);
+      setEditing(false);
+      toast(clean.id ? "Template saved" : "Template created");
+    } catch (e) {
+      // Show the server's per-field complaints; its envelope `message` alone says only "Validation failed".
+      if (e instanceof ApiError) {
+        const fields = Object.entries(e.fieldErrors()).map(([k, v]) => `${k}: ${v}`);
+        setErrors(fields.length ? fields : [e.message]);
+      } else setErrors(["Couldn't save that template."]);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -132,7 +160,7 @@ export default function TemplatesPage() {
               {!isNew && can("Delete templates") ? <button className="inline-flex items-center gap-1.5 font-semibold text-bad" onClick={() => setDeleting(true)}><Trash2 size={16} />Delete template</button> : <span />}
               <div className="flex gap-3">
                 <MotionButton className={btnGhost} onClick={() => (isNew ? setDraft(null) : (setDraft(templates.find((t) => t.id === draft.id) ?? null), setEditing(false), setErrors([])))}><LuX size={17} />Cancel</MotionButton>
-                <MotionButton className={btnPrimary} disabled={!can(isNew ? "Create templates" : "Edit templates")} onClick={save}><LuSave size={17} />Save Template</MotionButton>
+                <MotionButton className={btnPrimary} disabled={saving || !can(isNew ? "Create templates" : "Edit templates")} onClick={save}><LuSave size={17} />{saving ? "Saving…" : "Save Template"}</MotionButton>
               </div>
             </div>
             </>
