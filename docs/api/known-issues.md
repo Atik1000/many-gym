@@ -356,6 +356,44 @@ they are granted everything).
 
 ---
 
+## 29. The 409 messages recommend a remedy that does not work
+
+Deleting a member or a plan that has history returns a `409` whose message tells you what to do instead. Doing
+exactly that does not unblock the delete:
+
+```
+DELETE /api/v1/members/{id}/
+→ 409 "Cannot permanently delete a member with payment ledger history.
+       Cancel their active subscription instead."
+
+PATCH /api/v1/members/subscriptions/{id}/status/  {"membership_status": "cancelled"}  → 200
+DELETE /api/v1/members/{id}/                                                          → 409  (same message)
+```
+
+```
+DELETE /api/v1/plans/{id}/
+→ 409 "Cannot delete a membership plan that has member subscription history.
+       Archive the plan instead."
+
+POST   /api/v1/plans/{id}/status/  {"plan_status": "archived"}  → 200
+DELETE /api/v1/plans/{id}/                                      → 409  (same message)
+```
+
+Verified with the subscription confirmed `cancelled` and the plan confirmed `archived`.
+
+The rule is actually stricter than the message implies: **once a member has any payment, or a plan has any
+subscription, it can never be deleted.** Cancelling and archiving change the record's status but do not remove
+the history that blocks deletion, and there is no endpoint that deletes a payment.
+
+That is a defensible policy — a payment ledger should not be erasable. The problem is the wording: it reads as
+a two-step remedy, so a client implements "cancel, then retry" and retries forever. It would be clearer as
+"members with payment history cannot be deleted; cancel their subscription to end it instead", making it plain
+that cancelling *is* the end state rather than a step toward deletion.
+
+*Client:* the UI surfaces the server's message as-is. Worth revisiting once the wording is settled.
+
+---
+
 ## Hardening
 
 Found by probing the live server unauthenticated — all 149 routes, plus method handling, token handling,

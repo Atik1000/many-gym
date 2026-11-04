@@ -56,7 +56,7 @@ Every failure uses one envelope:
 Three auth issues cannot be worked around from a client and are written up separately for whoever owns
 the API: [for-the-backend-team.md](./for-the-backend-team.md).
 
-Twenty-seven contract gaps, design inconsistencies and hardening issues are catalogued in
+Twenty-nine contract gaps, design inconsistencies and hardening issues are catalogued in
 [known-issues.md](./known-issues.md) — including the missing token-refresh endpoint, an undocumented
 120-character minimum, two different amenity id spaces, a staff endpoint that cannot invite anyone, and a
 logout that does not revoke the token it was given.
