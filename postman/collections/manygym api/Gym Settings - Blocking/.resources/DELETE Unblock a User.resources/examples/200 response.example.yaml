@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 User unblocked successfully.'
+request:
+  url: '{{base_url}}/api/v1/gyms/settings/blocked-users/:user_id/?gym_id={{gym_id}}'
+  method: DELETE
+response:
+  statusCode: 200
+  statusText: 'User unblocked successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

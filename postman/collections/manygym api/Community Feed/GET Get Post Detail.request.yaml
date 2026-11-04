@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Get Post Detail'
+method: GET
+url: '{{base_url}}/api/v1/posts/:post_id/?gym_id={{gym_id}}'
+order: 3000
+auth:
+  type: noauth
+pathVariables:
+  - key: post_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+examples: './.resources/GET Get Post Detail.resources/examples'

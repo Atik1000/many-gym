@@ -1,0 +1,23 @@
+$kind: http-example
+name: '200 Location updated.'
+request:
+  url: '{{base_url}}/api/v1/gyms/profile/location/?gym_id={{gym_id}}'
+  method: PATCH
+response:
+  statusCode: 200
+  statusText: 'Location updated.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "address": "string",
+        "latitude": "string",
+        "longitude": "string",
+        "city": "string",
+        "country": "string",
+        "postal_code": "string",
+        "is_primary": true
+      }

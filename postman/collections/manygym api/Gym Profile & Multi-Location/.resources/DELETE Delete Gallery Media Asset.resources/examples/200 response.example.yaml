@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 Asset deleted.'
+request:
+  url: '{{base_url}}/api/v1/gyms/gallery/:item_id/?gym_id={{gym_id}}'
+  method: DELETE
+response:
+  statusCode: 200
+  statusText: 'Asset deleted.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

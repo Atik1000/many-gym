@@ -1,0 +1,31 @@
+$kind: http-example
+name: '200'
+request:
+  url: '{{base_url}}/api/v1/dashboard/summary/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'OK'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "gym_id": "00000000-0000-0000-0000-000000000000",
+        "gym_name": "Example name",
+        "generated_at": "2026-01-01T09:00:00Z",
+        "headline_metrics": {
+          "total_members": 1,
+          "total_active_members": 1,
+          "expiring_memberships_next_7_days": 1,
+          "expiring_memberships_next_30_days": 1,
+          "new_leads_this_week": 1,
+          "pending_next_moves_today": 1,
+          "overdue_next_moves": 1,
+          "todays_scheduled_trials": 1,
+          "todays_revenue": 1,
+          "current_month_revenue": 1
+        }
+      }

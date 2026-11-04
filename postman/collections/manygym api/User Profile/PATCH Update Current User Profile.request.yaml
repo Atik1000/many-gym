@@ -1,0 +1,26 @@
+$kind: http-request
+name: 'Update Current User Profile'
+method: PATCH
+url: '{{base_url}}/api/v1/auth/me/'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "first_name": "Example name",
+      "last_name": "Example name",
+      "phone": "+8801700000000",
+      "avatar_url": "string",
+      "avatar": "string",
+      "address": "string",
+      "city": "string",
+      "country": "string",
+      "date_of_birth": "2026-01-01",
+      "sex": "string",
+      "nationality": "string",
+      "is_private": true
+    }
+examples: './.resources/PATCH Update Current User Profile.resources/examples'

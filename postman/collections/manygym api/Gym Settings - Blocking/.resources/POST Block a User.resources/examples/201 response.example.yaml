@@ -1,0 +1,15 @@
+$kind: http-example
+name: '201 User successfully blocked.'
+request:
+  url: '{{base_url}}/api/v1/gyms/settings/blocked-users/?gym_id={{gym_id}}'
+  method: POST
+response:
+  statusCode: 201
+  statusText: 'User successfully blocked.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {}

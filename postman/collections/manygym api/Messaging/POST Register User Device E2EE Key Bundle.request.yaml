@@ -1,0 +1,22 @@
+$kind: http-request
+name: 'Register User Device E2EE Key Bundle'
+method: POST
+url: '{{base_url}}/api/v1/messaging/keys/register/'
+order: 9000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "device_id": "string",
+      "device_name": "Example name",
+      "identity_key": "string",
+      "signed_prekey": "string",
+      "signed_prekey_signature": "string",
+      "one_time_prekeys": [
+        "string"
+      ]
+    }
+examples: './.resources/POST Register User Device E2EE Key Bundle.resources/examples'

@@ -1,0 +1,10 @@
+$kind: http-request
+name: 'Get Weekly Operating Hours'
+method: GET
+url: '{{base_url}}/api/v1/gyms/opening-hours/?gym_id={{gym_id}}'
+order: 6000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional Gym UUID'
+examples: './.resources/GET Get Weekly Operating Hours.resources/examples'

@@ -1,0 +1,15 @@
+$kind: http-example
+name: '200 Permissions grouped by topic dictionary.'
+request:
+  url: '{{base_url}}/api/v1/access-control/permissions/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Permissions grouped by topic dictionary.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {}

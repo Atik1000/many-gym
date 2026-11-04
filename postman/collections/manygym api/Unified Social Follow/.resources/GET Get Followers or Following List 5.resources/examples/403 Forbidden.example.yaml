@@ -1,0 +1,19 @@
+$kind: http-example
+name: '403 Forbidden'
+request:
+  url: '{{base_url}}/api/v1/follows/:target_id/'
+  method: GET
+response:
+  statusCode: 403
+  statusText: 'Forbidden'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "PERMISSION_DENIED",
+        "message": "Target is private or restricted by settings.",
+        "details": {}
+      }

@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Unfollow a User'
+method: DELETE
+url: '{{base_url}}/api/v1/users/:user_id/follow/'
+order: 6000
+pathVariables:
+  - key: user_id
+    value: '{{user_id}}'
+examples: './.resources/DELETE Unfollow a User 2.resources/examples'

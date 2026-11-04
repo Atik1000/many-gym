@@ -1,0 +1,47 @@
+$kind: http-request
+name: 'Partial Update Routine Template'
+method: PATCH
+url: '{{base_url}}/api/v1/routine-templates/:template_id/?gym_id={{gym_id}}'
+order: 5000
+pathVariables:
+  - key: template_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "template_name": "Example name",
+      "routine_format": "weekly",
+      "level": "beginner",
+      "notes": "string",
+      "goals": [
+        "general_fitness"
+      ],
+      "days": [
+        {
+          "day_of_week": 1,
+          "session_number": 1,
+          "is_rest_day": true,
+          "workout_title": "string",
+          "workday_note": "string",
+          "sort_order": 1,
+          "exercises": [
+            {
+              "exercise_name": "Example name",
+              "sets": 1,
+              "reps_or_duration": "string",
+              "rest_seconds": 1,
+              "notes": "string",
+              "sort_order": 1
+            }
+          ]
+        }
+      ]
+    }
+examples: './.resources/PATCH Partial Update Routine Template.resources/examples'

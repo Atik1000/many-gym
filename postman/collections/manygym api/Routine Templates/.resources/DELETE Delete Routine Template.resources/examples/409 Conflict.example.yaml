@@ -1,0 +1,19 @@
+$kind: http-example
+name: '409 Conflict'
+request:
+  url: '{{base_url}}/api/v1/routine-templates/:template_id/?gym_id={{gym_id}}'
+  method: DELETE
+response:
+  statusCode: 409
+  statusText: 'Conflict'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "CONFLICT",
+        "message": "This action conflicts with the current state of the resource.",
+        "details": {}
+      }

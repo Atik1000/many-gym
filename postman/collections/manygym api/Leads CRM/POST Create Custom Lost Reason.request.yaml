@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Create Custom Lost Reason'
+method: POST
+url: '{{base_url}}/api/v1/leads/reasons/?gym_id={{gym_id}}'
+order: 5000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reason_name": "Example name"
+    }
+examples: './.resources/POST Create Custom Lost Reason.resources/examples'

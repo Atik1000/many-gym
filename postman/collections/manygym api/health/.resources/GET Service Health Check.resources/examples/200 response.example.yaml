@@ -1,0 +1,15 @@
+$kind: http-example
+name: '200 All infrastructure components healthy'
+request:
+  url: '{{base_url}}/api/v1/health/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'All infrastructure components healthy'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {}

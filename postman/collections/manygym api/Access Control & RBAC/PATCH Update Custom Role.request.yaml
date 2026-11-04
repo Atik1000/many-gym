@@ -1,0 +1,22 @@
+$kind: http-request
+name: 'Update Custom Role'
+method: PATCH
+url: '{{base_url}}/api/v1/access-control/roles/:role_id/'
+order: 5000
+pathVariables:
+  - key: role_id
+    value: '00000000-0000-0000-0000-000000000000'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Example name",
+      "description": "string",
+      "permission_ids": [
+        "00000000-0000-0000-0000-000000000000"
+      ]
+    }
+examples: './.resources/PATCH Update Custom Role.resources/examples'

@@ -1,0 +1,20 @@
+$kind: http-example
+name: '201 Custom role created.'
+request:
+  url: '{{base_url}}/api/v1/access-control/roles/'
+  method: POST
+response:
+  statusCode: 201
+  statusText: 'Custom role created.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "name": "Example name",
+        "slug": "string",
+        "is_custom": true,
+        "description": "string"
+      }

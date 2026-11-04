@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'List Lost Reasons'
+method: GET
+url: '{{base_url}}/api/v1/leads/reasons/?gym_id={{gym_id}}'
+order: 4000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+examples: './.resources/GET List Lost Reasons.resources/examples'

@@ -1,0 +1,17 @@
+$kind: http-request
+name: 'Membership Growth & Churn Report'
+method: GET
+url: '{{base_url}}/api/v1/reports/membership-growth/?gym_id={{gym_id}}'
+order: 3000
+queryParams:
+  - key: end_date
+    value: ''
+    description: 'YYYY-MM-DD'
+    disabled: true
+  - key: gym_id
+    value: '{{gym_id}}'
+  - key: start_date
+    value: ''
+    description: 'YYYY-MM-DD'
+    disabled: true
+examples: './.resources/GET Membership Growth & Churn Report.resources/examples'

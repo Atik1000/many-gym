@@ -1,0 +1,25 @@
+$kind: http-example
+name: '201 Gym successfully created.'
+request:
+  url: '{{base_url}}/api/v1/gyms/'
+  method: POST
+response:
+  statusCode: 201
+  statusText: 'Gym successfully created.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "name": "Example name",
+        "profile_picture_url": "string",
+        "cover_photo_url": "string",
+        "short_description": "string",
+        "primary_type": "general_fitness_gym",
+        "secondary_type": "general_fitness_gym",
+        "gender_required": "everyone",
+        "min_age": -2147483648,
+        "timezone": "string"
+      }

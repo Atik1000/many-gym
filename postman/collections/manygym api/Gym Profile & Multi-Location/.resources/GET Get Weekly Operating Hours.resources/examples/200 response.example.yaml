@@ -1,0 +1,22 @@
+$kind: http-example
+name: '200 7-day operating schedule.'
+request:
+  url: '{{base_url}}/api/v1/gyms/opening-hours/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: '7-day operating schedule.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "day_of_week": 0,
+          "start_time": "09:00:00",
+          "end_time": "09:00:00",
+          "is_closed": true
+        }
+      ]

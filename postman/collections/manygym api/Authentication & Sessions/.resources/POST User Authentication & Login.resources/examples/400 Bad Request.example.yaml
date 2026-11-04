@@ -1,0 +1,23 @@
+$kind: http-example
+name: '400 Bad Request'
+request:
+  url: '{{base_url}}/api/v1/auth/login/'
+  method: POST
+response:
+  statusCode: 400
+  statusText: 'Bad Request'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid credentials or unverified account.",
+        "details": {
+          "field_name": [
+            "This field is required."
+          ]
+        }
+      }

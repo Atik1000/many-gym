@@ -1,0 +1,19 @@
+$kind: http-request
+name: 'List Gym Staff Members'
+method: GET
+url: '{{base_url}}/api/v1/access-control/staff/'
+order: 7000
+queryParams:
+  - key: all
+    value: ''
+    description: 'Set to ''true'' to retrieve all staff members unpaginated'
+    disabled: true
+  - key: page
+    value: ''
+    description: 'Page number'
+    disabled: true
+  - key: page_size
+    value: ''
+    description: 'Results per page (max 100)'
+    disabled: true
+examples: './.resources/GET List Gym Staff Members.resources/examples'

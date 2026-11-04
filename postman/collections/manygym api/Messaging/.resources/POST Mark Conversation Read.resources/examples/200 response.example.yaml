@@ -1,0 +1,15 @@
+$kind: http-example
+name: '200 Read count confirmed'
+request:
+  url: '{{base_url}}/api/v1/messaging/conversations/:conversation_id/read/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Read count confirmed'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {}

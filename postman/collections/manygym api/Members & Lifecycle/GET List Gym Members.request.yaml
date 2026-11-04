@@ -1,0 +1,30 @@
+$kind: http-request
+name: 'List Gym Members'
+method: GET
+url: '{{base_url}}/api/v1/members/?gym_id={{gym_id}}'
+order: 1000
+queryParams:
+  - key: assigned_trainer_id
+    value: ''
+    disabled: true
+  - key: gym_id
+    value: '{{gym_id}}'
+  - key: joining_status
+    value: ''
+    disabled: true
+  - key: membership_status
+    value: ''
+    disabled: true
+  - key: page
+    value: ''
+    disabled: true
+  - key: page_size
+    value: ''
+    disabled: true
+  - key: payment_status
+    value: ''
+    disabled: true
+  - key: search
+    value: ''
+    disabled: true
+examples: './.resources/GET List Gym Members.resources/examples'

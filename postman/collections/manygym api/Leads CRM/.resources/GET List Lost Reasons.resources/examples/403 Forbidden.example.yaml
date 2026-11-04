@@ -1,0 +1,19 @@
+$kind: http-example
+name: '403 Forbidden'
+request:
+  url: '{{base_url}}/api/v1/leads/reasons/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 403
+  statusText: 'Forbidden'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "PERMISSION_DENIED",
+        "message": "You do not have permission to perform this action.",
+        "details": {}
+      }

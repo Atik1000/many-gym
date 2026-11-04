@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 New verification code queued.'
+request:
+  url: '{{base_url}}/api/v1/users/resend-otp/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'New verification code queued.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 Password successfully updated.'
+request:
+  url: '{{base_url}}/api/v1/auth/reset-password/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Password successfully updated.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

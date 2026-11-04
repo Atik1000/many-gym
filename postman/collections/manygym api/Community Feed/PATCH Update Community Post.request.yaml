@@ -1,0 +1,28 @@
+$kind: http-request
+name: 'Update Community Post'
+method: PATCH
+url: '{{base_url}}/api/v1/posts/:post_id/?gym_id={{gym_id}}'
+order: 4000
+pathVariables:
+  - key: post_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "content_text": "string",
+      "privacy": "public",
+      "media_order": [
+        {
+          "media_id": "00000000-0000-0000-0000-000000000000",
+          "order_index": 1
+        }
+      ]
+    }
+examples: './.resources/PATCH Update Community Post.resources/examples'

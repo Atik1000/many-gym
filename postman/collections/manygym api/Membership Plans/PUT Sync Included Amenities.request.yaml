@@ -1,0 +1,20 @@
+$kind: http-request
+name: 'Sync Included Amenities'
+method: PUT
+url: '{{base_url}}/api/v1/plans/:plan_id/amenities/'
+order: 7000
+pathVariables:
+  - key: plan_id
+    value: '00000000-0000-0000-0000-000000000000'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amenity_ids": [
+        "00000000-0000-0000-0000-000000000000"
+      ]
+    }
+examples: './.resources/PUT Sync Included Amenities.resources/examples'

@@ -1,0 +1,39 @@
+$kind: http-example
+name: '200 Active configured amenities list.'
+request:
+  url: '{{base_url}}/api/v1/amenities/gym-amenities/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Active configured amenities list.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "free_amenities": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "amenity_id": "00000000-0000-0000-0000-000000000000",
+            "name": "Example name",
+            "group_name": "Example name",
+            "group_display": "string",
+            "is_paid": true,
+            "default_price": "1500.00"
+          }
+        ],
+        "paid_amenities": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "amenity_id": "00000000-0000-0000-0000-000000000000",
+            "name": "Example name",
+            "group_name": "Example name",
+            "group_display": "string",
+            "is_paid": true,
+            "default_price": "1500.00"
+          }
+        ],
+        "total_count": 1
+      }

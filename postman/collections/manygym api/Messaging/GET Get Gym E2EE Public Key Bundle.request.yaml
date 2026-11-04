@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Get Gym E2EE Public Key Bundle'
+method: GET
+url: '{{base_url}}/api/v1/messaging/keys/gym/:gym_id/'
+order: 8000
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+examples: './.resources/GET Get Gym E2EE Public Key Bundle.resources/examples'

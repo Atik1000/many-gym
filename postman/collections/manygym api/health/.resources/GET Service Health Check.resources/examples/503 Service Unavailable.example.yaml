@@ -1,0 +1,19 @@
+$kind: http-example
+name: '503 Service Unavailable'
+request:
+  url: '{{base_url}}/api/v1/health/'
+  method: GET
+response:
+  statusCode: 503
+  statusText: 'Service Unavailable'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "SERVICE_UNAVAILABLE",
+        "message": "One or more infrastructure services unavailable",
+        "details": {}
+      }

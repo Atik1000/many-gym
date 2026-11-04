@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 Session successfully invalidated.'
+request:
+  url: '{{base_url}}/api/v1/auth/logout/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Session successfully invalidated.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

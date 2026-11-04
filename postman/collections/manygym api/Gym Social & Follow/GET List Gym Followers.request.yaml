@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'List Gym Followers'
+method: GET
+url: '{{base_url}}/api/v1/gyms/:gym_id/followers/'
+order: 4000
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+queryParams:
+  - key: page
+    value: ''
+    description: 'A page number within the paginated result set.'
+    disabled: true
+  - key: page_size
+    value: ''
+    description: 'Number of results to return per page.'
+    disabled: true
+examples: './.resources/GET List Gym Followers.resources/examples'

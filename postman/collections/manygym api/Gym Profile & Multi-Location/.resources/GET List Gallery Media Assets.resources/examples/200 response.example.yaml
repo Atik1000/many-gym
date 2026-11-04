@@ -1,0 +1,23 @@
+$kind: http-example
+name: '200 Gallery items.'
+request:
+  url: '{{base_url}}/api/v1/gyms/gallery/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Gallery items.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "media_url": "string",
+          "media_type": "picture",
+          "category": "general",
+          "caption": "string",
+          "order_index": -2147483648
+        }
+      ]

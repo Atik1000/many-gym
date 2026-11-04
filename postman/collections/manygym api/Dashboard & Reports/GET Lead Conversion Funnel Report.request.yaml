@@ -1,0 +1,17 @@
+$kind: http-request
+name: 'Lead Conversion Funnel Report'
+method: GET
+url: '{{base_url}}/api/v1/reports/leads-funnel/?gym_id={{gym_id}}'
+order: 2000
+queryParams:
+  - key: end_date
+    value: ''
+    description: 'YYYY-MM-DD'
+    disabled: true
+  - key: gym_id
+    value: '{{gym_id}}'
+  - key: start_date
+    value: ''
+    description: 'YYYY-MM-DD'
+    disabled: true
+examples: './.resources/GET Lead Conversion Funnel Report.resources/examples'

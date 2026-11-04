@@ -1,0 +1,18 @@
+$kind: http-example
+name: '201 Staff assignment created.'
+request:
+  url: '{{base_url}}/api/v1/access-control/staff/'
+  method: POST
+response:
+  statusCode: 201
+  statusText: 'Staff assignment created.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "status": "invited",
+        "joined_at": "2026-01-01T09:00:00Z"
+      }

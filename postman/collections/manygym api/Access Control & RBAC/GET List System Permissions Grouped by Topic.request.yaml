@@ -1,0 +1,6 @@
+$kind: http-request
+name: 'List System Permissions Grouped by Topic'
+method: GET
+url: '{{base_url}}/api/v1/access-control/permissions/'
+order: 1000
+examples: './.resources/GET List System Permissions Grouped by Topic.resources/examples'

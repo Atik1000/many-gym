@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Lead Pipeline Metrics'
+method: GET
+url: '{{base_url}}/api/v1/leads/metrics/?gym_id={{gym_id}}'
+order: 3000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+examples: './.resources/GET Lead Pipeline Metrics.resources/examples'

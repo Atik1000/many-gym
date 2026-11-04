@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 Password successfully changed.'
+request:
+  url: '{{base_url}}/api/v1/users/change-password/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Password successfully changed.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

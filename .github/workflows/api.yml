@@ -1,0 +1,68 @@
+name: API
+
+# Read-only checks against what's committed. Nothing here calls the live API, and nothing writes to a
+# Postman cloud workspace, so no secrets are used and none are needed — this is safe on fork PRs.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  app:
+    name: App — typecheck, lint, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Each check is its own step, so a red build names what actually broke.
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+  contract:
+    name: API contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Fails if any operation is neither called by the client nor explicitly accounted for.
+      - name: Endpoint coverage
+        run: node scripts/check-api-coverage.mjs
+
+      # Fails if the generated client drifts from the spec: method, URL template, path args, query
+      # params and required-ness, body presence, or return type.
+      - name: Client conformance
+        run: node scripts/check-api-conformance.mjs
+
+      # Fails if a permission label the UI gates on has no scope mapping, or maps to a scope the API
+      # doesn't issue — invisible at runtime because a gym owner bypasses every check.
+      - name: Permission mapping
+        run: node scripts/check-permissions.mjs
+
+      - name: Install Postman CLI
+        run: curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+
+      # Structural/style check on the git-native collection only. This verb applies no organization
+      # governance rules — a green result here does not mean "governance passed".
+      - name: Collection structure
+        run: postman collection lint "postman/collections/manygym api" -f error
+
+      # A separate gate for a separate question: how consumable the collection is by an AI agent.
+      # Pinned at the current score so it can regress loudly rather than silently.
+      - name: Collection agent-readiness
+        run: postman collection ai-readiness "postman/collections/manygym api" --min-score 50

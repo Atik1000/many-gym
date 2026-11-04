@@ -1,0 +1,42 @@
+$kind: http-request
+name: 'Convert Lead to Member'
+method: POST
+url: '{{base_url}}/api/v1/leads/:lead_id/convert/?gym_id={{gym_id}}'
+order: 9000
+pathVariables:
+  - key: lead_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "plan_id": "00000000-0000-0000-0000-000000000000",
+      "last_name": "Example name",
+      "member_email": "person@example.com",
+      "assigned_trainer_id": "00000000-0000-0000-0000-000000000000",
+      "start_date": "2026-01-01",
+      "end_date": "2026-01-01",
+      "extra_amenity_ids": [
+        "00000000-0000-0000-0000-000000000000"
+      ],
+      "initial_payment_amount": "1500.00",
+      "initial_payment_method": "cash",
+      "initial_payment_date": "2026-01-01",
+      "initial_payment_notes": "string",
+      "date_of_birth": "2026-01-01",
+      "sex": "string",
+      "nationality": "string",
+      "emergency_contact_name": "Example name",
+      "emergency_contact_phone": "+8801700000000",
+      "emergency_contact_relationship": "string",
+      "address": "string",
+      "city": "string",
+      "country": "string"
+    }
+examples: './.resources/POST Convert Lead to Member.resources/examples'

@@ -1,0 +1,15 @@
+$kind: http-example
+name: '200 Aggregated member and subscription metrics.'
+request:
+  url: '{{base_url}}/api/v1/members/metrics/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Aggregated member and subscription metrics.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {}

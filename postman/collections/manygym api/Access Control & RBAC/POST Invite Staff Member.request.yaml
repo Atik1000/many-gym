@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'Invite Staff Member'
+method: POST
+url: '{{base_url}}/api/v1/access-control/staff/'
+order: 8000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "person@example.com",
+      "role_id": "00000000-0000-0000-0000-000000000000"
+    }
+examples: './.resources/POST Invite Staff Member.resources/examples'

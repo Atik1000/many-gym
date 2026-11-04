@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 OTP is valid.'
+request:
+  url: '{{base_url}}/api/v1/users/verify-reset-otp/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'OTP is valid.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

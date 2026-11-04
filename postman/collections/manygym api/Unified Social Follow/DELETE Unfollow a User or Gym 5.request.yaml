@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Unfollow a User or Gym'
+method: DELETE
+url: '{{base_url}}/api/v1/follows/:target_id/'
+order: 15000
+pathVariables:
+  - key: target_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/DELETE Unfollow a User or Gym 5.resources/examples'

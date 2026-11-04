@@ -1,0 +1,23 @@
+$kind: http-request
+name: 'List Gym Community Feed'
+method: GET
+url: '{{base_url}}/api/v1/posts/?gym_id={{gym_id}}'
+order: 1000
+auth:
+  type: noauth
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+  - key: page
+    value: ''
+    disabled: true
+  - key: page_size
+    value: ''
+    disabled: true
+  - key: privacy
+    value: ''
+    disabled: true
+  - key: search
+    value: ''
+    disabled: true
+examples: './.resources/GET List Gym Community Feed.resources/examples'

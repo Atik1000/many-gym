@@ -1,0 +1,15 @@
+$kind: http-example
+name: '200 List of accounts followed by gym.'
+request:
+  url: '{{base_url}}/api/v1/gyms/:gym_id/following/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'List of accounts followed by gym.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {}

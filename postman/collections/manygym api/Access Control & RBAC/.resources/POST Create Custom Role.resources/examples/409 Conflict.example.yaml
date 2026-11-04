@@ -1,0 +1,19 @@
+$kind: http-example
+name: '409 Conflict'
+request:
+  url: '{{base_url}}/api/v1/access-control/roles/'
+  method: POST
+response:
+  statusCode: 409
+  statusText: 'Conflict'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "CONFLICT",
+        "message": "Role with this name already exists in gym.",
+        "details": {}
+      }

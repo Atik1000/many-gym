@@ -1,0 +1,27 @@
+$kind: http-example
+name: '200'
+request:
+  url: '{{base_url}}/api/v1/access-control/staff/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'OK'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "count": 1,
+        "total_pages": 1,
+        "current_page": 1,
+        "next": "https://example.com/image.png",
+        "previous": "https://example.com/image.png",
+        "results": [
+          {
+            "status": "invited",
+            "joined_at": "2026-01-01T09:00:00Z"
+          }
+        ]
+      }

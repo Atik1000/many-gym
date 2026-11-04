@@ -1,0 +1,22 @@
+$kind: http-request
+name: 'List Gym Membership Plans'
+method: GET
+url: '{{base_url}}/api/v1/plans/?gym_id={{gym_id}}'
+order: 1000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Target gym UUID (if not inferred from active gym JWT context).'
+  - key: plan_status
+    value: ''
+    description: 'Filter by plan status (''draft'', ''active'', ''archived'').'
+    disabled: true
+  - key: plan_type
+    value: ''
+    description: 'Filter by plan type (''time_based'', ''session_based'').'
+    disabled: true
+  - key: search
+    value: ''
+    description: 'Search keyword matching plan name or description.'
+    disabled: true
+examples: './.resources/GET List Gym Membership Plans.resources/examples'

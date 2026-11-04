@@ -1,0 +1,27 @@
+$kind: http-request
+name: 'Attach Subscription to Member'
+method: POST
+url: '{{base_url}}/api/v1/members/:member_id/subscriptions/'
+order: 4000
+pathVariables:
+  - key: member_id
+    value: '00000000-0000-0000-0000-000000000000'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "plan_id": "00000000-0000-0000-0000-000000000000",
+      "start_date": "2026-01-01",
+      "end_date": "2026-01-01",
+      "extra_amenity_ids": [
+        "00000000-0000-0000-0000-000000000000"
+      ],
+      "initial_payment_amount": "1500.00",
+      "initial_payment_method": "cash",
+      "initial_payment_date": "2026-01-01",
+      "initial_payment_notes": "string"
+    }
+examples: './.resources/POST Attach Subscription to Member.resources/examples'

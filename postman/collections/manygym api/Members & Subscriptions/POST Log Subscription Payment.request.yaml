@@ -1,0 +1,21 @@
+$kind: http-request
+name: 'Log Subscription Payment'
+method: POST
+url: '{{base_url}}/api/v1/members/subscriptions/:subscription_id/payments/'
+order: 2000
+pathVariables:
+  - key: subscription_id
+    value: '00000000-0000-0000-0000-000000000000'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amount": "1500.00",
+      "payment_method": "cash",
+      "payment_date": "2026-01-01",
+      "notes": "string"
+    }
+examples: './.resources/POST Log Subscription Payment.resources/examples'

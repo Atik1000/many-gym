@@ -1,0 +1,29 @@
+$kind: http-request
+name: 'Send Encrypted Message'
+method: POST
+url: '{{base_url}}/api/v1/messaging/conversations/:conversation_id/messages/?gym_id={{gym_id}}'
+order: 5000
+pathVariables:
+  - key: conversation_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional Gym context UUID'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "ciphertext": "string",
+      "nonce": "string",
+      "ephemeral_public_key": "string",
+      "recipient_key_fingerprint": "string",
+      "sender_device_id": "string",
+      "encrypted_keys": {},
+      "sender_type": "user",
+      "sender_gym_id": "00000000-0000-0000-0000-000000000000"
+    }
+examples: './.resources/POST Send Encrypted Message.resources/examples'

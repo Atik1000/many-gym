@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Follow a Gym'
+method: POST
+url: '{{base_url}}/api/v1/gyms/:gym_id/follow/'
+order: 2000
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+examples: './.resources/POST Follow a Gym.resources/examples'

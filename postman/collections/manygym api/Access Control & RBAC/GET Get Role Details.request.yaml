@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Get Role Details'
+method: GET
+url: '{{base_url}}/api/v1/access-control/roles/:role_id/'
+order: 4000
+pathVariables:
+  - key: role_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/GET Get Role Details.resources/examples'

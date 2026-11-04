@@ -1,0 +1,20 @@
+$kind: http-example
+name: '200 Already following gym.'
+request:
+  url: '{{base_url}}/api/v1/gyms/:gym_id/follow/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Already following gym.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string",
+        "is_following": true,
+        "gym_id": "00000000-0000-0000-0000-000000000000",
+        "gym_name": "Example name"
+      }

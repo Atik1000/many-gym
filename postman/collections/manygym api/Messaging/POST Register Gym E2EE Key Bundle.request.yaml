@@ -1,0 +1,23 @@
+$kind: http-request
+name: 'Register Gym E2EE Key Bundle'
+method: POST
+url: '{{base_url}}/api/v1/messaging/keys/gym/register/'
+order: 7000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "gym_id": "00000000-0000-0000-0000-000000000000",
+      "device_id": "string",
+      "device_name": "Example name",
+      "identity_key": "string",
+      "signed_prekey": "string",
+      "signed_prekey_signature": "string",
+      "one_time_prekeys": [
+        "string"
+      ]
+    }
+examples: './.resources/POST Register Gym E2EE Key Bundle.resources/examples'

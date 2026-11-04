@@ -1,0 +1,20 @@
+$kind: http-example
+name: '200 Role details.'
+request:
+  url: '{{base_url}}/api/v1/access-control/roles/:role_id/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Role details.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "name": "Example name",
+        "slug": "string",
+        "is_custom": true,
+        "description": "string"
+      }

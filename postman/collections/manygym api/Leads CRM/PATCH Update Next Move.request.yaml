@@ -1,0 +1,25 @@
+$kind: http-request
+name: 'Update Next Move'
+method: PATCH
+url: '{{base_url}}/api/v1/leads/:lead_id/next-moves/:move_id/?gym_id={{gym_id}}'
+order: 11000
+pathVariables:
+  - key: lead_id
+    value: '00000000-0000-0000-0000-000000000000'
+  - key: move_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "is_completed": true,
+      "scheduled_date": "2026-01-01",
+      "short_description": "string"
+    }
+examples: './.resources/PATCH Update Next Move.resources/examples'

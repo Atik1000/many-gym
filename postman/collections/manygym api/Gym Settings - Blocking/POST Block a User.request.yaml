@@ -1,0 +1,20 @@
+$kind: http-request
+name: 'Block a User'
+method: POST
+url: '{{base_url}}/api/v1/gyms/settings/blocked-users/?gym_id={{gym_id}}'
+order: 2000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Target Gym UUID if not using a gym context JWT token.'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "user_id": "00000000-0000-0000-0000-000000000000",
+      "reason": "string"
+    }
+examples: './.resources/POST Block a User.resources/examples'

@@ -1,0 +1,29 @@
+$kind: http-example
+name: '200 List of available roles.'
+request:
+  url: '{{base_url}}/api/v1/access-control/roles/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'List of available roles.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "count": 1,
+        "total_pages": 1,
+        "current_page": 1,
+        "next": "https://example.com/image.png",
+        "previous": "https://example.com/image.png",
+        "results": [
+          {
+            "name": "Example name",
+            "slug": "string",
+            "is_custom": true,
+            "description": "string"
+          }
+        ]
+      }

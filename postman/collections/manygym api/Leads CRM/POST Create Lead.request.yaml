@@ -1,0 +1,33 @@
+$kind: http-request
+name: 'Create Lead'
+method: POST
+url: '{{base_url}}/api/v1/leads/?gym_id={{gym_id}}'
+order: 2000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "first_name": "Example name",
+      "last_name": "Example name",
+      "phone": "+8801700000000",
+      "email": "person@example.com",
+      "interested_plan_id": "00000000-0000-0000-0000-000000000000",
+      "assigned_staff_id": "00000000-0000-0000-0000-000000000000",
+      "source": "walk_in",
+      "stage": "new",
+      "expected_start_date": "2026-01-01",
+      "trial_booked_at": "2026-01-01T09:00:00Z",
+      "not_joining_reason_standard": "price",
+      "not_joining_custom_reason_id": "00000000-0000-0000-0000-000000000000",
+      "fitness_goals": [
+        "general_fitness"
+      ],
+      "initial_note": "string"
+    }
+examples: './.resources/POST Create Lead.resources/examples'

@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'List Gallery Media Assets'
+method: GET
+url: '{{base_url}}/api/v1/gyms/gallery/?gym_id={{gym_id}}'
+order: 2000
+queryParams:
+  - key: category
+    value: ''
+    description: 'Filter by category (e.g. equipment, workout_areas)'
+    disabled: true
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional Gym UUID'
+examples: './.resources/GET List Gallery Media Assets.resources/examples'

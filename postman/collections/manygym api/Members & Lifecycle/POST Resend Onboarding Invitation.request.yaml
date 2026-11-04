@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Resend Onboarding Invitation'
+method: POST
+url: '{{base_url}}/api/v1/members/:member_id/resend-invitation/'
+order: 8000
+pathVariables:
+  - key: member_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/POST Resend Onboarding Invitation.resources/examples'

@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 Role deleted.'
+request:
+  url: '{{base_url}}/api/v1/access-control/roles/:role_id/'
+  method: DELETE
+response:
+  statusCode: 200
+  statusText: 'Role deleted.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

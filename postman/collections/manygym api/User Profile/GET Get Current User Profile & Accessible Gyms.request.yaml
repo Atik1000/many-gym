@@ -1,0 +1,6 @@
+$kind: http-request
+name: 'Get Current User Profile & Accessible Gyms'
+method: GET
+url: '{{base_url}}/api/v1/auth/me/'
+order: 1000
+examples: './.resources/GET Get Current User Profile & Accessible Gyms.resources/examples'

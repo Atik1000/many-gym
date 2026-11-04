@@ -1,0 +1,46 @@
+$kind: http-request
+name: 'Customize Member Routine'
+method: PATCH
+url: '{{base_url}}/api/v1/members/:member_id/routines/:routine_id/?gym_id={{gym_id}}'
+order: 4000
+pathVariables:
+  - key: member_id
+    value: '00000000-0000-0000-0000-000000000000'
+  - key: routine_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "routine_name": "Example name",
+      "level": "beginner",
+      "notes": "string",
+      "is_active": true,
+      "days": [
+        {
+          "day_of_week": 1,
+          "session_number": 1,
+          "is_rest_day": true,
+          "workout_title": "string",
+          "workday_note": "string",
+          "sort_order": 1,
+          "exercises": [
+            {
+              "exercise_name": "Example name",
+              "sets": 1,
+              "reps_or_duration": "string",
+              "rest_seconds": 1,
+              "notes": "string",
+              "sort_order": 1
+            }
+          ]
+        }
+      ]
+    }
+examples: './.resources/PATCH Customize Member Routine.resources/examples'

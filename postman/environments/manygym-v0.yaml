@@ -1,0 +1,18 @@
+name: ManyGym v0
+values:
+  - key: base_url
+    value: 'https://v0.manygym.com'
+    enabled: true
+    type: default
+  - key: access_token
+    value: ''
+    enabled: true
+    type: secret
+  - key: gym_id
+    value: ''
+    enabled: true
+    type: default
+  - key: user_id
+    value: ''
+    enabled: true
+    type: default

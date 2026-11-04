@@ -1,0 +1,40 @@
+$kind: http-example
+name: '200 Profile successfully updated.'
+request:
+  url: '{{base_url}}/api/v1/users/me/'
+  method: PATCH
+response:
+  statusCode: 200
+  statusText: 'Profile successfully updated.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "user": {
+          "first_name": "Example name",
+          "last_name": "Example name",
+          "phone": "+8801700000000"
+        },
+        "current_context": {
+          "type": "string",
+          "gym_id": "00000000-0000-0000-0000-000000000000",
+          "gym_name": "Example name",
+          "profile_picture_url": "string",
+          "scopes": [
+            "string"
+          ]
+        },
+        "accessible_gyms": [
+          {
+            "gym_id": "00000000-0000-0000-0000-000000000000",
+            "name": "Example name",
+            "role": "string",
+            "is_owner": true,
+            "primary_type": "string",
+            "profile_picture_url": "string"
+          }
+        ]
+      }

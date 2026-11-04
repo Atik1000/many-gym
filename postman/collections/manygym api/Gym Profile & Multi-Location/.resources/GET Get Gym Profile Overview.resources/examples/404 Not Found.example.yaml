@@ -1,0 +1,19 @@
+$kind: http-example
+name: '404 Not Found'
+request:
+  url: '{{base_url}}/api/v1/gyms/profile/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 404
+  statusText: 'Not Found'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "RESOURCE_NOT_FOUND",
+        "message": "Gym not found.",
+        "details": {}
+      }

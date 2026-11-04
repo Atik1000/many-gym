@@ -1,0 +1,15 @@
+$kind: http-example
+name: '200 Aggregated pricing and count metrics.'
+request:
+  url: '{{base_url}}/api/v1/plans/metrics/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Aggregated pricing and count metrics.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {}

@@ -1,0 +1,10 @@
+$kind: http-request
+name: 'Get Gym Profile Overview'
+method: GET
+url: '{{base_url}}/api/v1/gyms/profile/overview/?gym_id={{gym_id}}'
+order: 12000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional Gym UUID if not using a Gym context token'
+examples: './.resources/GET Get Gym Profile Overview 2.resources/examples'

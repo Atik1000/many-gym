@@ -1,0 +1,23 @@
+$kind: http-example
+name: '200 Followers list of target entity (or followed accounts if tar'
+request:
+  url: '{{base_url}}/api/v1/users/follow/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Followers list of target entity (or followed accounts if tar'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "target_type": "user",
+        "target_id": "00000000-0000-0000-0000-000000000000",
+        "followers_count": 1,
+        "is_following": true,
+        "followers": [
+          {}
+        ]
+      }

@@ -1,0 +1,31 @@
+$kind: http-request
+name: 'Update Membership Plan'
+method: PATCH
+url: '{{base_url}}/api/v1/plans/:plan_id/'
+order: 5000
+pathVariables:
+  - key: plan_id
+    value: '00000000-0000-0000-0000-000000000000'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Example name",
+      "description": "string",
+      "plan_status": "draft",
+      "plan_type": "time_based",
+      "price": "1500.00",
+      "duration_value": 1,
+      "duration_unit": "day",
+      "joining_fee": "1500.00",
+      "payment_schedule": "full_payment",
+      "cancellation_policy": "string",
+      "refund_policy": "string",
+      "included_amenity_ids": [
+        "00000000-0000-0000-0000-000000000000"
+      ]
+    }
+examples: './.resources/PATCH Update Membership Plan.resources/examples'

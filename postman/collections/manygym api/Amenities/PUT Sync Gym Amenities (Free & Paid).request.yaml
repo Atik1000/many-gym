@@ -1,0 +1,27 @@
+$kind: http-request
+name: 'Sync Gym Amenities (Free & Paid)'
+method: PUT
+url: '{{base_url}}/api/v1/amenities/gym-amenities/sync/?gym_id={{gym_id}}'
+order: 3000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Target gym UUID (if not inferred from active gym JWT context).'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "free_amenity_ids": [
+        "00000000-0000-0000-0000-000000000000"
+      ],
+      "paid_amenities": [
+        {
+          "amenity_id": "00000000-0000-0000-0000-000000000000",
+          "default_price": "1500.00"
+        }
+      ]
+    }
+examples: './.resources/PUT Sync Gym Amenities (Free & Paid).resources/examples'

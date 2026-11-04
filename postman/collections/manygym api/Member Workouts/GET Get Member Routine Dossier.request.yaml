@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Get Member Routine Dossier'
+method: GET
+url: '{{base_url}}/api/v1/members/:member_id/routines/:routine_id/?gym_id={{gym_id}}'
+order: 3000
+pathVariables:
+  - key: member_id
+    value: '00000000-0000-0000-0000-000000000000'
+  - key: routine_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+examples: './.resources/GET Get Member Routine Dossier.resources/examples'

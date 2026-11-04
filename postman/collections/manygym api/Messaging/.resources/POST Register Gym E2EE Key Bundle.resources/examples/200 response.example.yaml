@@ -1,0 +1,15 @@
+$kind: http-example
+name: '200 Gym E2EE keys registered successfully.'
+request:
+  url: '{{base_url}}/api/v1/messaging/keys/gym/register/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Gym E2EE keys registered successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {}

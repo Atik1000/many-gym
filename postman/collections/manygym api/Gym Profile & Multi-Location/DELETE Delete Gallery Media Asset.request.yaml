@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Delete Gallery Media Asset'
+method: DELETE
+url: '{{base_url}}/api/v1/gyms/gallery/:item_id/?gym_id={{gym_id}}'
+order: 5000
+pathVariables:
+  - key: item_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional Gym UUID'
+examples: './.resources/DELETE Delete Gallery Media Asset.resources/examples'

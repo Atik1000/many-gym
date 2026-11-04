@@ -1,0 +1,19 @@
+$kind: http-request
+name: 'Perform Access & Control Action'
+method: POST
+url: '{{base_url}}/api/v1/gyms/settings/access-control/?gym_id={{gym_id}}'
+order: 1000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Target Gym UUID if not using a gym context JWT token.'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "action": "deactivate"
+    }
+examples: './.resources/POST Perform Access & Control Action.resources/examples'

@@ -1,0 +1,6 @@
+$kind: http-request
+name: 'Get Member Directory Metrics'
+method: GET
+url: '{{base_url}}/api/v1/members/metrics/'
+order: 4000
+examples: './.resources/GET Get Member Directory Metrics.resources/examples'

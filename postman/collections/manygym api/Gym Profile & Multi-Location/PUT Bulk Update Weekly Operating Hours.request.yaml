@@ -1,0 +1,26 @@
+$kind: http-request
+name: 'Bulk Update Weekly Operating Hours'
+method: PUT
+url: '{{base_url}}/api/v1/gyms/opening-hours/?gym_id={{gym_id}}'
+order: 7000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional Gym UUID'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "hours": [
+        {
+          "day_of_week": 1,
+          "start_time": "09:00:00",
+          "end_time": "09:00:00",
+          "is_closed": true
+        }
+      ]
+    }
+examples: './.resources/PUT Bulk Update Weekly Operating Hours.resources/examples'

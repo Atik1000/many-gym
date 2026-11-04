@@ -1,0 +1,19 @@
+$kind: http-request
+name: 'Get Followers or Following List'
+method: GET
+url: '{{base_url}}/api/v1/users/follow/'
+order: 16000
+queryParams:
+  - key: page
+    value: ''
+    description: 'Page number.'
+    disabled: true
+  - key: page_size
+    value: ''
+    description: 'Page size (max 100).'
+    disabled: true
+  - key: target_id
+    value: ''
+    description: 'UUID of target entity.'
+    disabled: true
+examples: './.resources/GET Get Followers or Following List 6.resources/examples'

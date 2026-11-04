@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'List People and Pages Gym Follows'
+method: GET
+url: '{{base_url}}/api/v1/gyms/:gym_id/following/'
+order: 5000
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+examples: './.resources/GET List People and Pages Gym Follows.resources/examples'

@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Delete Membership Plan'
+method: DELETE
+url: '{{base_url}}/api/v1/plans/:plan_id/'
+order: 6000
+pathVariables:
+  - key: plan_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/DELETE Delete Membership Plan.resources/examples'

@@ -1,0 +1,20 @@
+$kind: http-request
+name: 'Attach Extra Amenities'
+method: POST
+url: '{{base_url}}/api/v1/members/subscriptions/:subscription_id/extra-amenities/'
+order: 1000
+pathVariables:
+  - key: subscription_id
+    value: '00000000-0000-0000-0000-000000000000'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amenity_ids": [
+        "00000000-0000-0000-0000-000000000000"
+      ]
+    }
+examples: './.resources/POST Attach Extra Amenities.resources/examples'

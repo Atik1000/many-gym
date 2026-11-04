@@ -1,3 +1,21 @@
+Admin panel for **manygym**, backed by the Many Gym API at `https://v0.manygym.com/api/v1`.
+
+## API
+
+| | |
+|---|---|
+| Reference for all 149 endpoints | [`docs/api/README.md`](docs/api/README.md) |
+| Contract gaps worth knowing | [`docs/api/known-issues.md`](docs/api/known-issues.md) |
+| Which endpoints are wired, and why | [`docs/api/coverage.md`](docs/api/coverage.md) — `npm run check:api` |
+| Postman collection (v3) | [`postman/README.md`](postman/README.md) |
+| OpenAPI document | [`postman/spec/manygym-openapi.json`](postman/spec/manygym-openapi.json) |
+
+The client lives in `lib/api/`: `endpoints.ts` and `types.ts` are generated from the schema, `http.ts` holds the
+fetch core and token store, and `adapters.ts` maps the wire format onto the models the screens use. Point the app
+at another server with `NEXT_PUBLIC_MANYGYM_API_BASE`.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

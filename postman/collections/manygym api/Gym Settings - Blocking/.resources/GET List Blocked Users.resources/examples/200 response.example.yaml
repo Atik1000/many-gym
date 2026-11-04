@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 List of blocked users.'
+request:
+  url: '{{base_url}}/api/v1/gyms/settings/blocked-users/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'List of blocked users.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {}
+      ]

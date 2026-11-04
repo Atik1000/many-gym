@@ -1,0 +1,41 @@
+$kind: http-request
+name: 'Create / Onboard Member'
+method: POST
+url: '{{base_url}}/api/v1/members/'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "first_name": "Example name",
+      "last_name": "Example name",
+      "email": "person@example.com",
+      "phone": "+8801700000000",
+      "profile_photo_url": "string",
+      "profile_photo": "string",
+      "address": "string",
+      "city": "string",
+      "country": "string",
+      "date_of_birth": "2026-01-01",
+      "sex": "string",
+      "nationality": "string",
+      "emergency_contact_name": "Example name",
+      "emergency_contact_phone": "+8801700000000",
+      "emergency_contact_relationship": "string",
+      "assigned_trainer_id": "00000000-0000-0000-0000-000000000000",
+      "internal_notes": "string",
+      "plan_id": "00000000-0000-0000-0000-000000000000",
+      "start_date": "2026-01-01",
+      "end_date": "2026-01-01",
+      "extra_amenity_ids": [
+        "00000000-0000-0000-0000-000000000000"
+      ],
+      "initial_payment_amount": "1500.00",
+      "initial_payment_method": "cash",
+      "initial_payment_date": "2026-01-01",
+      "initial_payment_notes": "string"
+    }
+examples: './.resources/POST Create - Onboard Member.resources/examples'

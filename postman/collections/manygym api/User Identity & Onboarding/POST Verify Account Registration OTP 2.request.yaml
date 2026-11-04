@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Verify Account Registration OTP'
+method: POST
+url: '{{base_url}}/api/v1/users/verify-signup-otp/'
+order: 6000
+auth:
+  type: noauth
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "person@example.com",
+      "otp_code": "123456"
+    }
+examples: './.resources/POST Verify Account Registration OTP 2.resources/examples'

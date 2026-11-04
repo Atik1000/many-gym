@@ -1,0 +1,17 @@
+$kind: http-request
+name: 'Revenue & Collections Report'
+method: GET
+url: '{{base_url}}/api/v1/reports/revenue/?gym_id={{gym_id}}'
+order: 4000
+queryParams:
+  - key: end_date
+    value: ''
+    description: 'YYYY-MM-DD'
+    disabled: true
+  - key: gym_id
+    value: '{{gym_id}}'
+  - key: start_date
+    value: ''
+    description: 'YYYY-MM-DD'
+    disabled: true
+examples: './.resources/GET Revenue & Collections Report.resources/examples'

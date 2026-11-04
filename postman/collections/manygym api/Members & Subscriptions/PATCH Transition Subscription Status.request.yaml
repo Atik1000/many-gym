@@ -1,0 +1,19 @@
+$kind: http-request
+name: 'Transition Subscription Status'
+method: PATCH
+url: '{{base_url}}/api/v1/members/subscriptions/:subscription_id/status/'
+order: 3000
+pathVariables:
+  - key: subscription_id
+    value: '00000000-0000-0000-0000-000000000000'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "membership_status": "scheduled",
+      "status": "scheduled"
+    }
+examples: './.resources/PATCH Transition Subscription Status.resources/examples'

@@ -1,0 +1,24 @@
+$kind: http-request
+name: 'Reorder Gallery Assets'
+method: PATCH
+url: '{{base_url}}/api/v1/gyms/gallery/reorder/?gym_id={{gym_id}}'
+order: 4000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional Gym UUID'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "items": [
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "order_index": 1
+        }
+      ]
+    }
+examples: './.resources/PATCH Reorder Gallery Assets.resources/examples'

@@ -1,0 +1,10 @@
+$kind: http-request
+name: 'List Blocked Users'
+method: GET
+url: '{{base_url}}/api/v1/gyms/settings/blocked-users/?gym_id={{gym_id}}'
+order: 1000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Target Gym UUID if not using a gym context JWT token.'
+examples: './.resources/GET List Blocked Users.resources/examples'

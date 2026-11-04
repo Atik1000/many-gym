@@ -1,0 +1,29 @@
+$kind: http-request
+name: 'Update Gym Overview Tab'
+method: PATCH
+url: '{{base_url}}/api/v1/gyms/profile/?gym_id={{gym_id}}'
+order: 9000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional Gym UUID'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Example name",
+      "primary_type": "general_fitness_gym",
+      "secondary_type": "general_fitness_gym",
+      "short_description": "string",
+      "profile_picture_url": "string",
+      "profile_picture": "string",
+      "cover_photo_url": "string",
+      "cover_photo": "string",
+      "gender_required": "everyone",
+      "min_age": 1,
+      "timezone": "string"
+    }
+examples: './.resources/PATCH Update Gym Overview Tab.resources/examples'

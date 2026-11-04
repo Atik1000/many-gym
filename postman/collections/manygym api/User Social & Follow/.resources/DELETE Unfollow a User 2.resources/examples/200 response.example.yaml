@@ -1,0 +1,19 @@
+$kind: http-example
+name: '200 Successfully unfollowed user.'
+request:
+  url: '{{base_url}}/api/v1/users/:user_id/follow/'
+  method: DELETE
+response:
+  statusCode: 200
+  statusText: 'Successfully unfollowed user.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string",
+        "is_following": true,
+        "target_user_id": "00000000-0000-0000-0000-000000000000"
+      }

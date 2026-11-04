@@ -1,0 +1,19 @@
+$kind: http-example
+name: '403 Forbidden'
+request:
+  url: '{{base_url}}/api/v1/follow/'
+  method: POST
+response:
+  statusCode: 403
+  statusText: 'Forbidden'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "PERMISSION_DENIED",
+        "message": "Target user is private or user is blocked by gym.",
+        "details": {}
+      }

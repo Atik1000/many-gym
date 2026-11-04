@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Search Users to Block'
+method: GET
+url: '{{base_url}}/api/v1/gyms/settings/blocked-users/search/?gym_id={{gym_id}}'
+order: 3000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Target Gym UUID if not using a gym context JWT token.'
+  - key: q
+    value: ''
+    description: 'Search query string matching first name, last name, or email.'
+    disabled: true
+examples: './.resources/GET Search Users to Block.resources/examples'

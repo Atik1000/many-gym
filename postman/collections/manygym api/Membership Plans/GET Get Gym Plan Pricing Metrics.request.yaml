@@ -1,0 +1,6 @@
+$kind: http-request
+name: 'Get Gym Plan Pricing Metrics'
+method: GET
+url: '{{base_url}}/api/v1/plans/metrics/'
+order: 3000
+examples: './.resources/GET Get Gym Plan Pricing Metrics.resources/examples'

@@ -1,0 +1,23 @@
+$kind: http-example
+name: '200 List of followed gyms.'
+request:
+  url: '{{base_url}}/api/v1/gyms/followed/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'List of followed gyms.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "gym_id": "00000000-0000-0000-0000-000000000000",
+          "name": "Example name",
+          "primary_type": "string",
+          "profile_picture_url": "string",
+          "followed_at": "2026-01-01T09:00:00Z"
+        }
+      ]

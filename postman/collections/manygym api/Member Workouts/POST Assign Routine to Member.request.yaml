@@ -1,0 +1,45 @@
+$kind: http-request
+name: 'Assign Routine to Member'
+method: POST
+url: '{{base_url}}/api/v1/members/:member_id/routines/assign/?gym_id={{gym_id}}'
+order: 2000
+pathVariables:
+  - key: member_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "source_template_id": "00000000-0000-0000-0000-000000000000",
+      "routine_name": "Example name",
+      "routine_format": "weekly",
+      "level": "beginner",
+      "notes": "string",
+      "days": [
+        {
+          "day_of_week": 1,
+          "session_number": 1,
+          "is_rest_day": true,
+          "workout_title": "string",
+          "workday_note": "string",
+          "sort_order": 1,
+          "exercises": [
+            {
+              "exercise_name": "Example name",
+              "sets": 1,
+              "reps_or_duration": "string",
+              "rest_seconds": 1,
+              "notes": "string",
+              "sort_order": 1
+            }
+          ]
+        }
+      ]
+    }
+examples: './.resources/POST Assign Routine to Member.resources/examples'

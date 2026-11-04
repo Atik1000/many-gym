@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'List Gyms Followed by User'
+method: GET
+url: '{{base_url}}/api/v1/gyms/followed/'
+order: 1000
+queryParams:
+  - key: page
+    value: ''
+    description: 'A page number within the paginated result set.'
+    disabled: true
+  - key: page_size
+    value: ''
+    description: 'Number of results to return per page.'
+    disabled: true
+examples: './.resources/GET List Gyms Followed by User.resources/examples'

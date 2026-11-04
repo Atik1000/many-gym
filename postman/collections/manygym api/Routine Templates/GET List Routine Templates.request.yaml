@@ -1,0 +1,27 @@
+$kind: http-request
+name: 'List Routine Templates'
+method: GET
+url: '{{base_url}}/api/v1/routine-templates/?gym_id={{gym_id}}'
+order: 1000
+queryParams:
+  - key: goal
+    value: ''
+    disabled: true
+  - key: gym_id
+    value: '{{gym_id}}'
+  - key: level
+    value: ''
+    disabled: true
+  - key: page
+    value: ''
+    disabled: true
+  - key: page_size
+    value: ''
+    disabled: true
+  - key: routine_format
+    value: ''
+    disabled: true
+  - key: search
+    value: ''
+    disabled: true
+examples: './.resources/GET List Routine Templates.resources/examples'

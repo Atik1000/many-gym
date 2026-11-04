@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Revoke Staff Access'
+method: DELETE
+url: '{{base_url}}/api/v1/access-control/staff/:assignment_id/'
+order: 10000
+pathVariables:
+  - key: assignment_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/DELETE Revoke Staff Access.resources/examples'

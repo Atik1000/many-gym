@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'List User Followers'
+method: GET
+url: '{{base_url}}/api/v1/users/:user_id/followers/'
+order: 7000
+pathVariables:
+  - key: user_id
+    value: '{{user_id}}'
+examples: './.resources/GET List User Followers 2.resources/examples'

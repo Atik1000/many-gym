@@ -1,0 +1,22 @@
+$kind: http-example
+name: '200'
+request:
+  url: '{{base_url}}/api/v1/members/subscriptions/:subscription_id/status/'
+  method: PATCH
+response:
+  statusCode: 200
+  statusText: 'OK'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "membership_status": "scheduled",
+        "payment_status": "fully_paid",
+        "start_date": "2026-01-01",
+        "end_date": "2026-01-01",
+        "total_sessions": 1,
+        "remaining_sessions": 1
+      }

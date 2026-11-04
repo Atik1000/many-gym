@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Update Staff Status (Active / Inactive)'
+method: PATCH
+url: '{{base_url}}/api/v1/access-control/staff/:assignment_id/'
+order: 9000
+pathVariables:
+  - key: assignment_id
+    value: '00000000-0000-0000-0000-000000000000'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "invited"
+    }
+examples: './.resources/PATCH Update Staff Status (Active - Inactive).resources/examples'

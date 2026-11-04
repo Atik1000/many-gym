@@ -1,0 +1,18 @@
+$kind: http-example
+name: '200 Staff status updated.'
+request:
+  url: '{{base_url}}/api/v1/access-control/staff/:assignment_id/'
+  method: PATCH
+response:
+  statusCode: 200
+  statusText: 'Staff status updated.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "status": "invited",
+        "joined_at": "2026-01-01T09:00:00Z"
+      }

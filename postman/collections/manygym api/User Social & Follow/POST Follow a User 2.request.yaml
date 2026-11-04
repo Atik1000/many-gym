@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Follow a User'
+method: POST
+url: '{{base_url}}/api/v1/users/:user_id/follow/'
+order: 5000
+pathVariables:
+  - key: user_id
+    value: '{{user_id}}'
+examples: './.resources/POST Follow a User 2.resources/examples'

@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Create / Get Conversation'
+method: POST
+url: '{{base_url}}/api/v1/messaging/conversations/'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "conversation_type": "string",
+      "target_user_id": "00000000-0000-0000-0000-000000000000",
+      "target_gym_id": "00000000-0000-0000-0000-000000000000",
+      "source_gym_id": "00000000-0000-0000-0000-000000000000"
+    }
+examples: './.resources/POST Create - Get Conversation.resources/examples'

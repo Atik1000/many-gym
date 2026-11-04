@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Get User E2EE Public Key Bundle'
+method: GET
+url: '{{base_url}}/api/v1/messaging/keys/user/:user_id/'
+order: 10000
+pathVariables:
+  - key: user_id
+    value: '{{user_id}}'
+examples: './.resources/GET Get User E2EE Public Key Bundle.resources/examples'

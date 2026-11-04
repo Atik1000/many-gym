@@ -1,0 +1,22 @@
+$kind: http-request
+name: 'Schedule Next Move'
+method: POST
+url: '{{base_url}}/api/v1/leads/:lead_id/next-moves/?gym_id={{gym_id}}'
+order: 10000
+pathVariables:
+  - key: lead_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "scheduled_date": "2026-01-01",
+      "short_description": "string"
+    }
+examples: './.resources/POST Schedule Next Move.resources/examples'

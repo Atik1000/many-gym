@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'List Conversations'
+method: GET
+url: '{{base_url}}/api/v1/messaging/conversations/?gym_id={{gym_id}}'
+order: 1000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional Gym context UUID'
+  - key: limit
+    value: ''
+    description: 'Optional pagination limit (1-100)'
+    disabled: true
+examples: './.resources/GET List Conversations.resources/examples'

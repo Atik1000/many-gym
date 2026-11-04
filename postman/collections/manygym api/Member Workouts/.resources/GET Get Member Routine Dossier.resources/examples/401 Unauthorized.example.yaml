@@ -1,0 +1,21 @@
+$kind: http-example
+name: '401 Unauthorized'
+request:
+  url: '{{base_url}}/api/v1/members/:member_id/routines/:routine_id/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 401
+  statusText: 'Unauthorized'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "AUTHENTICATION_REQUIRED",
+        "message": "Authentication credentials were not provided or are invalid.",
+        "details": {
+          "detail": "Authentication credentials were not provided."
+        }
+      }

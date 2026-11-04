@@ -1,0 +1,22 @@
+$kind: http-request
+name: 'Add Lead Note'
+method: POST
+url: '{{base_url}}/api/v1/leads/:lead_id/notes/?gym_id={{gym_id}}'
+order: 12000
+pathVariables:
+  - key: lead_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "note_text": "string",
+      "author_staff_id": "00000000-0000-0000-0000-000000000000"
+    }
+examples: './.resources/POST Add Lead Note.resources/examples'

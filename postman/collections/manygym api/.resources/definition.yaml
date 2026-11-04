@@ -1,0 +1,27 @@
+$kind: collection
+name: Many Gym API
+description: |-
+  Multi-tenant gym management & social platform API (v1).
+
+  Auth: POST 'auth/login' returns an access/refresh pair in PERSONAL context. Most of this collection needs a
+  GYM context token, so run 'auth/switch-context' with a gym_id next — it returns a token carrying
+  {context_type: gym, gym_id, scopes}. Save that token as the access_token variable.
+
+  Note: the API has no refresh endpoint, so an expired access token means signing in again.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+variables:
+  - key: base_url
+    value: 'https://v0.manygym.com'
+    description: Server root; every path below is prefixed with /api/v1.
+  - key: access_token
+    value: ''
+    description: JWT from auth/login then auth/switch-context (gym context).
+  - key: gym_id
+    value: ''
+    description: The gym most endpoints are scoped to.
+  - key: user_id
+    value: ''

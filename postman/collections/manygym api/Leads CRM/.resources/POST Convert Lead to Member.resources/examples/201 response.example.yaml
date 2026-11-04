@@ -1,0 +1,19 @@
+$kind: http-example
+name: '201 Lead converted successfully.'
+request:
+  url: '{{base_url}}/api/v1/leads/:lead_id/convert/?gym_id={{gym_id}}'
+  method: POST
+response:
+  statusCode: 201
+  statusText: 'Lead converted successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string",
+        "member_id": "00000000-0000-0000-0000-000000000000",
+        "lead_id": "00000000-0000-0000-0000-000000000000"
+      }

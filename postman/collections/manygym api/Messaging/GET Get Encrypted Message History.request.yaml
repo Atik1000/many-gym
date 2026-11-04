@@ -1,0 +1,17 @@
+$kind: http-request
+name: 'Get Encrypted Message History'
+method: GET
+url: '{{base_url}}/api/v1/messaging/conversations/:conversation_id/messages/?gym_id={{gym_id}}'
+order: 4000
+pathVariables:
+  - key: conversation_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional Gym context UUID'
+  - key: limit
+    value: ''
+    description: 'Pagination limit for message history (max 100, default 50)'
+    disabled: true
+examples: './.resources/GET Get Encrypted Message History.resources/examples'

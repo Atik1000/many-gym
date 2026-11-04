@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 Staff access revoked.'
+request:
+  url: '{{base_url}}/api/v1/access-control/staff/:assignment_id/'
+  method: DELETE
+response:
+  statusCode: 200
+  statusText: 'Staff access revoked.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

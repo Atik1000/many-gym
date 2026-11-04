@@ -1,0 +1,15 @@
+$kind: http-example
+name: '200 Master catalog grouped by domain category.'
+request:
+  url: '{{base_url}}/api/v1/amenities/catalog/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Master catalog grouped by domain category.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {}

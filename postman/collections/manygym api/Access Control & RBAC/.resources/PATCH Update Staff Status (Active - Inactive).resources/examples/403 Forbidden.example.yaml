@@ -1,0 +1,19 @@
+$kind: http-example
+name: '403 Forbidden'
+request:
+  url: '{{base_url}}/api/v1/access-control/staff/:assignment_id/'
+  method: PATCH
+response:
+  statusCode: 403
+  statusText: 'Forbidden'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "PERMISSION_DENIED",
+        "message": "Permission denied.",
+        "details": {}
+      }

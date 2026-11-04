@@ -1,0 +1,30 @@
+$kind: http-example
+name: '200 Gym settings after state transition.'
+request:
+  url: '{{base_url}}/api/v1/gyms/settings/access-control/?gym_id={{gym_id}}'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Gym settings after state transition.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "language": "string",
+        "video_autoplay": true,
+        "dark_mode": true,
+        "admin_logs_alerts": true,
+        "issues_alerts": true,
+        "who_can_message": "everyone",
+        "who_can_send_joining_request": "everyone",
+        "who_can_see_members": "everyone",
+        "who_can_see_followers": "everyone",
+        "who_can_see_following": "everyone",
+        "posts_age_restriction": "any_age",
+        "is_deactivated": true,
+        "is_published": true,
+        "is_deleted": true
+      }

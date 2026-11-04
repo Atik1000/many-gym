@@ -1,0 +1,18 @@
+$kind: http-example
+name: '201 Account created successfully; verification OTP email queued.'
+request:
+  url: '{{base_url}}/api/v1/users/register/'
+  method: POST
+response:
+  statusCode: 201
+  statusText: 'Account created successfully; verification OTP email queued.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string",
+        "email": "person@example.com"
+      }

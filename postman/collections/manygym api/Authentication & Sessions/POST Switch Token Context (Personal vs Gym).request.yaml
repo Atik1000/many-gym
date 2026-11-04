@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'Switch Token Context (Personal vs Gym)'
+method: POST
+url: '{{base_url}}/api/v1/auth/switch-context/'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "context_type": "personal",
+      "gym_id": "00000000-0000-0000-0000-000000000000"
+    }
+examples: './.resources/POST Switch Token Context (Personal vs Gym).resources/examples'

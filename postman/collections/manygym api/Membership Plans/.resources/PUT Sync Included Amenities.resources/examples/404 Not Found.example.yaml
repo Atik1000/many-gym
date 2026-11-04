@@ -1,0 +1,19 @@
+$kind: http-example
+name: '404 Not Found'
+request:
+  url: '{{base_url}}/api/v1/plans/:plan_id/amenities/'
+  method: PUT
+response:
+  statusCode: 404
+  statusText: 'Not Found'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "RESOURCE_NOT_FOUND",
+        "message": "The requested resource was not found.",
+        "details": {}
+      }

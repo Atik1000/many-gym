@@ -1,0 +1,22 @@
+$kind: http-example
+name: '200'
+request:
+  url: '{{base_url}}/api/v1/members/:member_id/routines/:routine_id/?gym_id={{gym_id}}'
+  method: PATCH
+response:
+  statusCode: 200
+  statusText: 'OK'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "routine_name": "Example name",
+        "routine_format": "weekly",
+        "level": "beginner",
+        "is_active": true,
+        "notes": "string",
+        "assigned_at": "2026-01-01T09:00:00Z"
+      }

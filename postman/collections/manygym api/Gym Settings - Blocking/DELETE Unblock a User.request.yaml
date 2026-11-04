@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Unblock a User'
+method: DELETE
+url: '{{base_url}}/api/v1/gyms/settings/blocked-users/:user_id/?gym_id={{gym_id}}'
+order: 4000
+pathVariables:
+  - key: user_id
+    value: '{{user_id}}'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Target Gym UUID if not using a gym context JWT token.'
+examples: './.resources/DELETE Unblock a User.resources/examples'

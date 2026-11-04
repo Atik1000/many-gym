@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'Accept Member Invitation'
+method: POST
+url: '{{base_url}}/api/v1/members/accept-invitation/'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "token": "string",
+      "invitation_token": "string"
+    }
+examples: './.resources/POST Accept Member Invitation.resources/examples'

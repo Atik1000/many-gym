@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'List Available Roles'
+method: GET
+url: '{{base_url}}/api/v1/access-control/roles/?gym_id={{gym_id}}'
+order: 2000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional Gym UUID to include gym custom roles when using personal token'
+  - key: page
+    value: ''
+    description: 'Page number'
+    disabled: true
+  - key: page_size
+    value: ''
+    description: 'Results per page (max 100)'
+    disabled: true
+examples: './.resources/GET List Available Roles.resources/examples'

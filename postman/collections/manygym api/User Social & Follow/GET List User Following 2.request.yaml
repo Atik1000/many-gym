@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'List User Following'
+method: GET
+url: '{{base_url}}/api/v1/users/:user_id/following/'
+order: 8000
+pathVariables:
+  - key: user_id
+    value: '{{user_id}}'
+queryParams:
+  - key: page
+    value: ''
+    disabled: true
+  - key: page_size
+    value: ''
+    disabled: true
+examples: './.resources/GET List User Following 2.resources/examples'

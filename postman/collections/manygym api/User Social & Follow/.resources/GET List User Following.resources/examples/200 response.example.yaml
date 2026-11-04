@@ -1,0 +1,26 @@
+$kind: http-example
+name: '200 List of users followed.'
+request:
+  url: '{{base_url}}/api/v1/auth/:user_id/following/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'List of users followed.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "user_id": "00000000-0000-0000-0000-000000000000",
+          "email": "person@example.com",
+          "first_name": "Example name",
+          "last_name": "Example name",
+          "full_name": "Example name",
+          "avatar_url": "string",
+          "is_private": true,
+          "followed_at": "2026-01-01T09:00:00Z"
+        }
+      ]

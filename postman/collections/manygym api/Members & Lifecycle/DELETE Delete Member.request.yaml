@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Delete Member'
+method: DELETE
+url: '{{base_url}}/api/v1/members/:member_id/'
+order: 7000
+pathVariables:
+  - key: member_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/DELETE Delete Member.resources/examples'

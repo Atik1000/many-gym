@@ -1,0 +1,9 @@
+$kind: http-request
+name: 'Unfollow a Gym'
+method: DELETE
+url: '{{base_url}}/api/v1/gyms/:gym_id/follow/'
+order: 3000
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+examples: './.resources/DELETE Unfollow a Gym.resources/examples'

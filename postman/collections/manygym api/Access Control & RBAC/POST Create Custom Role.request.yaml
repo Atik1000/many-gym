@@ -1,0 +1,19 @@
+$kind: http-request
+name: 'Create Custom Role'
+method: POST
+url: '{{base_url}}/api/v1/access-control/roles/'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Example name",
+      "description": "string",
+      "permission_ids": [
+        "00000000-0000-0000-0000-000000000000"
+      ]
+    }
+examples: './.resources/POST Create Custom Role.resources/examples'

@@ -1,0 +1,10 @@
+$kind: http-request
+name: 'Retrieve Gym Settings'
+method: GET
+url: '{{base_url}}/api/v1/gyms/settings/?gym_id={{gym_id}}'
+order: 1000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Target Gym UUID if not using a gym context JWT token.'
+examples: './.resources/GET Retrieve Gym Settings.resources/examples'

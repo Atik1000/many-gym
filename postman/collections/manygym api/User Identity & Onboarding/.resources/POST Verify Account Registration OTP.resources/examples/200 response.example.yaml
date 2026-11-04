@@ -1,0 +1,32 @@
+$kind: http-example
+name: '200 Account verified; initial session tokens issued.'
+request:
+  url: '{{base_url}}/api/v1/auth/verify-signup-otp/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Account verified; initial session tokens issued.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string",
+        "user": {
+          "first_name": "Example name",
+          "last_name": "Example name",
+          "phone": "+8801700000000"
+        },
+        "tokens": {
+          "access": "string",
+          "refresh": "string",
+          "context_type": "string",
+          "gym_id": "00000000-0000-0000-0000-000000000000",
+          "gym_name": "Example name",
+          "scopes": [
+            "string"
+          ]
+        }
+      }

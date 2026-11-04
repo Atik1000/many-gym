@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 Gallery order updated.'
+request:
+  url: '{{base_url}}/api/v1/gyms/gallery/reorder/?gym_id={{gym_id}}'
+  method: PATCH
+response:
+  statusCode: 200
+  statusText: 'Gallery order updated.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

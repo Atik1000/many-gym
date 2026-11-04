@@ -1,0 +1,8 @@
+$kind: http-request
+name: 'Service Health Check'
+method: GET
+url: '{{base_url}}/api/v1/health/'
+order: 1000
+auth:
+  type: noauth
+examples: './.resources/GET Service Health Check.resources/examples'

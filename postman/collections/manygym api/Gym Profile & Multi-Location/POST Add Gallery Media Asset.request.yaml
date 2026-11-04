@@ -1,0 +1,23 @@
+$kind: http-request
+name: 'Add Gallery Media Asset'
+method: POST
+url: '{{base_url}}/api/v1/gyms/gallery/?gym_id={{gym_id}}'
+order: 3000
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional Gym UUID'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "file": "string",
+      "media_url": "string",
+      "media_type": "picture",
+      "category": "general",
+      "caption": "string"
+    }
+examples: './.resources/POST Add Gallery Media Asset.resources/examples'

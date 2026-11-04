@@ -1,0 +1,24 @@
+$kind: http-example
+name: '200'
+request:
+  url: '{{base_url}}/api/v1/leads/reasons/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'OK'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "standard_reasons": [
+          {}
+        ],
+        "custom_reasons": [
+          {
+            "reason_name": "Example name"
+          }
+        ]
+      }
