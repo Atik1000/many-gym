@@ -1,5 +1,12 @@
 // Studio posts (spec: "Create Posts by Gyms").
-export type PostMedia = { id: string; url: string; thumbnailUrl?: string; kind: "image" | "video" };
+export type PostMedia = {
+  id: string;
+  url: string;
+  thumbnailUrl?: string;
+  kind: "image" | "video";
+  /** The picked file, held until the post is created and uploaded as multipart. Not persisted. */
+  file?: File;
+};
 export type PostComment = { id: string; author: string; text: string; createdAt: string };
 export type Post = {
   id: string;

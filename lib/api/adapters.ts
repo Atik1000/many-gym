@@ -569,13 +569,34 @@ export const postToApi = (p: Post): T.GymPostCreateRequest => ({
     : undefined,
 });
 
+/**
+ * Creating a post with real files.
+ *
+ * `MediaItemInputRequest` documents only a `media_url`, so the schema suggests images must already be hosted.
+ * They need not be: `POST /posts/` accepts `multipart/form-data` with repeated binary `files` entries, and the
+ * server stores and converts them to WebP. Verified against the live API — `files` and `media_files` both
+ * attach; a singular `file` returns 201 and is **silently ignored**, leaving a post with no media.
+ */
+async function createPostWithFiles(text: string, membersOnly: boolean, files: File[]): Promise<T.GymPostDetail> {
+  const form = new FormData();
+  if (text) form.append("content_text", text);
+  form.append("privacy", membersOnly ? "members_only" : "public");
+  for (const f of files) form.append("files", f);
+  const g = gym();
+  return request<T.GymPostDetail>("POST", `/api/v1/posts/${g ? `?gym_id=${encodeURIComponent(g)}` : ""}`, { form });
+}
+
 export const posts = {
   list: async (): Promise<Post[]> => {
     const g = gym();
     if (!g) return [];
     return asArray<T.GymPostList>(await api.postsList({ gym_id: g })).map(postFromApi);
   },
-  create: async (p: Post): Promise<Post> => postFromApi(await api.postsCreate(postToApi(p), G())),
+  create: async (p: Post): Promise<Post> => {
+    const files = p.media.map((m) => m.file).filter((f): f is File => !!f);
+    if (files.length) return postFromApi(await createPostWithFiles(p.text, p.members, files));
+    return postFromApi(await api.postsCreate(postToApi(p), G()));
+  },
   update: async (p: Post): Promise<Post> =>
     postFromApi(await api.postsPartialUpdate(p.id, { content_text: p.text, privacy: p.members ? "members_only" : "public" }, G())),
   remove: (id: string) => api.postsDestroy(id, G()),

@@ -140,8 +140,17 @@ function Composer({ editing, onClose, onSave }: { editing: Post | null; onClose:
   const publish = async () => {
     setBusy(true); setErrors([]);
     try {
+      // Keep the File on each item: the post is created as multipart and the server stores the binary.
+      // Previously only the local preview URL survived, so nothing was ever uploaded.
       const final: PostMedia[] = [];
-      for (const m of media) final.push(m.file ? { id: m.id, kind: m.kind, url: (await uploadFile(m.file)).url } : { id: m.id, kind: m.kind, url: m.url });
+      for (const m of media) {
+        if (m.file) {
+          const up = await uploadFile(m.file);
+          final.push({ id: m.id, kind: m.kind, url: up.url, file: up.file });
+        } else {
+          final.push({ id: m.id, kind: m.kind, url: m.url });
+        }
+      }
       cleanup();
       onSave({ text: text.trim(), media: final, members });
     } catch (e) { setErrors([(e as Error).message]); setBusy(false); }

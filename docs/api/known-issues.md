@@ -42,8 +42,18 @@ the obvious thing for a client that has just read a file — fails with:
 
 So the upload path is the multipart one, and nothing in the error points you at it.
 
-Post *media* is the remaining gap: `MediaItemInputRequest` has only `media_url`, with no binary field, so
-images attached to a feed post still need a URL that is already hosted.
+Post media works the same way, and is the least discoverable of the lot. `MediaItemInputRequest` documents
+only `media_url`, which reads as "images must already be hosted" — but `POST /posts/` accepts repeated binary
+entries in its multipart form. Tested against the live API:
+
+| Field name | Result |
+|---|---|
+| `files` | **201, media attached** and converted to WebP |
+| `media_files` | **201, media attached** |
+| `file` (singular) | **201 — and silently ignored.** The post is created with `media_count: 0` |
+| `media_items[0]file` | `400 {"media_items": [{"media_url": ["This field is required."]}]}` |
+
+The singular `file` is the trap: it is the obvious name, it returns success, and the image just isn't there.
 
 *Client:* `uploadFile()` keeps the picked `File` alongside its preview, and the gallery and overview saves send
 it as `multipart/form-data`. The earlier code put a data: URL in `media_url`, which the API rejected — the
