@@ -281,6 +281,24 @@ for Monday–Saturday the two conventions happen to coincide, so the bug is invi
 *Client:* `HOURS_DAY` and `ROUTINE_DAY` are now separate maps in `lib/api/adapters.ts`. One shared map meant
 every weekly template was rejected.
 
+### 22c. `GymDetail` declares three fields as the wrong type
+
+The schema and the live response disagree about `GET /gyms/profile/`:
+
+| Field | Schema says | Actually returns |
+|---|---|---|
+| `location` | `string` | an **object**: `{id, address, latitude, longitude, city, country, postal_code, is_primary, updated_at}` |
+| `opening_hours_count` | `string` | a **number** (`7`) |
+| `gallery_count` | `string` | a **number** (`1`) |
+
+A client generated from the schema types `location` as a string, so the embedded address is unusable and the
+caller fetches `/gyms/profile/location/` separately for data it already has. The counts break any arithmetic
+without a cast.
+
+*Client:* `loadGym()` reads the embedded `location` and only calls the dedicated location endpoint when it is
+absent, saving a request per gym load. The three fields are read through narrowing rather than the generated
+types, which are wrong here.
+
 ### 23. The permission vocabulary is only discoverable by calling the API
 
 `GET /access-control/permissions/` documents a `200` with no response schema (finding 8), and it is the sole

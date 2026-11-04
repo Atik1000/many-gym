@@ -53,7 +53,7 @@ Every failure uses one envelope:
 
 ## Before you build against it
 
-Twenty-six contract gaps, design inconsistencies and hardening issues are catalogued in
+Twenty-seven contract gaps, design inconsistencies and hardening issues are catalogued in
 [known-issues.md](./known-issues.md) — including the missing token-refresh endpoint, an undocumented
 120-character minimum, two different amenity id spaces, a staff endpoint that cannot invite anyone, and a
 logout that does not revoke the token it was given.

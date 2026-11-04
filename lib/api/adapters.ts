@@ -589,13 +589,12 @@ export async function loadGym(): Promise<GymProfile | null> {
   const g = gym();
   if (!g) return null;
   const q = { gym_id: g };
-  const [detail, location, hours, amenities, gallery] = await Promise.all([
+  const [detail, hours, amenities, gallery] = await Promise.all([
     // The overview is published at both /gyms/profile/ and /gyms/profile/overview/ with the same contract.
     firstAvailable("gym-profile", [
       { path: "GET /gyms/profile/", call: () => api.gymsProfileRetrieve(q) },
       { path: "GET /gyms/profile/overview/", call: () => api.gymsProfileOverviewRetrieve(q) },
     ]),
-    api.gymsProfileLocationRetrieve(q).catch(() => null),
     api.gymsOpeningHoursRetrieve(q).catch(() => [] as T.GymOpeningHoursItem[]),
     api.amenitiesGymAmenitiesRetrieve(q).catch(() => null),
     api.gymsGalleryRetrieve(q).catch(() => [] as T.GymGalleryItem[]),
@@ -612,13 +611,25 @@ export async function loadGym(): Promise<GymProfile | null> {
     };
   }
 
-  const loc = (location ?? {}) as T.GymLocation;
+  /*
+   * `GET /gyms/profile/` already embeds the whole location object, so the dedicated location endpoint is only
+   * a fallback. The schema types `GymDetail.location` as a plain string, which is wrong — it is an object with
+   * address, city, country, postal_code and coordinates. See docs/api/known-issues.md #24.
+   */
+  const embedded = (detail as unknown as { location?: unknown }).location;
+  const loc = (
+    embedded && typeof embedded === "object"
+      ? embedded
+      : ((await api.gymsProfileLocationRetrieve(q).catch(() => null)) ?? {})
+  ) as T.GymLocation;
   const am = (amenities ?? {}) as T.GymAmenitiesConfigured;
   return {
     id: "gym",
     // The API has no tagline or website field on the gym profile.
     tagline: "",
     website: "",
+    timezone: str((detail as unknown as { timezone?: string }).timezone),
+    ownerEmail: str((detail as unknown as { owner_email?: string }).owner_email),
     overview: {
       name: str(detail.name),
       description: str(detail.short_description),

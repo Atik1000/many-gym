@@ -37,6 +37,8 @@ export default function About() {
               <span>{d}</span><span>{gym.hours[d]?.open ? `${fmtTime(gym.hours[d].start)} – ${fmtTime(gym.hours[d].end)}` : "Closed"}</span>
             </div>
           ))}
+          {/* Hours are stored in the gym's own zone, so they mean little without naming it. */}
+          {gym.timezone && <div className="mt-1.5 border-t border-line pt-1.5">Times shown in {gym.timezone.replace(/_/g, " ")}</div>}
         </div>
       )}
       <div className={row}><Globe size={20} className="text-muted" /><a className="font-semibold text-primary" href="#">{gym.website}</a></div>

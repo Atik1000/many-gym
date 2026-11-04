@@ -42,6 +42,10 @@ export type GymProfile = {
   id: "gym";
   tagline: string;
   website: string;
+  /** IANA zone the gym's opening hours are expressed in, e.g. "Asia/Dhaka". */
+  timezone: string;
+  /** Account that owns the gym. Read-only — there is no endpoint to transfer ownership. */
+  ownerEmail: string;
   overview: { name: string; description: string; primaryType: string; secondaryType: string; gender: string; minAge: string; profileUrl: string; coverUrl: string };
   location: { address: string; city: string; postcode: string; country: string; pin: { x: number; y: number } };
   hours: Record<string, DayHours>;
