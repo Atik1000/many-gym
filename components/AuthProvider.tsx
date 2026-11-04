@@ -129,8 +129,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     };
   }, [checked, me, router, load]);
 
-  // A signed-in account with no gym can't use any gym-scoped endpoint, so onboarding comes first.
-  const needsGym = checked && !!me && me.accessibleGyms.length === 0;
+  /*
+   * A signed-in account with no usable gym can't call any gym-scoped endpoint, so onboarding comes first.
+   * The test is the gym the *token* actually carries, not the length of accessibleGyms: `/auth/me/` keeps
+   * listing deleted gyms, so a non-empty list does not mean any of them can be opened.
+   */
+  const needsGym = checked && !!me && !me.gymId;
 
   return (
     <AuthCtx.Provider value={value}>

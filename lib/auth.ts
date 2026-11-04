@@ -124,11 +124,21 @@ export async function signIn(emailRaw: string, password: string): Promise<string
     invalidateAll();
 
     const me = await loadMe();
-    // The admin panel is gym-scoped, so land in a gym straight away when the account has one.
-    const first = me?.accessibleGyms[0];
-    if (first && !getTokens()?.gym_id) {
-      const problem = await enterGym(first.id);
-      if (problem) return problem;
+    /*
+     * The admin panel is gym-scoped, so land in a gym straight away. Try them in order rather than trusting
+     * the first: `/auth/me/` keeps listing gyms that have been deleted, and switching into one of those
+     * returns 404 "Gym not found." Treating that as a login failure locks the account out of the app
+     * entirely, even though its other gyms are fine.
+     */
+    if (!getTokens()?.gym_id) {
+      let lastProblem: string | null = null;
+      for (const candidate of me?.accessibleGyms ?? []) {
+        lastProblem = await enterGym(candidate.id);
+        if (!lastProblem) break;
+      }
+      // Every gym failed, or the account has none: stay signed in on the personal token and let the app
+      // offer gym creation. Being signed in with no gym is a state the UI already handles.
+      if (lastProblem) await loadMe();
     }
     notifySession();
     return null;
