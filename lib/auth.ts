@@ -99,6 +99,20 @@ export async function loadMe(): Promise<Me | null> {
   return me;
 }
 
+/** Removes a gym from the cached profile, so the switcher stops offering one that cannot be opened. */
+function forgetGym(gymId: string) {
+  const me = cachedMe();
+  if (!me) return;
+  const accessibleGyms = me.accessibleGyms.filter((g) => g.id !== gymId);
+  if (accessibleGyms.length === me.accessibleGyms.length) return;
+  try {
+    localStorage.setItem(ME_KEY, JSON.stringify({ ...me, accessibleGyms }));
+  } catch {
+    /* storage unavailable — the switcher will simply show it again next load */
+  }
+  notifySession();
+}
+
 /** Swaps the personal token for one scoped to `gymId`. */
 export async function enterGym(gymId: string): Promise<string | null> {
   try {
@@ -110,6 +124,11 @@ export async function enterGym(gymId: string): Promise<string | null> {
     notifySession();
     return null;
   } catch (e) {
+    /*
+     * A deleted gym keeps appearing in `/auth/me/`'s accessible_gyms but 404s on switch-context, so the
+     * switcher would go on offering something that can never open. Drop it on the first failure.
+     */
+    if (e instanceof ApiError && (e.status === 404 || e.status === 403)) forgetGym(gymId);
     return e instanceof ApiError ? e.message : "Couldn't open that gym.";
   }
 }

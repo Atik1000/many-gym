@@ -394,6 +394,44 @@ that cancelling *is* the end state rather than a step toward deletion.
 
 ---
 
+## 30. Deleting a gym needs two fields the schema does not declare
+
+`GymAccessControlActionRequest` declares a single required property, `action`. The destructive actions need
+more than that, and you only discover each one by hitting the error:
+
+```
+POST /api/v1/gyms/settings/access-control/
+  {"action": "delete"}                                    → 400 "Password is required to delete gym."
+  {"action": "delete", "password": "…"}                   → 400 "Confirmation text is required. Please type 'delete'"
+  {"action": "delete", "password": "…", "confirmation": "delete"}  → 200
+```
+
+Requiring a password and a typed confirmation to destroy a gym is good design. The problem is only that
+neither field appears in the schema, so no generated client can offer them and no reader knows they exist.
+
+## 31. A deleted gym stays in `accessible_gyms` but 404s when opened
+
+After a successful delete, `GET /auth/me/` keeps listing the gym:
+
+```
+GET  /api/v1/auth/me/              → accessible_gyms still contains the deleted gym
+POST /api/v1/auth/switch-context/  {"gym_id": "<deleted>"}  → 404 "Gym not found."
+```
+
+The list is the only way a client knows which gyms an account can use, so a stale entry is worse than a
+missing one: any UI built from it offers a gym that cannot be opened.
+
+This had a sharp edge. A client that signs people into `accessible_gyms[0]` — the obvious implementation —
+**locks the account out entirely** the moment the first entry is a deleted gym, even while its other gyms are
+perfectly healthy. That is exactly what happened here after deleting two unused gyms.
+
+*Client:* sign-in tries each gym in turn and stops at the first that opens, falling back to personal context
+if none do; `AuthProvider` decides onboarding from the gym the token actually carries rather than the length
+of the list; and a gym that 404s on switch is dropped from the cached profile so the switcher stops offering
+it.
+
+---
+
 ## Hardening
 
 Found by probing the live server unauthenticated — all 149 routes, plus method handling, token handling,
