@@ -16,6 +16,8 @@ export type Lead = {
   id: string; firstName: string; lastName: string; phone: string; email: string; planId: string; stage: Stage;
   reason: string; customReason: string; goals: string[]; expectedStart: string; source: string; assignedTo: string;
   nextMoves: NextMove[]; trialBooked: string; notes: string[];
+  /** The member this lead became, once converted. */
+  convertedMemberId?: string;
 };
 
 export const LEADS_KEY = "leads";

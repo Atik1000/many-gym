@@ -72,6 +72,8 @@ export function PostCard({ post, onChange, onEdit, onDelete }: { post: Post; onC
         <div>
           <b className="block">{gym?.overview.name ?? "Your gym"}</b>
           <small className="flex items-center gap-1.5 text-muted">
+            {/* The API reports who wrote each post; without it every post looked like the gym's. */}
+            {post.author?.name && <><span className="text-foreground">{post.author.name}</span> · </>}
             <Link href={link} className="hover:underline" title="Open post">{timeAgo(post.createdAt)}</Link> · {post.members ? <Lock size={12} /> : <Globe size={12} />} {post.members ? "Gym members only" : "Public"}
           </small>
         </div>

@@ -37,7 +37,18 @@ export const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Sa
 
 // ---- the gym's profile as stored by the API (a single record, not a list) ----
 export type DayHours = { open: boolean; start: string; end: string };
-export type GalleryItem = { id: string; url: string; kind: "image" | "video"; category: string; caption: string };
+export type GalleryItem = {
+  id: string;
+  /** Ready-to-render URL: the API's resolved/optimised copy when it has one. */
+  url: string;
+  /** Poster frame, which video needs and images may not have. */
+  thumbnailUrl?: string;
+  kind: "image" | "video";
+  category: string;
+  caption: string;
+  /** Background optimisation state, e.g. "failed" — the raw URL still renders. */
+  processing?: string;
+};
 export type GymProfile = {
   id: "gym";
   tagline: string;

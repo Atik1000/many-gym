@@ -23,6 +23,9 @@ export type Person = {
   /** The role's slug, e.g. "trainer" — what role *kind* checks should use. */
   roleSlug?: string;
   status: "active" | "invited";
+  /** When the invitation was sent / accepted, as reported by the API. */
+  invitedAt?: string;
+  joinedAt?: string;
 };
 
 const all = (g: string) => PERMISSION_GROUPS.find((x) => x.group === g)!.actions;

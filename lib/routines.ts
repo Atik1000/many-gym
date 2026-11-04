@@ -18,6 +18,9 @@ export type Routine = {
   notes: string;
   days: Day[]; // weekly format
   sessions: Session[]; // session-based format
+  /** Server-reported totals, available on list rows without loading the days. */
+  exerciseCount?: number;
+  createdByName?: string;
 };
 
 export const newExercise = (p: Partial<Exercise> = {}): Exercise => ({ id: uid(), name: "", sets: "", reps: "", rest: "", notes: "", ...p });

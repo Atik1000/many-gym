@@ -1,9 +1,11 @@
 // Studio posts (spec: "Create Posts by Gyms").
-export type PostMedia = { id: string; url: string; kind: "image" | "video" };
+export type PostMedia = { id: string; url: string; thumbnailUrl?: string; kind: "image" | "video" };
 export type PostComment = { id: string; author: string; text: string; createdAt: string };
 export type Post = {
   id: string;
   text: string;
+  /** Who wrote it. The feed previously credited every post to the gym. */
+  author?: { name: string; avatarUrl: string; userId: string };
   media: PostMedia[]; // order matters — admins can re-arrange it
   members: boolean; // true = "Gym members only", false = public
   pinned: boolean;

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check:api": "node scripts/check-api-coverage.mjs && node scripts/check-api-conformance.mjs && node scripts/check-permissions.mjs"
+    "check:api": "node scripts/check-api-coverage.mjs && node scripts/check-api-conformance.mjs && node scripts/check-permissions.mjs && node scripts/check-field-coverage.mjs --strict"
   },
   "dependencies": {
     "framer-motion": "^14.3.0",

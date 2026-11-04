@@ -168,6 +168,7 @@ export const memberFromApi = (m: T.MemberDetail | T.MemberList): Member => {
     joiningStatus: d.joining_status === "sent_invitation" ? "sent_invitation" : "joined",
     notes: str(d.internal_notes),
     joinedAt: str(d.created_at).slice(0, 10),
+    invitationSentAt: str(d.invitation_sent_at) || undefined,
     hold: held === "paused" ? "paused" : held === "cancelled" ? "cancelled" : "",
     photo: str(d.profile_photo_url),
     derived: {
@@ -301,6 +302,11 @@ export const leadFromApi = (l: T.LeadDetail | T.LeadList): Lead => {
     ),
     trialBooked: str(d.trial_booked_at),
     notes: (d.notes ?? []).map((n) => str(n.note_text)),
+    // Set once a lead has been converted, so the UI can link through to the member.
+    convertedMemberId: (() => {
+      const c = d.converted_member as unknown;
+      return typeof c === "string" ? c : str((c as { id?: string } | null)?.id) || undefined;
+    })(),
   };
 };
 
@@ -381,6 +387,8 @@ export const routineFromApi = (t: T.RoutineTemplateDetail | T.RoutineTemplateLis
     goals: (d.goals ?? []).map((g) => GOAL_IN[str(g)] ?? titleCase(str(g))),
     level: LEVEL_IN[str(d.level)] ?? "Beginner",
     notes: str(d.notes),
+    exerciseCount: d.total_exercises_count ?? undefined,
+    createdByName: str(d.created_by_staff_name) || undefined,
     days:
       format === "weekly"
         ? [...DAYS].map((name) => {
@@ -484,6 +492,8 @@ export const personFromApi = (s: T.StaffAssignment): Person => {
     // The API has three states (invited / active / inactive); the UI models only the first two,
     // so an inactive assignment reads as "invited" until the UI grows a third state.
     status: s.status === "active" ? "active" : "invited",
+    invitedAt: str(s.invited_at) || undefined,
+    joinedAt: str(s.joined_at) || undefined,
   };
 };
 
@@ -528,13 +538,17 @@ export const postFromApi = (p: T.GymPostDetail | T.GymPostList): Post => {
   return {
     id: str(d.id),
     text: str(d.content_text),
-    media: (d.media_attachments ?? []).map(
-      (m): PostMedia => ({
+    author: { name: str(d.author_name), avatarUrl: str(d.author_avatar_url), userId: str(d.author_user_id) },
+    media: (d.media_attachments ?? []).map((raw): PostMedia => {
+      const m = raw as unknown as Record<string, string | undefined>;
+      return {
         id: str(m.id),
-        url: str(m.media_url ?? m.original_url),
+        // Same URL preference as the gallery — post media is optimised the same way.
+        url: str(m.resolved_media_url || m.optimized_url || m.media_url || m.original_url),
+        thumbnailUrl: str(m.resolved_thumbnail_url || m.thumbnail_url) || undefined,
         kind: m.media_type === "video" ? "video" : "image",
-      }),
-    ),
+      };
+    }),
     members: d.privacy !== "public",
     // The API has no pin, like or comment concept for gym posts, so these stay local to this browser.
     pinned: false,
@@ -653,15 +667,24 @@ export async function loadGym(): Promise<GymProfile | null> {
       free: (am.free_amenities ?? []).map((a) => str(a.name)),
       paid: (am.paid_amenities ?? []).map((a) => str(a.name)),
     },
-    gallery: asArray<T.GymGalleryItem>(gallery).map(
-      (i): GalleryItem => ({
+    gallery: asArray<T.GymGalleryItem>(gallery).map((raw): GalleryItem => {
+      /*
+       * The API stores several URLs per asset and optimises uploads in the background:
+       * resolved_media_url (ready to render) > optimized_url (processed) > media_url > original_url.
+       * Rendering media_url directly skips the optimised copy and breaks when the stored value needs
+       * resolving. thumbnail_url matters for video, which has no inline poster otherwise.
+       */
+      const i = raw as unknown as Record<string, string | undefined>;
+      return {
         id: str(i.id),
-        url: str((i as unknown as { media_url?: string }).media_url),
-        kind: (i as unknown as { media_type?: string }).media_type === "video" ? "video" : "image",
-        category: CATEGORY_IN[str((i as unknown as { category?: string }).category)] ?? "General",
-        caption: str((i as unknown as { caption?: string }).caption),
-      }),
-    ),
+        url: str(i.resolved_media_url || i.optimized_url || i.media_url || i.original_url),
+        thumbnailUrl: str(i.resolved_thumbnail_url || i.thumbnail_url) || undefined,
+        kind: i.media_type === "video" ? "video" : "image",
+        category: CATEGORY_IN[str(i.category)] ?? "General",
+        caption: str(i.caption),
+        processing: str(i.processing_status) || undefined,
+      };
+    }),
   };
 }
 

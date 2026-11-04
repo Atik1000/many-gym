@@ -31,6 +31,8 @@ export type Member = {
    * has real `memberships` and the helpers below prefer those.
    */
   derived?: { status?: MemberStatus; payment?: PaymentStatus; planName?: string; expiry?: string };
+  /** When the onboarding invitation was emailed, if it was. */
+  invitationSentAt?: string;
 };
 
 export type MemberStatus = "scheduled" | "active" | "paused" | "expired" | "cancelled";

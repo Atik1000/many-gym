@@ -101,7 +101,9 @@ export default function TemplatesPage() {
                 <button onClick={() => open(t)} className={`flex w-full items-center gap-3 border-b border-l-4 border-b-line px-4 py-4 text-left ${draft?.id === t.id ? "border-l-primary bg-primary-50" : "border-l-transparent hover:bg-background"}`}>
                   <span className="flex-1">
                     <b className="mb-1.5 block text-[15px]">{t.name}</b>
-                    <span className="flex gap-2"><Pill tone="purple">{t.format === "weekly" ? "Weekly" : "Session-Based"}</Pill><Pill tone={levelTone[t.level]}>{t.level}</Pill></span>
+                    <span className="flex flex-wrap items-center gap-2"><Pill tone="purple">{t.format === "weekly" ? "Weekly" : "Session-Based"}</Pill><Pill tone={levelTone[t.level]}>{t.level}</Pill>
+                      {/* The server counts the exercises, so the list can show it without loading each template. */}
+                      {t.exerciseCount != null && <span className="text-xs text-muted">{t.exerciseCount} exercise{t.exerciseCount === 1 ? "" : "s"}</span>}</span>
                   </span>
                   <ChevronRight className="text-muted" size={18} />
                 </button>

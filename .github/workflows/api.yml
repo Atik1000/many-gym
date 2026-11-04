@@ -54,6 +54,11 @@ jobs:
       - name: Permission mapping
         run: node scripts/check-permissions.mjs
 
+      # Fails if the API returns a field nothing in the client reads. The schema misdeclares some types,
+      # so dropped fields are silent — this catches them instead of waiting for someone to notice.
+      - name: Field coverage
+        run: node scripts/check-field-coverage.mjs --strict
+
       - name: Install Postman CLI
         run: curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
 
