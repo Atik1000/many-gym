@@ -5,6 +5,7 @@ import { MotionButton } from "@/components/ui/Motion";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { HOME } from "@/lib/nav";
 import { signIn } from "@/lib/auth";
 import { btnPrimary, card, errorText, input, label } from "@/lib/ui";
 
@@ -21,7 +22,8 @@ export default function LoginPage() {
     const problem = await signIn(email, password);
     setBusy(false);
     if (problem) return setError(problem);
-    router.replace("/");
+    router.replace(HOME); // straight to the destination: routing via "/" relies on a server redirect
+                          // that a client-side replace does not follow in the production build
   };
 
   return (

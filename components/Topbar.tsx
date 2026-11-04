@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { HOME } from "@/lib/nav";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/ui/parts";
 import { useToast } from "@/components/ui/Toast";
@@ -27,7 +28,7 @@ export default function Topbar() {
   const gyms = me?.accessibleGyms ?? [];
   const others = open ? gyms.filter((g) => g.id !== me?.gymId) : [];
   const pick = async (id: string) => {
-    if (await switchAccount(id)) { setOpen(false); router.replace("/"); }
+    if (await switchAccount(id)) { setOpen(false); router.replace(HOME); }
     else toast("Couldn't open that gym");
   };
   return (

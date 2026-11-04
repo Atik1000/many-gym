@@ -1,6 +1,12 @@
 import { LuMessageSquare as MessageSquare, LuChartColumn as BarChart3, LuCreditCard as CreditCard, LuFileText as FileText, LuHouse as Home, LuShieldCheck as ShieldCheck, LuStore as Store, LuUserPlus as UserPlus, LuUsers as Users } from "react-icons/lu";
 import type { IconType } from "react-icons";
 
+/**
+ * Where a signed-in person lands. `/` server-redirects here, but a client-side router.replace("/")
+ * does not follow that redirect in the production build — so navigate here directly.
+ */
+export const HOME = "/studio";
+
 export type NavItem = { href: string; label: string; icon: IconType; ready: boolean; perm?: string };
 
 // `ready` = page is built; unbuilt items render but don't navigate yet.

@@ -13,6 +13,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { HOME } from "@/lib/nav";
 import { LuArrowRight, LuMailCheck, LuUserPlus } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
 import { MIN_PASSWORD, register, resendOtp, verifySignup } from "@/lib/auth";
@@ -61,7 +62,7 @@ export default function SignUp() {
     const problem = await verifySignup(email, code);
     setBusy(false);
     if (problem) return setErr(problem);
-    router.replace("/"); // verification returns tokens, so this lands signed in
+    router.replace(HOME); // verification returns tokens, so this lands signed in
   };
 
   const resend = async () => {

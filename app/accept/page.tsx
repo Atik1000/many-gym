@@ -14,6 +14,7 @@ import { MotionButton } from "@/components/ui/Motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { HOME } from "@/lib/nav";
 import * as api from "@/lib/api/endpoints";
 import { ApiError, getTokens } from "@/lib/api/http";
 import { btnPrimary, card, errorText, hint } from "@/lib/ui";
@@ -37,7 +38,7 @@ export default function AcceptPage() {
     setError("");
     try {
       await api.membersAcceptInvitationCreate({ token: code, invitation_token: code });
-      router.replace("/");
+      router.replace(HOME);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Couldn't accept that invitation.");
     } finally {
