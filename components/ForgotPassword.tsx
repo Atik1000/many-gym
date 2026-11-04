@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LuArrowRight, LuMail } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
+import PasswordInput from "@/components/ui/PasswordInput";
 import { forgotPassword, resetPassword, verifyResetOtp, MIN_PASSWORD } from "@/lib/auth";
 import { btnPrimary, card, errorText, hint, input, label } from "@/lib/ui";
 
@@ -72,9 +73,9 @@ export default function ForgotPassword() {
 
         {step === 3 && (<>
           <label htmlFor="p" className={label}>New password</label>
-          <input id="p" type="password" autoComplete="new-password" required autoFocus className={input} value={pw} onChange={(ev) => setPw(ev.target.value)} />
+          <PasswordInput id="p" autoComplete="new-password" autoFocus value={pw} onChange={setPw} />
           <label htmlFor="p2" className={`${label} mt-4`}>Confirm new password</label>
-          <input id="p2" type="password" autoComplete="new-password" required className={input} value={again} onChange={(ev) => setAgain(ev.target.value)} />
+          <PasswordInput id="p2" autoComplete="new-password" value={again} onChange={setAgain} />
           <p className={hint}>At least {MIN_PASSWORD} characters.</p>
         </>)}
 

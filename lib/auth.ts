@@ -32,6 +32,10 @@ const either = <X,>(feature: string, authCall: () => Promise<X>, usersCall: () =
 export const SESSION_KEY = "manygym.session.v1";
 const KNOWN_KEY = "manygym.accounts.v1";
 const ME_KEY = "manygym.me.v1";
+/** The gym that last opened successfully, tried first on the next sign-in. */
+const LAST_GYM_KEY = "manygym.lastgym.v1";
+/** Gyms that returned 404/403 on switch-context, so sign-in stops paying for them again. */
+const DEAD_GYMS_KEY = "manygym.deadgyms.v1";
 
 const read = <X,>(key: string, fallback: X): X => {
   try {
@@ -99,6 +103,16 @@ export async function loadMe(): Promise<Me | null> {
   return me;
 }
 
+const deadGyms = (): string[] => read<string[]>(DEAD_GYMS_KEY, []);
+const markDead = (gymId: string) => {
+  try {
+    const ids = deadGyms();
+    if (!ids.includes(gymId)) localStorage.setItem(DEAD_GYMS_KEY, JSON.stringify([...ids, gymId]));
+  } catch {
+    /* storage unavailable — it will simply be retried next time */
+  }
+};
+
 /** Removes a gym from the cached profile, so the switcher stops offering one that cannot be opened. */
 function forgetGym(gymId: string) {
   const me = cachedMe();
@@ -119,6 +133,11 @@ export async function enterGym(gymId: string): Promise<string | null> {
     const res = await api.authSwitchContextCreate({ context_type: "gym", gym_id: gymId });
     if (!res.tokens?.access) return "The server didn't return a token for that gym.";
     setTokens(res.tokens as Tokens);
+    try {
+      localStorage.setItem(LAST_GYM_KEY, gymId);
+    } catch {
+      /* storage unavailable — sign-in just probes in list order next time */
+    }
     invalidateAll();
     await loadMe();
     notifySession();
@@ -128,7 +147,10 @@ export async function enterGym(gymId: string): Promise<string | null> {
      * A deleted gym keeps appearing in `/auth/me/`'s accessible_gyms but 404s on switch-context, so the
      * switcher would go on offering something that can never open. Drop it on the first failure.
      */
-    if (e instanceof ApiError && (e.status === 404 || e.status === 403)) forgetGym(gymId);
+    if (e instanceof ApiError && (e.status === 404 || e.status === 403)) {
+      markDead(gymId);
+      forgetGym(gymId);
+    }
     return e instanceof ApiError ? e.message : "Couldn't open that gym.";
   }
 }
@@ -150,8 +172,20 @@ export async function signIn(emailRaw: string, password: string): Promise<string
      * entirely, even though its other gyms are fine.
      */
     if (!getTokens()?.gym_id) {
+      /*
+       * Order matters for how long sign-in feels. The gym that worked last time goes first, and gyms already
+       * known to 404 go last — otherwise every sign-in pays for a failed round-trip per dead gym before
+       * reaching a live one, which reads as the button doing nothing.
+       */
+      const dead = new Set(deadGyms());
+      const lastUsed = read<string | null>(LAST_GYM_KEY, null);
+      const candidates = [...(me?.accessibleGyms ?? [])].sort((a, b) => {
+        const rank = (id: string) => (id === lastUsed ? 0 : dead.has(id) ? 2 : 1);
+        return rank(a.id) - rank(b.id);
+      });
+
       let lastProblem: string | null = null;
-      for (const candidate of me?.accessibleGyms ?? []) {
+      for (const candidate of candidates) {
         lastProblem = await enterGym(candidate.id);
         if (!lastProblem) break;
       }
@@ -179,6 +213,7 @@ export async function signOut() {
   setTokens(null);
   localStorage.removeItem(ME_KEY);
   localStorage.removeItem(SESSION_KEY);
+  // LAST_GYM_KEY and DEAD_GYMS_KEY survive sign-out on purpose: they make the next sign-in fast.
   invalidateAll();
   notifySession();
 }

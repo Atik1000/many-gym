@@ -7,6 +7,7 @@ import { changePassword, updateMyName } from "@/lib/auth";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/components/ui/Toast";
 import { Pill } from "@/components/ui/parts";
+import PasswordInput from "@/components/ui/PasswordInput";
 import GymSettings from "@/components/settings/GymSettings";
 import { btnPrimary, card, errorText, hint, input, label } from "@/lib/ui";
 
@@ -52,12 +53,12 @@ export default function SettingsPage() {
         <h2 className="mb-4 text-lg font-bold">Change password</h2>
         <form onSubmit={savePassword}>
           <label htmlFor="cp" className={label}>Current password</label>
-          <input id="cp" type="password" autoComplete="current-password" required className={input} value={current} onChange={(e) => setCurrent(e.target.value)} />
+          <PasswordInput id="cp" value={current} onChange={setCurrent} />
           <label htmlFor="np" className={`${label} mt-4`}>New password</label>
-          <input id="np" type="password" autoComplete="new-password" required className={input} value={next} onChange={(e) => setNext(e.target.value)} />
+          <PasswordInput id="np" autoComplete="new-password" value={next} onChange={setNext} />
           <p className={hint}>At least 8 characters.</p>
           <label htmlFor="rp" className={`${label} mt-4`}>Repeat new password</label>
-          <input id="rp" type="password" autoComplete="new-password" required className={input} value={again} onChange={(e) => setAgain(e.target.value)} />
+          <PasswordInput id="rp" autoComplete="new-password" value={again} onChange={setAgain} />
           {pwErr && <p role="alert" className={errorText}>{pwErr}</p>}
           <MotionButton className={`${btnPrimary} mt-4`} ><LuKeyRound size={17} />Change password</MotionButton>
         </form>

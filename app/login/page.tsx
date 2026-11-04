@@ -2,6 +2,7 @@
 
 import { LuLogIn } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
+import PasswordInput from "@/components/ui/PasswordInput";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -38,7 +39,7 @@ export default function LoginPage() {
           <label htmlFor="email" className={label}>Email</label>
           <input id="email" type="email" autoComplete="username" required autoFocus className={input} value={email} onChange={(e) => setEmail(e.target.value)} />
           <label htmlFor="password" className={`${label} mt-4`}>Password</label>
-          <input id="password" type="password" autoComplete="current-password" required className={input} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <PasswordInput id="password" value={password} onChange={setPassword} />
           <p className="mt-2 text-right"><Link href="/forgot" className="font-semibold text-primary">Forgot your password?</Link></p>
           {error && <p role="alert" className={`${errorText} mt-3 text-[13px]`}>{error}</p>}
           <MotionButton type="submit" disabled={busy} className={`${btnPrimary} mt-5 w-full`}><LuLogIn size={17} />{busy ? "Signing in…" : "Sign in"}</MotionButton>

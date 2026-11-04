@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { HOME } from "@/lib/nav";
 import { LuArrowRight, LuMailCheck, LuUserPlus } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
+import PasswordInput from "@/components/ui/PasswordInput";
 import { MIN_PASSWORD, register, resendOtp, verifySignup } from "@/lib/auth";
 import { btnGhost, btnPrimary, card, errorText, hint, input, label } from "@/lib/ui";
 
@@ -105,7 +106,7 @@ export default function SignUp() {
             <input id="phone" type="tel" autoComplete="tel" className={input} value={phone} onChange={(e) => setPhone(e.target.value)} />
 
             <label htmlFor="password" className={`${label} mt-4`}>Password</label>
-            <input id="password" type="password" autoComplete="new-password" required className={input} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <PasswordInput id="password" autoComplete="new-password" value={password} onChange={setPassword} />
             <p className={hint}>At least {MIN_PASSWORD} characters.</p>
 
             {err && <p role="alert" className={`${errorText} mt-3 text-[13px]`}>{err}</p>}
