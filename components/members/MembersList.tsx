@@ -90,7 +90,16 @@ export default function MembersList() {
                 const owed = memberBalance(m); const expiry = memberExpiry(m);
                 return (
                   <tr key={m.id} className="border-t border-line">
-                    <td className="px-5 py-3.5"><Link href={`/members/${m.id}`} className="flex items-center gap-3"><Avatar name={fullName(m)} src={m.photo} size={44} /><span><b className="block">{fullName(m)}</b><span className="text-muted">{m.email}</span></span></Link></td>
+                    <td className="max-w-[340px] px-5 py-3.5">
+                      {/* The API allows a 100-character name; left to wrap it pushes every other column off-screen. */}
+                      <Link href={`/members/${m.id}`} className="flex items-center gap-3">
+                        <span className="shrink-0"><Avatar name={fullName(m)} src={m.photo} size={44} /></span>
+                        <span className="min-w-0">
+                          <b className="block truncate" title={fullName(m)}>{fullName(m)}</b>
+                          <span className="block truncate text-muted" title={m.email}>{m.email}</span>
+                        </span>
+                      </Link>
+                    </td>
                     <td className="px-5">{memberPlanName(m) || <span className="text-muted">No plan</span>}</td>
                     <td className="px-5"><Pill tone={STATUS_TONE[st]}><Dot tone={STATUS_TONE[st]} />{label(st)}</Pill>{m.joiningStatus === "sent_invitation" && <span className="mt-1 block text-xs text-muted">Invitation sent</span>}</td>
                     <td className="px-5"><Pill tone={PAY_TONE[pay]}><Dot tone={PAY_TONE[pay]} />{PAY_LABEL[pay]}</Pill>{pay !== "paid" && owed > 0 && <span className="mt-1 block text-[13px] text-muted">{money(owed)} due</span>}</td>

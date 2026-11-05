@@ -537,3 +537,57 @@ the API with a bearer token it has obtained.
 | `StaffAssignment.status` has three states (`invited`/`active`/`inactive`) | The UI models two, so `inactive` currently displays as "invited" |
 | `MemberList` omits `subscriptions` | Directory rows rely on the server's precomputed `membership_status` / `payment_status`; detail screens must call `GET /members/{id}/` |
 | Plan instalments are an untyped JSON blob (`installment_schedule_config`) | The client shape-checks each entry rather than trusting it |
+
+---
+
+## 32. A page number past the end answers `404`, not an empty page
+
+`GET /members/?gym_id=…&page=99999` → `404 NOT_FOUND`. So do `page=0`, `page=-1` and `page=abc`. A client
+walking pages has to treat a late `404` as "end of list" rather than an error, which `collect()` in
+`lib/api/adapters.ts` does.
+
+## 33. The same list endpoint answers two different shapes
+
+Without a `page` parameter, `/members/` and `/plans/` answer a **bare array** while `/leads/`, `/posts/` and
+`/access-control/staff/` answer a `{count, next, previous, results}` envelope. Passing `page` switches every
+one of them to the envelope. The bare form carries no `count`, so a truncated list cannot be told apart from
+a complete one — which is why every list call now passes `page`/`page_size` explicitly.
+
+## 34. `/plans/` paginates, but the schema does not say so
+
+`plansList` documents no `page` or `page_size`, yet `GET /plans/?page=1&page_size=100` returns a full
+paginated envelope (`count: 7, total_pages: 1`). The generated signature therefore needs a cast at the one
+call site that pages through plans.
+
+## 35. A non-UUID path id returns Django's HTML 404 page
+
+`GET /members/abc/` answers `404` with an HTML body (`<!doctype html>…Not Found`) instead of the API's JSON
+envelope — unlike a well-formed but unknown UUID, which correctly returns `RESOURCE_NOT_FOUND`. `request()`
+already falls back to a status-based message when the body will not parse, so the UI shows "Member not
+found" rather than raw markup.
+
+## 36. `gym_id` is validated but not used for scoping
+
+With a gym-context token, `GET /members/?gym_id=<a different gym you can access>` returns the **token's**
+gym's members, not that gym's. A malformed or unknown `gym_id` still answers `404 Gym not found`, so the
+parameter is checked and then ignored. Nothing leaks across accounts, but the parameter cannot be relied on
+to select a gym — only the token context does that.
+
+## 37. Gyms deleted through the API are still listed in `accessible_gyms`
+
+Two gyms deleted earlier in this integration still appear in `GET /auth/me/`. See `lib/auth.ts`, which prunes
+them client-side on the first `404`.
+
+### Checked and correct
+
+Worth recording because each of these is a common place for an API to go wrong, and this one does not:
+
+- `POST /auth/forgot-password/` answers `200` with the same neutral message for a registered and an
+  unregistered address — no user enumeration.
+- Validation is enforced server-side at every boundary tried: 500-character names (`max 100`), negative and
+  non-numeric prices, zero durations, blank and null required fields, malformed emails, duplicate member
+  emails (`409 RESOURCE_CONFLICT`).
+- Search accepts `<script>` tags, SQL fragments, 500-character strings and emoji without error — each simply
+  matches nothing. No `dangerouslySetInnerHTML` exists anywhere in the client, so stored markup cannot
+  execute.
+- A missing, malformed, empty or wrong-scheme `Authorization` header all answer `401 AUTHENTICATION_REQUIRED`.

@@ -86,8 +86,11 @@ export const planToApi = (p: Plan, amenityIds: string[] = []): T.MembershipPlanC
 
 export const plans = {
   list: async (): Promise<Plan[]> => {
-    const rows = await api.plansList(G());
-    return asArray<T.MembershipPlanList>(rows).map(planFromApi);
+    // The schema documents no pagination for /plans/, but the server paginates it like the rest, so the
+    // page parameters go through a cast rather than being invented in the generated signature.
+    const rows = await collect<T.MembershipPlanList>((q) =>
+      api.plansList({ ...G(), ...q } as Parameters<typeof api.plansList>[0]));
+    return rows.map(planFromApi);
   },
   get: async (id: string): Promise<Plan> => planFromApi(await api.plansRetrieve(id)),
   create: async (p: Plan, amenityIds?: string[]): Promise<Plan> =>
@@ -225,7 +228,8 @@ const PAYMENT_METHOD_OUT: Record<string, T.InitialPaymentMethodEnum> = {
 };
 
 export const members = {
-  list: async (): Promise<Member[]> => asArray<T.MemberList>(await api.membersList(G())).map(memberFromApi),
+  list: async (): Promise<Member[]> =>
+    (await collect<T.MemberList>((q) => api.membersList({ ...G(), ...q }))).map(memberFromApi),
   get: async (id: string): Promise<Member> => {
     const [detail, routineRows] = await Promise.all([
       api.membersRetrieve(id),
@@ -326,7 +330,8 @@ export const leadToApi = (l: Lead): T.LeadCreateRequest => ({
 });
 
 export const leads = {
-  list: async (): Promise<Lead[]> => asArray<T.LeadList>(await api.leadsList(G())).map(leadFromApi),
+  list: async (): Promise<Lead[]> =>
+    (await collect<T.LeadList>((q) => api.leadsList({ ...G(), ...q }))).map(leadFromApi),
   get: async (id: string): Promise<Lead> => leadFromApi(await api.leadsRetrieve(id, G())),
   create: async (l: Lead): Promise<Lead> => leadFromApi(await api.leadsCreate(leadToApi(l), G())),
   update: async (l: Lead): Promise<Lead> => leadFromApi(await api.leadsPartialUpdate(l.id, leadToApi(l), G())),
@@ -455,7 +460,7 @@ export const routines = {
   /** The request body for a routine, shared with the member-routine endpoints. */
   toRequest: routineToApi,
   list: async (): Promise<Routine[]> =>
-    asArray<T.RoutineTemplateList>(await api.routineTemplatesList(G())).map(routineFromApi),
+    (await collect<T.RoutineTemplateList>((q) => api.routineTemplatesList({ ...G(), ...q }))).map(routineFromApi),
   get: async (id: string): Promise<Routine> => routineFromApi(await api.routineTemplatesRetrieve(id, G())),
   create: async (r: Routine): Promise<Routine> => routineFromApi(await api.routineTemplatesCreate(routineToApi(r), G())),
   /** Full replace — use when the days/exercises changed. */
@@ -514,7 +519,8 @@ export const roleFromApi = (r: T.Role): Role => {
 };
 
 export const people = {
-  list: async (): Promise<Person[]> => asArray<T.StaffAssignment>(await api.accessControlStaffList()).map(personFromApi),
+  list: async (): Promise<Person[]> =>
+    (await collect<T.StaffAssignment>((q) => api.accessControlStaffList(q))).map(personFromApi),
   invite: (email: string, role_id: string) => api.accessControlStaffCreate({ email, role_id }),
   setStatus: (assignmentId: string, status: T.PatchedUpdateStaffStatusRequest["status"]) =>
     api.accessControlStaffPartialUpdate(assignmentId, { status }),
@@ -522,7 +528,8 @@ export const people = {
 };
 
 export const roles = {
-  list: async (): Promise<Role[]> => asArray<T.Role>(await api.accessControlRolesRetrieve(G())).map(roleFromApi),
+  list: async (): Promise<Role[]> =>
+    (await collect<T.Role>((q) => api.accessControlRolesRetrieve({ ...G(), ...q }))).map(roleFromApi),
   get: async (id: string): Promise<Role> => roleFromApi(await api.accessControlRolesRetrieve2(id)),
   permissions: () => api.accessControlPermissionsRetrieve(),
   create: (name: string, description: string, permission_ids: string[]) =>
@@ -590,7 +597,7 @@ export const posts = {
   list: async (): Promise<Post[]> => {
     const g = gym();
     if (!g) return [];
-    return asArray<T.GymPostList>(await api.postsList({ gym_id: g })).map(postFromApi);
+    return (await collect<T.GymPostList>((q) => api.postsList({ gym_id: g, ...q }))).map(postFromApi);
   },
   create: async (p: Post): Promise<Post> => {
     const files = p.media.map((m) => m.file).filter((f): f is File => !!f);
@@ -900,6 +907,46 @@ export const reports = {
  * List endpoints are documented as bare arrays but some return a paginated envelope
  * (`{count, results}`) or a wrapped object. Accept all three rather than crashing the screen.
  */
+/** The API documents 100 as the maximum page size, and answers a page past the end with 404. */
+const PAGE_SIZE = 100;
+
+/**
+ * Reads a whole collection instead of whatever the first response happened to contain.
+ *
+ * These list endpoints are inconsistent: some answer a bare array, some a `{count, next, results}`
+ * envelope, and passing `page` switches the bare ones to the envelope too. Without a page parameter the
+ * response carries no `count`, so a truncated list is indistinguishable from a complete one — a gym with
+ * more members than the server's default page size would quietly show only the first page, and every
+ * total derived from it would be wrong.
+ *
+ * Asking for a page past the last one answers 404 rather than an empty list, and rows can be deleted
+ * between requests, so after the first page a failure ends the walk with what we already have rather
+ * than throwing away the whole list.
+ */
+export async function collect<X>(fetchPage: (q: { page: number; page_size: number }) => Promise<unknown>): Promise<X[]> {
+  const out: X[] = [];
+  for (let page = 1; page <= 100; page++) {
+    let payload: unknown;
+    try {
+      payload = await fetchPage({ page, page_size: PAGE_SIZE });
+    } catch (e) {
+      if (page === 1) throw e;
+      break;
+    }
+    const batch = asArray<X>(payload);
+    out.push(...batch);
+    if (batch.length === 0) break;
+    const env = (payload && typeof payload === "object" ? payload : {}) as { count?: unknown; next?: unknown };
+    const more =
+      typeof env.next === "string" ? true
+      : env.next === null ? false
+      : typeof env.count === "number" ? out.length < env.count
+      : batch.length === PAGE_SIZE; // a bare array: only keep going if it filled the page
+    if (!more) break;
+  }
+  return out;
+}
+
 export function asArray<X>(payload: unknown): X[] {
   if (Array.isArray(payload)) return payload as X[];
   if (payload && typeof payload === "object") {

@@ -76,7 +76,7 @@ const EMPTY: Insights["kpi"] = {
   leadConversion: 0, churnRate: 0, netGrowth: 0, todaysRevenue: 0, pendingMovesToday: 0, overdueMoves: 0,
 };
 
-export function useInsights(range: RangeId): Insights {
+export function useInsights(range: RangeId, reloadNonce = 0): Insights {
   const gymId = currentGymId();
   const now = today();
   const { start, end } = rangeDates(range, now);
@@ -175,7 +175,7 @@ export function useInsights(range: RangeId): Insights {
     return () => {
       live = false;
     };
-  }, [gymId, range, start, end]);
+  }, [gymId, range, start, end, reloadNonce]);
 
   return state;
 }

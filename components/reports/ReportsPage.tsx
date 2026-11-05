@@ -5,7 +5,7 @@ import { Pagination, usePaged } from "@/components/ui/parts";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { animate } from "framer-motion";
-import { LuDownload as Download } from "react-icons/lu";
+import { LuDownload as Download, LuRotateCw, LuTriangleAlert } from "react-icons/lu";
 import { Can } from "@/components/AuthProvider";
 import { useToast } from "@/components/ui/Toast";
 import { daysBetween, fmtDate, today } from "@/lib/dates";
@@ -149,7 +149,9 @@ export default function ReportsPage() {
   const now = today();
   // Every aggregate comes from the reporting endpoints: member/lead list rows carry no payment data at all,
   // and the lists are paginated, so anything computed here would only describe the first page.
-  const ins = useInsights(range);
+  // `reload` re-runs the report calls after a failure without a full page reload.
+  const [reload, setReload] = useState(0);
+  const ins = useInsights(range, reload);
 
   const d = useMemo(() => {
     const { start, end, series } = ins;
@@ -177,6 +179,23 @@ export default function ReportsPage() {
   const owingPg = usePaged(d.owing, 5), expiringPg = usePaged(d.expiring, 5);
 
   if (ins.loading || !mReady || !lReady) return <div className={`${card} h-[400px] animate-pulse`} />;
+  // Every report call failed. Rendering the zeroed state here would read as "no leads, everyone is paid
+  // up" — an outage disguised as good news — so say plainly that the numbers could not be loaded.
+  if (ins.failed) {
+    return (
+      <div className={`${card} grid place-items-center p-10 text-center`}>
+        <span className="mb-3 grid h-12 w-12 place-items-center rounded-full bg-bad-bg text-bad"><LuTriangleAlert size={22} /></span>
+        <h2 className="text-lg font-bold">Insights couldn&apos;t be loaded</h2>
+        <p className="mt-1 max-w-[380px] text-muted">
+          None of the reports answered, so the figures below would all read zero. This is usually a
+          connection problem rather than empty data.
+        </p>
+        <button type="button" onClick={() => setReload((n) => n + 1)} className={`${btnGhost} mt-4`}>
+          <LuRotateCw size={16} />Try again
+        </button>
+      </div>
+    );
+  }
   const { k } = d;
   // The revenue report covers one window only, so there is no previous period to compare against.
   const delta: number | null = null;
