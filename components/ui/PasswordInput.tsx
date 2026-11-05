@@ -31,6 +31,7 @@ export default function PasswordInput({
   className?: string;
 }) {
   const [shown, setShown] = useState(false);
+  const [caps, setCaps] = useState(false);
   const fallbackId = useId();
   const fieldId = id ?? fallbackId;
 
@@ -46,6 +47,9 @@ export default function PasswordInput({
         className={`${input} pr-11 ${className}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        // Caps lock is the most common reason a correct password is rejected, and a masked field hides it.
+        onKeyUp={(e) => setCaps(e.getModifierState?.("CapsLock") ?? false)}
+        onBlur={() => setCaps(false)}
       />
       <button
         type="button"
@@ -58,6 +62,9 @@ export default function PasswordInput({
       >
         {shown ? <LuEyeOff size={17} /> : <LuEye size={17} />}
       </button>
+      {caps && !shown && (
+        <p role="status" className="mt-1 text-[13px] text-warn">Caps Lock is on</p>
+      )}
     </div>
   );
 }

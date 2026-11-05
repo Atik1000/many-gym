@@ -10,7 +10,7 @@
  *
  * `POST /auth/resend-otp/` re-sends the code; the server replaces the previous one, so only the newest works.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HOME } from "@/lib/nav";
@@ -32,6 +32,16 @@ export default function SignUp() {
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Arriving from the "not verified yet" message on sign-in: the account exists, so skip the details step and
+  // go straight to the code, with Resend right there in case the original email has expired.
+  useEffect(() => {
+    const waiting = new URLSearchParams(window.location.search).get("email");
+    if (!waiting) return;
+    setEmail(waiting);
+    setNote(`Enter the 6-digit code we emailed to ${waiting}. If it has expired, resend it below.`);
+    setStep("code");
+  }, []);
 
   const submitDetails = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,22 +101,22 @@ export default function SignUp() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="first" className={label}>First name</label>
-                <input id="first" autoFocus required className={input} value={first} onChange={(e) => setFirst(e.target.value)} />
+                <input id="first" autoFocus required className={input} value={first} onChange={(e) => { setFirst(e.target.value); setErr(""); }} />
               </div>
               <div>
                 <label htmlFor="last" className={label}>Last name</label>
-                <input id="last" required className={input} value={last} onChange={(e) => setLast(e.target.value)} />
+                <input id="last" required className={input} value={last} onChange={(e) => { setLast(e.target.value); setErr(""); }} />
               </div>
             </div>
 
             <label htmlFor="email" className={`${label} mt-4`}>Email</label>
-            <input id="email" type="email" autoComplete="email" required className={input} value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input id="email" type="email" autoComplete="email" required className={input} value={email} onChange={(e) => { setEmail(e.target.value); setErr(""); }} />
 
             <label htmlFor="phone" className={`${label} mt-4`}>Phone <span className="font-normal text-muted">(optional)</span></label>
-            <input id="phone" type="tel" autoComplete="tel" className={input} value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <input id="phone" type="tel" autoComplete="tel" className={input} value={phone} onChange={(e) => { setPhone(e.target.value); setErr(""); }} />
 
             <label htmlFor="password" className={`${label} mt-4`}>Password</label>
-            <PasswordInput id="password" autoComplete="new-password" value={password} onChange={setPassword} />
+            <PasswordInput id="password" autoComplete="new-password" value={password} onChange={(v) => { setPassword(v); setErr(""); }} />
             <p className={hint}>At least {MIN_PASSWORD} characters.</p>
 
             {err && <p role="alert" className={`${errorText} mt-3 text-[13px]`}>{err}</p>}
@@ -124,7 +134,7 @@ export default function SignUp() {
             <p className="mb-5 mt-1 text-muted">{note || `Enter the code sent to ${email}.`}</p>
 
             <label htmlFor="code" className={label}>Verification code</label>
-            <input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus required className={input} value={code} onChange={(e) => setCode(e.target.value)} />
+            <input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus required className={input} value={code} onChange={(e) => { setCode(e.target.value.replace(/\D/g, "")); setErr(""); }} />
             <p className={hint}>The code expires 15 minutes after it was sent.</p>
 
             {err && <p role="alert" className={`${errorText} mt-3 text-[13px]`}>{err}</p>}

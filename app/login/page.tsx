@@ -37,11 +37,24 @@ export default function LoginPage() {
           <h1 className="text-xl font-bold">Sign in</h1>
           <p className="mb-5 mt-1 text-muted">Welcome back. Enter your details to open the admin panel.</p>
           <label htmlFor="email" className={label}>Email</label>
-          <input id="email" type="email" autoComplete="username" required autoFocus className={input} value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input id="email" type="email" autoComplete="username" required autoFocus className={input} value={email} onChange={(e) => { setEmail(e.target.value); setError(""); }} />
           <label htmlFor="password" className={`${label} mt-4`}>Password</label>
-          <PasswordInput id="password" value={password} onChange={setPassword} />
+          <PasswordInput id="password" value={password} onChange={(v) => { setPassword(v); setError(""); }} />
           <p className="mt-2 text-right"><Link href="/forgot" className="font-semibold text-primary">Forgot your password?</Link></p>
-          {error && <p role="alert" className={`${errorText} mt-3 text-[13px]`}>{error}</p>}
+          {error && (
+            <p role="alert" className={`${errorText} mt-3 text-[13px]`}>
+              {error}
+              {/* "Not verified" is a dead end without somewhere to go: send them to the code step. */}
+              {/verif/i.test(error) && (
+                <>
+                  {" "}
+                  <Link href={`/signup?email=${encodeURIComponent(email.trim())}`} className="font-semibold underline">
+                    Enter your code
+                  </Link>
+                </>
+              )}
+            </p>
+          )}
           <MotionButton type="submit" disabled={busy} className={`${btnPrimary} mt-5 w-full`}><LuLogIn size={17} />{busy ? "Signing in…" : "Sign in"}</MotionButton>
           <p className="mt-4 text-center text-muted">
             New here? <Link href="/signup" className="font-semibold text-primary">Create an account</Link>
