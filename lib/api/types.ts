@@ -1324,6 +1324,18 @@ export interface PublicKeyBundle {
   one_time_prekeys: Array<string>;
 }
 
+/** GET /messaging/keys/user/{id}/ — a user's registered devices and their public key bundles. */
+export interface UserKeyBundleResponse {
+  user_id: string;
+  devices: Array<PublicKeyBundle>;
+}
+
+/** GET /messaging/keys/gym/{id}/ — a gym's registered devices and their public key bundles. */
+export interface GymKeyBundleResponse {
+  gym_id: string;
+  devices: Array<PublicKeyBundle>;
+}
+
 export interface ReasonsDirectory {
   standard_reasons: Array<Record<string, unknown>>;
   custom_reasons: Array<LeadCustomReason>;

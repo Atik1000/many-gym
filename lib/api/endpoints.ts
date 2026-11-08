@@ -98,15 +98,15 @@ export const authChangePasswordCreate = (body: T.ChangePasswordRequest) =>
 
 /** POST /api/v1/auth/forgot-password/ — Request Password Reset OTP */
 export const authForgotPasswordCreate = (body: T.ForgotPasswordRequest) =>
-  request<T.MessageResponse>("POST", `/api/v1/auth/forgot-password/`, { body });
+  request<T.MessageResponse>("POST", `/api/v1/auth/forgot-password/`, { body, anonymous: true });
 
 /** POST /api/v1/auth/reset-password/ — Reset Password with OTP */
 export const authResetPasswordCreate = (body: T.ResetPasswordRequest) =>
-  request<T.MessageResponse>("POST", `/api/v1/auth/reset-password/`, { body });
+  request<T.MessageResponse>("POST", `/api/v1/auth/reset-password/`, { body, anonymous: true });
 
 /** POST /api/v1/auth/verify-reset-otp/ — Verify Password Reset OTP */
 export const authVerifyResetOtpCreate = (body: T.VerifyResetOTPRequest) =>
-  request<T.MessageResponse>("POST", `/api/v1/auth/verify-reset-otp/`, { body });
+  request<T.MessageResponse>("POST", `/api/v1/auth/verify-reset-otp/`, { body, anonymous: true });
 
 /** POST /api/v1/users/change-password/ — Change Password */
 export const usersChangePasswordCreate = (body: T.ChangePasswordRequest) =>
@@ -114,15 +114,15 @@ export const usersChangePasswordCreate = (body: T.ChangePasswordRequest) =>
 
 /** POST /api/v1/users/forgot-password/ — Request Password Reset OTP */
 export const usersForgotPasswordCreate = (body: T.ForgotPasswordRequest) =>
-  request<T.MessageResponse>("POST", `/api/v1/users/forgot-password/`, { body });
+  request<T.MessageResponse>("POST", `/api/v1/users/forgot-password/`, { body, anonymous: true });
 
 /** POST /api/v1/users/reset-password/ — Reset Password with OTP */
 export const usersResetPasswordCreate = (body: T.ResetPasswordRequest) =>
-  request<T.MessageResponse>("POST", `/api/v1/users/reset-password/`, { body });
+  request<T.MessageResponse>("POST", `/api/v1/users/reset-password/`, { body, anonymous: true });
 
 /** POST /api/v1/users/verify-reset-otp/ — Verify Password Reset OTP */
 export const usersVerifyResetOtpCreate = (body: T.VerifyResetOTPRequest) =>
-  request<T.MessageResponse>("POST", `/api/v1/users/verify-reset-otp/`, { body });
+  request<T.MessageResponse>("POST", `/api/v1/users/verify-reset-otp/`, { body, anonymous: true });
 
 // ===== Unified Social Follow =====
 /** DELETE /api/v1/auth/follow/ — Unfollow a User or Gym */
@@ -200,7 +200,7 @@ export const usersFollowCreate = (body: T.FollowActionRequest) =>
 // ===== Authentication & Sessions =====
 /** POST /api/v1/auth/login/ — User Authentication & Login */
 export const authLoginCreate = (body: T.LoginRequest) =>
-  request<T.LoginResponse>("POST", `/api/v1/auth/login/`, { body });
+  request<T.LoginResponse>("POST", `/api/v1/auth/login/`, { body, anonymous: true });
 
 /** POST /api/v1/auth/logout/ — User Logout & Token Revocation */
 export const authLogoutCreate = (body: T.LogoutRequest) =>
@@ -230,27 +230,27 @@ export const usersMePartialUpdate = (body: T.PatchedUpdateProfileRequest) =>
 // ===== User Identity & Onboarding =====
 /** POST /api/v1/auth/register/ — User Registration / Sign Up */
 export const authRegisterCreate = (body: T.UserRegistrationRequest) =>
-  request<T.RegisterResponse>("POST", `/api/v1/auth/register/`, { body });
+  request<T.RegisterResponse>("POST", `/api/v1/auth/register/`, { body, anonymous: true });
 
 /** POST /api/v1/auth/resend-otp/ — Resend Registration OTP */
 export const authResendOtpCreate = (body: T.ResendOTPRequest) =>
-  request<T.MessageResponse>("POST", `/api/v1/auth/resend-otp/`, { body });
+  request<T.MessageResponse>("POST", `/api/v1/auth/resend-otp/`, { body, anonymous: true });
 
 /** POST /api/v1/auth/verify-signup-otp/ — Verify Account Registration OTP */
 export const authVerifySignupOtpCreate = (body: T.VerifySignupOTPRequest) =>
-  request<T.VerifySignupResponse>("POST", `/api/v1/auth/verify-signup-otp/`, { body });
+  request<T.VerifySignupResponse>("POST", `/api/v1/auth/verify-signup-otp/`, { body, anonymous: true });
 
 /** POST /api/v1/users/register/ — User Registration / Sign Up */
 export const usersRegisterCreate = (body: T.UserRegistrationRequest) =>
-  request<T.RegisterResponse>("POST", `/api/v1/users/register/`, { body });
+  request<T.RegisterResponse>("POST", `/api/v1/users/register/`, { body, anonymous: true });
 
 /** POST /api/v1/users/resend-otp/ — Resend Registration OTP */
 export const usersResendOtpCreate = (body: T.ResendOTPRequest) =>
-  request<T.MessageResponse>("POST", `/api/v1/users/resend-otp/`, { body });
+  request<T.MessageResponse>("POST", `/api/v1/users/resend-otp/`, { body, anonymous: true });
 
 /** POST /api/v1/users/verify-signup-otp/ — Verify Account Registration OTP */
 export const usersVerifySignupOtpCreate = (body: T.VerifySignupOTPRequest) =>
-  request<T.VerifySignupResponse>("POST", `/api/v1/users/verify-signup-otp/`, { body });
+  request<T.VerifySignupResponse>("POST", `/api/v1/users/verify-signup-otp/`, { body, anonymous: true });
 
 // ===== Dashboard & Reports =====
 /** GET /api/v1/dashboard/summary/ — Executive Dashboard Summary */
@@ -534,7 +534,7 @@ export const messagingKeysGymRegisterCreate = (body: T.GymDeviceKeyRegisterReque
 
 /** GET /api/v1/messaging/keys/gym/{gym_id}/ — Get Gym E2EE Public Key Bundle */
 export const messagingKeysGymList = (gymId: string) =>
-  request<Array<T.PublicKeyBundle>>("GET", `/api/v1/messaging/keys/gym/${encodeURIComponent(gymId)}/`);
+  request<T.GymKeyBundleResponse>("GET", `/api/v1/messaging/keys/gym/${encodeURIComponent(gymId)}/`);
 
 /** POST /api/v1/messaging/keys/register/ — Register User Device E2EE Key Bundle */
 export const messagingKeysRegisterCreate = (body: T.UserDeviceKeyRegisterRequest) =>
@@ -542,7 +542,7 @@ export const messagingKeysRegisterCreate = (body: T.UserDeviceKeyRegisterRequest
 
 /** GET /api/v1/messaging/keys/user/{user_id}/ — Get User E2EE Public Key Bundle */
 export const messagingKeysUserList = (userId: string) =>
-  request<Array<T.PublicKeyBundle>>("GET", `/api/v1/messaging/keys/user/${encodeURIComponent(userId)}/`);
+  request<T.UserKeyBundleResponse>("GET", `/api/v1/messaging/keys/user/${encodeURIComponent(userId)}/`);
 
 // ===== Membership Plans =====
 /** GET /api/v1/plans/ — List Gym Membership Plans */

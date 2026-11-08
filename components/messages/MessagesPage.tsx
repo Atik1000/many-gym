@@ -1,17 +1,18 @@
 "use client";
 
 /**
- * Messaging — the full `/messaging/*` surface:
- * `GET/POST /conversations/`, `GET /conversations/{id}/`, `GET/POST /conversations/{id}/messages/`,
- * `POST /conversations/{id}/read/`, `POST /keys/register/`, `POST /keys/gym/register/`,
- * `GET /keys/user/{id}/` and `GET /keys/gym/{id}/`.
+ * Messaging — the full `/messaging/*` surface, real-time over WebSocket with a REST fallback.
  *
- * Messages are end-to-end encrypted, so the server stores ciphertext only. See `lib/api/e2ee.ts` for what this
- * client can and cannot read — the API doesn't publish its handshake, so anything written by a different client
- * shows as locked rather than being guessed at.
+ * Live delivery, typing indicators and read receipts ride the socket in `lib/api/messaging-socket.ts`; message
+ * history, conversation creation and key registration use the REST endpoints. Messages are end-to-end
+ * encrypted (`lib/api/e2ee.ts`): the server stores ciphertext only, so anything written by a client on a
+ * different scheme shows as locked rather than being guessed at.
+ *
+ * When the socket is down, sending falls back to `POST /conversations/{id}/messages/` and the Refresh button
+ * reloads history — so the screen keeps working, just without the live updates.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
-import { LuLock, LuRefreshCw, LuSend, LuShieldCheck } from "react-icons/lu";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LuLock, LuRefreshCw, LuSend, LuShieldCheck, LuWifi, LuWifiOff } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
 import { Avatar, Pill, Select } from "@/components/ui/parts";
 import { useToast } from "@/components/ui/Toast";
@@ -21,11 +22,12 @@ import { useResource } from "@/lib/api";
 import { MEMBERS_KEY, fullName, type Member } from "@/lib/members";
 import * as api from "@/lib/api/endpoints";
 import { ApiError, currentGymId } from "@/lib/api/http";
-import { deviceKeys, open as openMessage, seal, supported } from "@/lib/api/e2ee";
+import { deviceKeys, open as openMessage, publicBundle, seal, supported } from "@/lib/api/e2ee";
+import { MessagingSocket, type ServerEvent, type SocketStatus, type WireMessage } from "@/lib/api/messaging-socket";
 import { btnGhost, btnPrimary, card, hint, input } from "@/lib/ui";
 
 type Conversation = { id: string; title: string; sub: string; unread: number; targetUserId?: string; targetGymId?: string };
-type Message = { id: string; mine: boolean; at: string; text: string | null; locked: boolean };
+type Message = { id: string; mine: boolean; at: string; text: string | null; locked: boolean; read?: boolean; pending?: boolean };
 
 const str = (v: unknown) => (v == null ? "" : String(v));
 
@@ -33,20 +35,43 @@ function toConversation(raw: unknown, meId: string): Conversation {
   const o = (raw ?? {}) as Record<string, unknown>;
   const parts = asArray<Record<string, unknown>>(o.participants);
   const other = parts.find((p) => str(p.user_id ?? p.id) !== meId) ?? parts[0] ?? {};
+  const op = (o.other_party ?? {}) as Record<string, unknown>;
   return {
     id: str(o.id ?? o.conversation_id),
-    title: str(o.title ?? o.name ?? other.display_name ?? other.name ?? other.gym_name ?? other.email) || "Conversation",
+    title:
+      str(op.name ?? o.title ?? o.name ?? other.user_full_name ?? other.display_name ?? other.name ?? other.gym_name ?? other.user_email ?? other.email) ||
+      "Conversation",
     sub: str(o.conversation_type ?? other.participant_type ?? "").replace(/_/g, " "),
-    unread: Number(o.unread_count ?? 0) || 0,
-    targetUserId: str(other.user_id) || undefined,
-    targetGymId: str(other.gym_id) || undefined,
+    unread: Number(o.unread_count ?? other.unread_count ?? 0) || 0,
+    targetUserId: str(op.user_id ?? other.user_id) || undefined,
+    targetGymId: str((op.type === "gym" ? op.id : undefined) ?? other.gym_id) || undefined,
   };
+}
+
+/**
+ * The server returns `{user_id|gym_id, devices:[{identity_key,…}]}`. A user can have several registered
+ * devices (old browsers, other sessions); pick the most recently registered one whose identity key is a
+ * valid 32-byte X25519 public key, so a stale or malformed entry doesn't break encryption.
+ */
+function bundleIdentityKey(bundle: { devices?: Array<{ identity_key?: string }> } | null | undefined): string | null {
+  const devices = asArray<{ identity_key?: string }>(bundle?.devices);
+  for (let i = devices.length - 1; i >= 0; i--) {
+    const key = str(devices[i]?.identity_key);
+    if (!key) continue;
+    try {
+      if (atob(key).length === 32) return key; // raw X25519 public key is 32 bytes
+    } catch {
+      /* not valid base64 — skip */
+    }
+  }
+  return null;
 }
 
 export default function MessagesPage() {
   const toast = useToast();
   const { me } = useAuth();
   const gymId = currentGymId();
+  const meId = me?.userId ?? "";
 
   const [memberRows] = useResource<Member>(MEMBERS_KEY);
   // Only members linked to a user account can be messaged; the directory row carries that id.
@@ -60,47 +85,156 @@ export default function MessagesPage() {
   const [peerKey, setPeerKey] = useState<string | null>(null);
   const [registered, setRegistered] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [status, setStatus] = useState<SocketStatus>("closed");
+  const [peerTyping, setPeerTyping] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // Refs the socket callbacks read without re-subscribing.
+  const socketRef = useRef<MessagingSocket | null>(null);
+  const activeRef = useRef<Conversation | null>(null);
+  const peerKeyRef = useRef<string | null>(null);
+  const pendingRef = useRef<string[]>([]); // optimistic temp ids awaiting their ack
+  const seenRef = useRef<Set<string>>(new Set());
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSentRef = useRef(0);
+  // Mirror the latest state into refs so the socket's event callbacks read current values.
+  // (The synchronous flows also set these directly where ordering matters.)
+  useEffect(() => { activeRef.current = active; }, [active]);
+  useEffect(() => { peerKeyRef.current = peerKey; }, [peerKey]);
+
+  const scrollToEnd = () => queueMicrotask(() => endRef.current?.scrollIntoView({ block: "end" }));
 
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
       const rows = await api.messagingConversationsList({ gym_id: gymId ?? undefined });
-      setList(asArray<unknown>(rows).map((r) => toConversation(r, me?.userId ?? "")));
+      setList(asArray<unknown>(rows).map((r) => toConversation(r, meId)));
     } catch (e) {
       toast(e instanceof ApiError ? e.message : "Couldn't load conversations");
       setList([]);
     } finally {
       setLoading(false);
     }
-  }, [gymId, me?.userId, toast]);
+  }, [gymId, meId, toast]);
 
   useEffect(() => {
     void Promise.resolve().then(loadList);
   }, [loadList]);
 
-  /** Publishes this browser's public key so other people can start a conversation with it. */
+  // ---- live incoming message: decrypt and place it ----
+  const placeIncoming = useCallback(
+    async (wire: WireMessage, bump: boolean) => {
+      const cid = str(wire.conversation_id);
+      const id = str(wire.id);
+      if (id && seenRef.current.has(id)) return;
+      const cur = activeRef.current;
+      const mine = str(wire.sender_user_id) === meId && str(wire.sender_user_id) !== "";
+
+      if (cur && cid === cur.id) {
+        // Decrypt against the other party's identity key (for our own echo, that's the peer too).
+        const key = peerKeyRef.current;
+        const text = key && wire.ciphertext && wire.nonce ? await openMessage(wire.ciphertext, wire.nonce, key) : null;
+        if (id) seenRef.current.add(id);
+        setMessages((prev) => {
+          // Reconcile our own optimistic copy if its ack hasn't landed yet.
+          if (mine && pendingRef.current.length) {
+            const tmp = pendingRef.current.shift()!;
+            const i = prev.findIndex((m) => m.id === tmp);
+            if (i >= 0) {
+              const next = prev.slice();
+              next[i] = { ...next[i], id: id || tmp, pending: false };
+              return next;
+            }
+          }
+          if (prev.some((m) => m.id === id)) return prev;
+          return [...prev, { id: id || crypto.randomUUID(), mine, at: str(wire.sent_at), text, locked: text === null }];
+        });
+        scrollToEnd();
+        // We're looking at it — tell the server it's read.
+        if (!mine) socketRef.current?.markRead(cid);
+      } else if (bump && !mine) {
+        // Not the open conversation: raise its unread badge so the list reflects the new message.
+        setList((l) => l.map((c) => (c.id === cid ? { ...c, unread: c.unread + 1 } : c)));
+      }
+    },
+    [meId],
+  );
+
+  const onEvent = useCallback(
+    (e: ServerEvent) => {
+      switch (e.type) {
+        case "new_message":
+          void placeIncoming((e as Extract<ServerEvent, { type: "new_message" }>).message, true);
+          break;
+        case "incoming_notification":
+          void placeIncoming((e as Extract<ServerEvent, { type: "incoming_notification" }>).message, true);
+          break;
+        case "message_sent_ack": {
+          const ack = e as Extract<ServerEvent, { type: "message_sent_ack" }>;
+          const tmp = pendingRef.current.shift();
+          if (tmp) {
+            if (ack.message_id) seenRef.current.add(ack.message_id);
+            setMessages((prev) => prev.map((m) => (m.id === tmp ? { ...m, id: ack.message_id || tmp, at: ack.sent_at || m.at, pending: false } : m)));
+          }
+          break;
+        }
+        case "typing_indicator": {
+          const d = (e as Extract<ServerEvent, { type: "typing_indicator" }>).data;
+          const cur = activeRef.current;
+          if (!cur || d.conversation_id !== cur.id || d.user_id === meId) break;
+          setPeerTyping(d.is_typing);
+          if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+          if (d.is_typing) typingTimerRef.current = setTimeout(() => setPeerTyping(false), 4000);
+          break;
+        }
+        case "read_receipt": {
+          const d = (e as Extract<ServerEvent, { type: "read_receipt" }>).data;
+          const cur = activeRef.current;
+          if (!cur || d.conversation_id !== cur.id || d.read_by_user_id === meId) break;
+          setMessages((prev) => prev.map((m) => (m.mine ? { ...m, read: true } : m)));
+          break;
+        }
+        case "error":
+          // Room-join races produce benign "Unauthorized conversation access." noise; surface real ones only.
+          if (!/unauthorized conversation access/i.test(str((e as { message?: string }).message))) {
+            toast(str((e as { message?: string }).message) || "Messaging error");
+          }
+          break;
+      }
+    },
+    [meId, placeIncoming, toast],
+  );
+
+  // ---- socket lifecycle ----
+  useEffect(() => {
+    if (!supported()) return;
+    const sock = new MessagingSocket({ onStatus: setStatus, onEvent });
+    socketRef.current = sock;
+    sock.connect();
+    return () => {
+      sock.close();
+      socketRef.current = null;
+    };
+    // onEvent is stable except for meId/toast which don't change within a session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep the socket's event handler current (it captured meId/peerKey) without tearing down the connection.
+  useEffect(() => {
+    socketRef.current?.setHandlers({ onEvent, onStatus: setStatus });
+  }, [onEvent]);
+
+  /** Publishes this browser's public key bundle so other people can message it. */
   const registerDevice = async () => {
     if (!supported()) return toast("This browser can't do end-to-end encryption");
     setBusy(true);
     try {
-      const keys = await deviceKeys();
-      await api.messagingKeysRegisterCreate({
-        device_id: keys.deviceId,
-        device_name: "Admin panel",
-        identity_key: keys.publicKey,
-        signed_prekey: keys.publicKey,
-        one_time_prekeys: [],
-      });
+      const b = await publicBundle();
+      await api.messagingKeysRegisterCreate({ ...b, device_name: "Admin panel" });
       if (gymId) {
-        await api.messagingKeysGymRegisterCreate({
-          gym_id: gymId,
-          device_id: keys.deviceId,
-          device_name: "Admin panel",
-          identity_key: keys.publicKey,
-          signed_prekey: keys.publicKey,
-          one_time_prekeys: [],
-        }).catch(() => null); // only a gym owner may register the gym bundle
+        await api
+          .messagingKeysGymRegisterCreate({ ...b, device_name: "Admin panel", gym_id: gymId })
+          .catch(() => null); // only a gym owner may register the gym bundle
       }
       setRegistered(true);
       toast("This device can now receive encrypted messages");
@@ -111,10 +245,6 @@ export default function MessagesPage() {
     }
   };
 
-  /**
-   * `POST /messaging/conversations/` creates or returns the conversation with a target. The gym messaging a
-   * member is `user_to_gym` from the gym's side, so the gym id travels as `source_gym_id`.
-   */
   const startWith = async (targetUserId: string) => {
     setStarting(true);
     try {
@@ -123,7 +253,7 @@ export default function MessagesPage() {
         target_user_id: targetUserId,
         source_gym_id: gymId ?? undefined,
       });
-      const row = toConversation(conv, me?.userId ?? "");
+      const row = toConversation(conv, meId);
       setList((l) => (l.some((x) => x.id === row.id) ? l : [row, ...l]));
       await openConversation(row);
     } catch (e) {
@@ -135,22 +265,28 @@ export default function MessagesPage() {
 
   const openConversation = async (c: Conversation) => {
     setActive(c);
+    activeRef.current = c;
     setMessages([]);
     setPeerKey(null);
+    peerKeyRef.current = null;
+    setPeerTyping(false);
+    pendingRef.current = [];
+    seenRef.current = new Set();
     setBusy(true);
+    // Subscribe to the live room immediately (the socket re-joins this on any reconnect).
+    socketRef.current?.setActiveConversation(c.id);
     try {
-      // The counterpart's public bundle is what this client needs to read or write anything.
       const bundle = c.targetGymId
         ? await api.messagingKeysGymList(c.targetGymId).catch(() => null)
         : c.targetUserId
           ? await api.messagingKeysUserList(c.targetUserId).catch(() => null)
           : null;
-      const key = str((bundle as Record<string, unknown> | null)?.identity_key) || null;
+      const key = bundleIdentityKey(bundle);
       setPeerKey(key);
+      peerKeyRef.current = key;
 
-      // The detail call carries the participant list and title the list view may have abbreviated.
       const detail = await api.messagingConversationsRetrieve(c.id).catch(() => null);
-      if (detail) setActive((a) => (a && a.id === c.id ? { ...a, ...toConversation(detail, me?.userId ?? "") } : a));
+      if (detail) setActive((a) => (a && a.id === c.id ? { ...a, ...toConversation(detail, meId) } : a));
 
       const rows = asArray<Record<string, unknown>>(await api.messagingConversationsMessagesList(c.id));
       const decoded = await Promise.all(
@@ -158,50 +294,82 @@ export default function MessagesPage() {
           const cipher = str(r.ciphertext);
           const nonce = str(r.nonce);
           const text = key && cipher && nonce ? await openMessage(cipher, nonce, key) : null;
+          const id = str(r.id);
+          if (id) seenRef.current.add(id);
           return {
-            id: str(r.id),
-            mine: str(r.sender_user_id ?? r.sender_id) === (me?.userId ?? ""),
-            at: str(r.created_at ?? r.sent_at),
+            id: id || crypto.randomUUID(),
+            mine: str(r.sender_user_id ?? r.sender_id) === meId,
+            at: str(r.sent_at ?? r.created_at),
             text,
             locked: text === null,
+            read: str(r.delivery_status) === "read" || !!r.read_at,
           };
         }),
       );
       setMessages(decoded);
+      // Mark read over both channels: REST persists it, the socket notifies the other side live.
       await api.messagingConversationsReadCreate(c.id, {}).catch(() => null);
+      socketRef.current?.markRead(c.id);
       setList((l) => l.map((x) => (x.id === c.id ? { ...x, unread: 0 } : x)));
     } catch (e) {
       toast(e instanceof ApiError ? e.message : "Couldn't open that conversation");
     } finally {
       setBusy(false);
-      queueMicrotask(() => endRef.current?.scrollIntoView({ block: "end" }));
+      scrollToEnd();
     }
+  };
+
+  const emitTyping = () => {
+    const cur = activeRef.current;
+    if (!cur || status !== "open") return;
+    const now = Date.now();
+    if (now - lastTypingSentRef.current < 1500) return; // throttle
+    lastTypingSentRef.current = now;
+    socketRef.current?.typing(cur.id, true);
   };
 
   const send = async () => {
     const text = draft.trim();
     if (!text || !active) return;
     if (!peerKey) return toast("This person hasn't published an encryption key yet, so nothing can be sent to them");
-    setBusy(true);
+    setDraft("");
+    const tmpId = `tmp-${crypto.randomUUID()}`;
+    const optimistic: Message = { id: tmpId, mine: true, at: new Date().toISOString(), text, locked: false, pending: true };
+    setMessages((m) => [...m, optimistic]);
+    scrollToEnd();
     try {
       const keys = await deviceKeys();
-      const { ciphertext, nonce } = await seal(text, peerKey);
-      await api.messagingConversationsMessagesCreate(active.id, {
-        ciphertext,
-        nonce,
-        sender_type: gymId ? "gym" : "user",
-        sender_gym_id: gymId ?? undefined,
+      const sealed = await seal(text, peerKey);
+      const base = {
+        ...sealed,
+        sender_type: (gymId ? "gym" : "user") as "gym" | "user",
         sender_device_id: keys.deviceId,
-      });
-      setMessages((m) => [...m, { id: crypto.randomUUID(), mine: true, at: new Date().toISOString(), text, locked: false }]);
-      setDraft("");
-      queueMicrotask(() => endRef.current?.scrollIntoView({ block: "end" }));
+        encrypted_keys: {} as Record<string, string>,
+      };
+
+      // Prefer the socket (live + ack); fall back to REST when it's not connected.
+      const viaSocket = socketRef.current?.sendMessage({ conversation_id: active.id, ...base }) ?? false;
+      if (viaSocket) {
+        pendingRef.current.push(tmpId); // reconciled by message_sent_ack / our own new_message echo
+      } else {
+        const saved = await api.messagingConversationsMessagesCreate(active.id, { ...base, sender_gym_id: gymId ?? undefined });
+        const realId = str((saved as { id?: string })?.id);
+        if (realId) seenRef.current.add(realId);
+        setMessages((prev) => prev.map((m) => (m.id === tmpId ? { ...m, id: realId || tmpId, pending: false } : m)));
+      }
     } catch (e) {
+      // Roll the optimistic bubble back so the person knows it didn't go.
+      setMessages((prev) => prev.filter((m) => m.id !== tmpId));
+      setDraft(text);
       toast(e instanceof ApiError ? e.message : "Couldn't send that message");
-    } finally {
-      setBusy(false);
     }
   };
+
+  const online = status === "open";
+  const statusLabel = useMemo(
+    () => (status === "open" ? "Live" : status === "connecting" ? "Connecting…" : status === "auth-error" ? "Offline" : "Offline"),
+    [status],
+  );
 
   return (
     <div className="grid gap-5">
@@ -213,6 +381,13 @@ export default function MessagesPage() {
             The server stores ciphertext only. The API doesn&apos;t publish its handshake, so messages written by
             another client may show as locked here.
           </span>
+        </span>
+        <span
+          title={online ? "Connected for live updates" : "Live updates unavailable — messages still send over REST"}
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${online ? "bg-ok-bg text-ok" : "bg-background text-muted"}`}
+        >
+          {online ? <LuWifi size={14} /> : <LuWifiOff size={14} />}
+          {statusLabel}
         </span>
         <MotionButton className={btnGhost} disabled={busy || registered} onClick={registerDevice}>
           <LuLock size={16} />{registered ? "Device registered" : "Register this device"}
@@ -269,7 +444,9 @@ export default function MessagesPage() {
               <div className="mb-3 flex items-center gap-3 border-b border-line pb-3">
                 <Avatar name={active.title} size={40} />
                 <span className="min-w-0 flex-1"><b className="block truncate text-lg">{active.title}</b>
-                  <span className="block truncate text-muted">{peerKey ? "Encryption key available" : "No published key for this participant"}</span>
+                  <span className="block truncate text-muted">
+                    {peerTyping ? "Typing…" : peerKey ? "Encryption key available" : "No published key for this participant"}
+                  </span>
                 </span>
               </div>
 
@@ -283,6 +460,9 @@ export default function MessagesPage() {
                         <LuLock size={14} />Encrypted by another client — can&apos;t be read here
                       </span>
                     ) : m.text}
+                    {m.mine && (m.pending || m.read) && (
+                      <span className="mt-0.5 block text-right text-[11px] text-white/70">{m.pending ? "Sending…" : "Read"}</span>
+                    )}
                   </div>
                 ))}
                 <div ref={endRef} />
@@ -293,16 +473,18 @@ export default function MessagesPage() {
                   aria-label="Message"
                   className={`${input} flex-1`}
                   placeholder={peerKey ? "Write a message…" : "Can't send — no encryption key published"}
-                  disabled={!peerKey || busy}
+                  disabled={!peerKey}
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => { setDraft(e.target.value); emitTyping(); }}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
                 />
-                <MotionButton className={btnPrimary} disabled={!peerKey || busy || !draft.trim()} onClick={send}>
+                <MotionButton className={btnPrimary} disabled={!peerKey || !draft.trim()} onClick={send}>
                   <LuSend size={16} />Send
                 </MotionButton>
               </div>
-              <p className={hint}>Encrypted in this browser before it leaves. The gym can&apos;t read it on the server.</p>
+              <p className={hint}>
+                Encrypted in this browser before it leaves. {online ? "Delivered live." : "Sent over REST — live updates are offline."}
+              </p>
             </>
           )}
         </section>
