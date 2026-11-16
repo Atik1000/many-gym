@@ -33,7 +33,12 @@ tokens plus a working refresh endpoint so a revoked session dies quickly.
 
 ---
 
-## 2. There is no token refresh endpoint
+## 2. ~~There is no token refresh endpoint~~ — done
+
+**Resolved.** `POST /auth/refresh/` now exists (also at `/auth/token/refresh/` and `/token/refresh/`), keeps
+the context claims and rotates the refresh token; the client uses it. The remaining ask is the second half of
+the original fix: shorten the access-token lifetime now that renewal works, and pick one of the three paths as
+canonical. The original report follows.
 
 `POST /auth/login/` and `POST /auth/verify-signup-otp/` both return `{access, refresh, …}`, but **nothing in
 the published schema accepts a refresh token**. There is no `/token/refresh/`, `/auth/refresh/` or equivalent

@@ -1,0 +1,31 @@
+$kind: http-request
+name: 'Reply to a Comment'
+method: POST
+url: '{{base_url}}/api/v1/posts/:post_id/comments/:comment_id/replies/?gym_id={{gym_id}}'
+order: 22000
+description: |-
+  Creates a nested reply targeting the specified comment.
+pathVariables:
+  - key: comment_id
+    value: '00000000-0000-0000-0000-000000000000'
+  - key: post_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "source_post_id": "00000000-0000-0000-0000-000000000000",
+      "source_comment_id": "00000000-0000-0000-0000-000000000000",
+      "comment_text": "string",
+      "comment_photo": "string",
+      "comment_video": "string",
+      "comment_gif": "string",
+      "duration_seconds": 0
+    }
+examples: './.resources/POST Reply to a Comment (posts-comments-replies).resources/examples'

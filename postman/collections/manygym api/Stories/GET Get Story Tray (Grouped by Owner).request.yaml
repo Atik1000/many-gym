@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'Get Story Tray (Grouped by Owner)'
+method: GET
+url: '{{base_url}}/api/v1/stories/tray/'
+order: 4000
+description: |-
+  Returns active stories grouped by Public User or Gym, prioritizing owners with unviewed stories.
+queryParams:
+  - key: feed_type
+    value: ''
+    disabled: true
+  - key: owner_type
+    value: ''
+    disabled: true
+examples: './.resources/GET Get Story Tray (Grouped by Owner).resources/examples'

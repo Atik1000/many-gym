@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 Request cancelled successfully.'
+request:
+  url: '{{base_url}}/api/v1/members/requests/:request_id/cancel/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Request cancelled successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

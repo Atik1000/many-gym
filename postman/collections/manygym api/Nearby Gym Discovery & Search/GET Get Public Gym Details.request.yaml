@@ -1,0 +1,19 @@
+$kind: http-request
+name: 'Get Public Gym Details'
+method: GET
+url: '{{base_url}}/api/v1/gyms/:gym_id/detail/'
+order: 3000
+description: |-
+  ### Summary
+  Retrieves comprehensive public view for a gym workspace:
+  - Core overview and branding images.
+  - Primary location and all branch addresses with coordinates.
+  - Full 7-day schedule with live `is_open_now` indicator based on the gym's timezone.
+  - Categorized amenities (complimentary vs paid).
+  - Media gallery assets with WebP optimized and thumbnail variants.
+  - Active membership plans and pricing tiers.
+  - Follower and member counts, including `is_following` flag for authenticated users.
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+examples: './.resources/GET Get Public Gym Details.resources/examples'

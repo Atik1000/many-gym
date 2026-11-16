@@ -32,7 +32,7 @@ Retrieves the member directory with search, filters (status, payment, trainer), 
 
 | Status | Body | Description |
 |---|---|---|
-| `200` | array of MemberList |  |
+| `200` | PaginatedMemberListList |  |
 | `400` | ErrorDetail |  |
 | `403` | ErrorDetail |  |
 
@@ -40,20 +40,12 @@ Retrieves the member directory with search, filters (status, payment, trainer), 
 
 | Field | Type | Notes |
 |---|---|---|
-| `id` | string(uuid) | read-only. |
-| `full_name` | string | read-only. |
-| `first_name` | string |  |
-| `last_name` | string |  |
-| `email` | string(email) |  |
-| `phone` | string \| null |  |
-| `profile_photo_url` | string \| null |  |
-| `joining_status` | enum: `sent_invitation` \| `joined` |  |
-| `current_plan_name` | string \| null | read-only. |
-| `membership_status` | string \| null | read-only. |
-| `payment_status` | string \| null | read-only. |
-| `expiry_date` | string \| null | read-only. |
-| `assigned_trainer` | object | read-only. |
-| `created_at` | string(date-time) | read-only. |
+| `count` | integer |  |
+| `total_pages` | integer |  |
+| `current_page` | integer |  |
+| `next` | string(uri) \| null |  |
+| `previous` | string(uri) \| null |  |
+| `results` | array of MemberList |  |
 
 </details>
 
@@ -85,7 +77,7 @@ Creates a new member profile, dispatches onboarding invitation email, and sets u
 | `email` | string(email) | yes |  |
 | `phone` | string \| null | no |  |
 | `profile_photo_url` | string \| null | no |  |
-| `profile_photo` | string(binary) \| null | no | Direct profile photo image upload (multipart/form-data). Max size: 10MB. Formats: JPEG, PNG, WebP, BMP, GIF, HEIC, TIFF. Automatically corrects orient |
+| `profile_photo` | string(binary) \| null | no | Direct profile photo image upload (multipart/form-data). Max size: 10MB. Formats: JPEG, PNG, WebP, BMP, GIF, HEIC, TIFF. Automatically corrects orientation and converts directly to WebP. |
 | `address` | string \| null | no |  |
 | `city` | string \| null | no |  |
 | `country` | string \| null | no |  |
@@ -220,7 +212,21 @@ Returns total members, joined count, invited count, active subscriptions, unpaid
 
 | Status | Body | Description |
 |---|---|---|
-| `200` | _no schema documented_ | Aggregated member and subscription metrics. |
+| `200` | MemberMetrics |  |
+
+<details><summary>Response fields (200)</summary>
+
+| Field | Type | Notes |
+|---|---|---|
+| `total_members` | integer | Total members enrolled in gym. |
+| `joined_members` | integer | Count of members with joined status. |
+| `invited_members` | integer | Count of members with pending invitation. |
+| `active_subscriptions` | integer | Count of currently active member subscriptions. |
+| `unpaid_subscriptions` | integer | Count of unpaid subscriptions. |
+| `fully_paid_subscriptions` | integer | Count of fully paid subscriptions. |
+| `total_revenue` | number(double) | Cumulative revenue amount from member payments. |
+
+</details>
 
 ---
 
@@ -312,7 +318,7 @@ Partially updates demographic information, emergency contact, assigned trainer, 
 | `email` | string(email) | no |  |
 | `phone` | string \| null | no |  |
 | `profile_photo_url` | string \| null | no |  |
-| `profile_photo` | string(binary) \| null | no | Direct profile photo image upload (multipart/form-data). Max size: 10MB. Formats: JPEG, PNG, WebP, BMP, GIF, HEIC, TIFF. Automatically corrects orient |
+| `profile_photo` | string(binary) \| null | no | Direct profile photo image upload (multipart/form-data). Max size: 10MB. Formats: JPEG, PNG, WebP, BMP, GIF, HEIC, TIFF. Automatically corrects orientation and converts directly to WebP. |
 | `address` | string \| null | no |  |
 | `city` | string \| null | no |  |
 | `country` | string \| null | no |  |
@@ -324,6 +330,7 @@ Partially updates demographic information, emergency contact, assigned trainer, 
 | `emergency_contact_relationship` | string \| null | no |  |
 | `assigned_trainer_id` | string(uuid) \| null | no |  |
 | `internal_notes` | string \| null | no |  |
+| `joining_status` | enum: `sent_invitation` \| `joined` | no |  |
 
 **Responses**
 

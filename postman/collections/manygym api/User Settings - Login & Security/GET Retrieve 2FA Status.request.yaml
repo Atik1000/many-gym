@@ -1,0 +1,8 @@
+$kind: http-request
+name: 'Retrieve 2FA Status'
+method: GET
+url: '{{base_url}}/api/v1/auth/settings/security/2fa/'
+order: 2000
+description: |-
+  Retrieves whether Two Factor Authentication (2FA) is enabled for the account.
+examples: './.resources/GET Retrieve 2FA Status.resources/examples'

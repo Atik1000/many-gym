@@ -1,0 +1,43 @@
+$kind: http-request
+name: 'Create Post or Repost'
+method: POST
+url: '{{base_url}}/api/v1/posts/feed/?gym_id={{gym_id}}'
+order: 8000
+description: |-
+  Creates a new post (or repost when `source_post_id` is provided) as either a Public User or a Gym based on the Bearer token context (or explicit `gym_id`). Public users support privacy: `public`, `followers`, `private`. Gyms support privacy: `public`, `followers`, `members_only`, `private` (requires `posts:manage`).
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "content_text": "string",
+      "privacy": "string",
+      "source_post_id": "00000000-0000-0000-0000-000000000000",
+      "target": "string",
+      "caption": "string",
+      "background_color": "string",
+      "lifetime_hours": "string",
+      "lifetime": "string",
+      "media_url": "https://example.com/file.jpg",
+      "thumbnail_url": "https://example.com/file.jpg",
+      "file_size_bytes": 0,
+      "duration_seconds": 0,
+      "media_items": [
+        {
+          "media_url": "https://example.com/file.jpg",
+          "media_type": null,
+          "thumbnail_url": "https://example.com/file.jpg",
+          "file_size_bytes": 0,
+          "order_index": 0
+        }
+      ],
+      "files": [
+        "string"
+      ]
+    }
+examples: './.resources/POST Create Post or Repost.resources/examples'

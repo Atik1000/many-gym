@@ -1,0 +1,47 @@
+$kind: http-request
+name: 'Update User Settings'
+method: PATCH
+url: '{{base_url}}/api/v1/users/settings/'
+order: 2000
+description: |-
+  ### Summary
+  Updates display preferences, privacy policies, audience rules, or private profile status for the authenticated user.
+  
+  ### Authentication & Authorization
+  - **Authentication**: Required (`Bearer <JWT>`).
+  - **Authorization**: User can only modify their own settings (strict tenant isolation).
+  
+  ### Request Fields
+  - `language` (optional, string, max 20 chars): Display language code (e.g. `'en'`, `'es'`).
+  - `video_autoplay` (optional, boolean): Video Autoplay toggle (ON/OFF).
+  - `dark_mode` (optional, boolean): Dark mode theme toggle (ON/OFF).
+  - `is_private` (optional, boolean): Sets account visibility to private profile.
+  - `require_follow_approval` (optional, boolean): Require confirmation before someone can follow you.
+  - `who_can_follow` (optional, enum): `'everyone'`, `'friends_of_friends'`.
+  - `who_can_follow_me` (optional, enum): Alias for `who_can_follow`.
+  - `who_can_message` (optional, enum): `'everyone'`, `'followers'`, `'no_one'`. Default is `'followers'`.
+  - `who_can_see_followers` (optional, enum): `'everyone'`, `'followers'`, `'private'`.
+  - `who_can_see_following` (optional, enum): `'everyone'`, `'followers'`, `'private'`.
+  
+  ### Error Responses
+  - `400 Bad Request`: Validation failure or invalid enum value.
+  - `401 Unauthorized`: Missing or invalid credentials.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "language": "string",
+      "video_autoplay": false,
+      "dark_mode": false,
+      "is_private": false,
+      "require_follow_approval": false,
+      "who_can_follow": "everyone",
+      "who_can_follow_me": "everyone",
+      "who_can_message": "everyone",
+      "who_can_see_followers": "everyone",
+      "who_can_see_following": "everyone"
+    }
+examples: './.resources/PATCH Update User Settings.resources/examples'

@@ -1,0 +1,8 @@
+$kind: http-request
+name: 'List User Social Links'
+method: GET
+url: '{{base_url}}/api/v1/users/profile/about/social-links/'
+order: 1000
+description: |-
+  API endpoint for listing and creating social links for the authenticated user.
+examples: './.resources/GET List User Social Links.resources/examples'

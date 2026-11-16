@@ -1,0 +1,27 @@
+$kind: http-request
+name: 'List Follow Requests'
+method: GET
+url: '{{base_url}}/api/v1/users/follow-requests/'
+order: 11000
+description: |-
+  ### Summary
+  Lists follow requests for the authenticated user.
+  - `type=received` (default): lists incoming follow requests sent to you that await your confirmation.
+  - `type=sent`: lists outgoing follow requests you sent to other users that await their confirmation.
+  - `status=pending` (default): filters by pending status. Pass `status=all` to see full history.
+queryParams:
+  - key: page
+    value: ''
+    disabled: true
+  - key: page_size
+    value: ''
+    disabled: true
+  - key: status
+    value: ''
+    description: 'Status filter: ''pending'' (default), ''accepted'', ''rejected'', ''cancelled'', or ''all''.'
+    disabled: true
+  - key: type
+    value: ''
+    description: 'Request type: ''received'' (default) or ''sent''.'
+    disabled: true
+examples: './.resources/GET List Follow Requests (users-follow-requests).resources/examples'

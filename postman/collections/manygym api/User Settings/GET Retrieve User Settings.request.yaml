@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'Retrieve User Settings'
+method: GET
+url: '{{base_url}}/api/v1/users/settings/'
+order: 1000
+description: |-
+  ### Summary
+  Retrieves comprehensive personal profile settings for the authenticated user, covering Display Preferences, Privacy & Audience visibility, and Account Lifecycle status.
+  
+  ### Authentication & Authorization
+  - **Authentication**: Required (`Bearer <JWT>`).
+  - **Authorization**: Authenticated personal account context.
+  
+  ### Success Response
+  Returns the current `UserSetting` state including personal display choices (language, video autoplay, dark mode), audience privacy rules (who can follow, who can message, follower/following visibility), and account status timestamps.
+examples: './.resources/GET Retrieve User Settings.resources/examples'

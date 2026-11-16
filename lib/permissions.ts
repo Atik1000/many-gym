@@ -46,6 +46,14 @@ export const PERMISSION_SCOPES: ScopeMap = {
   "Delete leads": "leads:manage",
   "Manage leads": "leads:manage",
 
+  // Enquiries. ASSUMPTION: the API issues no enquiry scope (the 19 above are the whole vocabulary) and only
+  // says enquiries are for "staff and owners of the gym", so they ride on the leads scopes — the nearest CRM
+  // topic. If the server enforces something else, a staff member sees a 403 from the endpoint itself.
+  "View enquiries": "leads:read",
+  "Create enquiries": "leads:manage",
+  "Edit enquiries": "leads:manage",
+  "Delete enquiries": "leads:manage",
+
   // Routine templates
   "View templates": "routines:read",
   "Create templates": "routines:manage",
@@ -76,6 +84,10 @@ export const PERMISSION_SCOPES: ScopeMap = {
   "Edit roles": "people_roles:manage",
   "Delete roles": "people_roles:manage",
   "Assign permissions": "people_roles:manage",
+  // Activity log (the admin audit trail). ASSUMPTION: the API issues no log scope and its admin-logs
+  // operations document no required permission, so viewing rides on the scope for seeing who the gym's
+  // admins are — the log is a record of what those same people did. The server has the final say (403).
+  "View activity log": "people_roles:read",
 
   // Trainers
   "View trainers": "trainers:read",

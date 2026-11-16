@@ -4,7 +4,7 @@ Admin panel for **manygym**, backed by the Many Gym API at `https://v0.manygym.c
 
 | | |
 |---|---|
-| Reference for all 149 endpoints | [`docs/api/README.md`](docs/api/README.md) |
+| Reference for all 291 endpoints | [`docs/api/README.md`](docs/api/README.md) |
 | Contract gaps worth knowing | [`docs/api/known-issues.md`](docs/api/known-issues.md) |
 | Auth issues for the API owners | [`docs/api/for-the-backend-team.md`](docs/api/for-the-backend-team.md) |
 | Which endpoints are wired, and why | [`docs/api/coverage.md`](docs/api/coverage.md) — `npm run check:api` |

@@ -1,0 +1,26 @@
+$kind: http-request
+name: 'React or toggle reaction on a story'
+method: POST
+url: '{{base_url}}/api/v1/reactions/stories/:story_id/'
+order: 13000
+description: |-
+  Creates, updates, or toggles off a reaction on an active story.
+pathVariables:
+  - key: story_id
+    value: '00000000-0000-0000-0000-000000000000'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reaction_item_id": "00000000-0000-0000-0000-000000000000",
+      "reaction_code": "string",
+      "owner_type": "user",
+      "gym_id": "00000000-0000-0000-0000-000000000000",
+      "post_id": "00000000-0000-0000-0000-000000000000",
+      "story_id": "00000000-0000-0000-0000-000000000000",
+      "comment_id": "00000000-0000-0000-0000-000000000000"
+    }
+examples: './.resources/POST React or toggle reaction on a story.resources/examples'

@@ -1,0 +1,23 @@
+$kind: http-request
+name: 'Resend 2FA OTP Code'
+method: POST
+url: '{{base_url}}/api/v1/auth/resend-2fa/'
+order: 5000
+description: |-
+  ### Summary
+  Dispatches a new 2FA OTP code.
+  Supports fallback sequence: Primary Email -> Secondary Email -> Phone SMS.
+  Clients may optionally request a specific channel ('primary_email', 'secondary_email', 'phone_sms', or 'auto').
+auth:
+  type: noauth
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "person@example.com",
+      "channel": "primary_email"
+    }
+examples: './.resources/POST Resend 2FA OTP Code.resources/examples'

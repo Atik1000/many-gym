@@ -1,0 +1,8 @@
+$kind: http-request
+name: 'List User Education Records'
+method: GET
+url: '{{base_url}}/api/v1/users/profile/about/educations/'
+order: 1000
+description: |-
+  API endpoint for listing and creating education records for the authenticated user.
+examples: './.resources/GET List User Education Records.resources/examples'

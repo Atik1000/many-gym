@@ -1,0 +1,43 @@
+$kind: http-example
+name: '200 Request detail.'
+request:
+  url: '{{base_url}}/api/v1/members/requests/:request_id/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Request detail.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "gym_id": "00000000-0000-0000-0000-000000000000",
+        "gym_name": "Example name",
+        "user": {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "first_name": "Example name",
+          "last_name": "Example name",
+          "email": "person@example.com",
+          "phone": "+8801700000000",
+          "profile_photo_url": "https://example.com/file.jpg"
+        },
+        "interested_plan": {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "name": "Example name",
+          "price": "string",
+          "duration_value": 0,
+          "duration_unit": null,
+          "plan_type": null
+        },
+        "notes": "string",
+        "status": "pending",
+        "rejection_reason": "string",
+        "created_member_id": "00000000-0000-0000-0000-000000000000",
+        "reviewed_by_name": "Example name",
+        "reviewed_at": "2026-01-01T09:00:00Z",
+        "created_at": "2026-01-01T09:00:00Z",
+        "updated_at": "2026-01-01T09:00:00Z"
+      }

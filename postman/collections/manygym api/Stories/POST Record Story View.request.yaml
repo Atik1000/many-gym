@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Record Story View'
+method: POST
+url: '{{base_url}}/api/v1/stories/:story_id/view/'
+order: 12000
+description: |-
+  Marks the story as viewed by the authenticated user and updates unique views_count.
+pathVariables:
+  - key: story_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/POST Record Story View.resources/examples'

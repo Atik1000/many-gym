@@ -1,0 +1,23 @@
+$kind: http-example
+name: '200 Matching users list.'
+request:
+  url: '{{base_url}}/api/v1/users/settings/blocked-users/search/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Matching users list.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "email": "person@example.com",
+          "first_name": "Example name",
+          "last_name": "Example name",
+          "avatar_url": "https://example.com/file.jpg"
+        }
+      ]

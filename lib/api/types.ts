@@ -1,5 +1,6 @@
-// AUTO-GENERATED from https://v0.manygym.com/api/v1/schema/ — do not edit by hand.
-// 187 schemas. Regenerate when the API changes.
+// Generated from https://v0.manygym.com/api/v1/schema/ when the API had 187 schemas. The generator is not in
+// this repository; see the note at the top of endpoints.ts. Types for routes newer than this file live beside
+// the hand-written module that uses them.
 
 export interface AccessibleGymItem {
   /** Unique identifier of accessible gym. */
@@ -1671,3 +1672,106 @@ export type WhoCanSeeMembersEnum = "everyone" | "only_members";
 
 /** * `everyone` - Everyone */
 export type WhoCanSendJoiningRequestEnum = "everyone" | "no_one";
+
+// ---- Added by hand from the live schema (see the note at the top of endpoints.ts) ----
+// The metrics and health shapes are type aliases rather than interfaces so existing callers that read them as
+// plain records keep compiling.
+
+export interface AmenityCatalogItem {
+  id: string;
+  name: string;
+  group_key: string;
+}
+
+/** GET /amenities/catalog/ — amenities grouped under their display heading. */
+export type MasterAmenityCatalogResponse = { [group: string]: Array<AmenityCatalogItem> };
+
+/** GET /access-control/permissions/ — permissions grouped under their topic heading. */
+export type SystemPermissionsByTopicResponse = { [topic: string]: Array<Permission> };
+
+export type HealthCheckResponse = {
+  /** Overall system health status ('healthy' or 'unhealthy'). */
+  status: string;
+  /** Service identifier. */
+  service: string;
+  /** Current Unix timestamp. */
+  timestamp: number;
+  /** Component statuses. */
+  components: Record<string, string>;
+  /** Latency in milliseconds. */
+  latency_ms?: number;
+};
+
+/** Response schema for member directory and subscription ledger metrics. */
+export type MemberMetrics = {
+  /** Total members enrolled in gym. */
+  total_members: number;
+  /** Count of members with joined status. */
+  joined_members: number;
+  /** Count of members with pending invitation. */
+  invited_members: number;
+  /** Count of currently active member subscriptions. */
+  active_subscriptions: number;
+  /** Count of unpaid subscriptions. */
+  unpaid_subscriptions: number;
+  /** Count of fully paid subscriptions. */
+  fully_paid_subscriptions: number;
+  /** Cumulative revenue amount from member payments. */
+  total_revenue: number;
+};
+
+export type MembershipPlanMetrics = {
+  /** Total number of plans. */
+  total_plans: number;
+  /** Number of active plans. */
+  active_plans: number;
+  /** Number of draft plans. */
+  draft_plans: number;
+  /** Number of archived plans. */
+  archived_plans: number;
+  /** Number of time-based plans. */
+  time_based_plans: number;
+  /** Number of session-based plans. */
+  session_based_plans: number;
+  avg_price: string | null;
+  min_price: string | null;
+  max_price: string | null;
+  avg_time_based_price: string | null;
+  avg_session_based_price: string | null;
+};
+
+export interface PaginatedLeadListList {
+  count?: number;
+  total_pages?: number;
+  current_page?: number;
+  next?: string | null;
+  previous?: string | null;
+  results?: Array<LeadList>;
+}
+
+export interface PaginatedMemberListList {
+  count?: number;
+  total_pages?: number;
+  current_page?: number;
+  next?: string | null;
+  previous?: string | null;
+  results?: Array<MemberList>;
+}
+
+export interface PaginatedMembershipPlanListList {
+  count?: number;
+  total_pages?: number;
+  current_page?: number;
+  next?: string | null;
+  previous?: string | null;
+  results?: Array<MembershipPlanList>;
+}
+
+export interface PaginatedGymPostListList {
+  count?: number;
+  total_pages?: number;
+  current_page?: number;
+  next?: string | null;
+  previous?: string | null;
+  results?: Array<GymPostList>;
+}

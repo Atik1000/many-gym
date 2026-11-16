@@ -12,15 +12,16 @@ endpoints. The authenticated sweep is still outstanding.
 
 ## Blocking
 
-### 1. No token refresh endpoint
+### 1. ~~No token refresh endpoint~~ — fixed in the API
 
-`POST /auth/login/` and `POST /auth/verify-signup-otp/` both return `{access, refresh, …}`, but **no endpoint
-accepts a refresh token**. Nothing matching `/token/refresh/`, `/auth/refresh/` or similar exists in the schema.
+**Resolved.** The schema now publishes `POST /auth/refresh/` (also at `/auth/token/refresh/` and
+`/token/refresh/`): it takes `{refresh}`, returns a new pair, keeps the context claims and rotates the refresh
+token.
 
-An expired access token therefore has no recovery path except a full re-login, which drops the person out of
-whatever they were doing. A long editing session will lose work.
+*Client:* `lib/api/http.ts` now answers a `401` by refreshing once (single-flight, shared across tabs) and
+retrying the request; only a refused refresh signs the person out. Not yet exercised against a live session.
 
-*Client:* `lib/api/http.ts` treats every `401` as terminal and redirects to `/login`.
+What remains is smaller: the same operation at three paths, with nothing saying which is canonical (see #38).
 
 ### 2. File upload works, but only through multipart — the JSON form silently can't
 
@@ -83,8 +84,22 @@ activates the membership. (It requires a signed-in session, which is an odd pair
 `POST /access-control/staff/` invites a staff member by email and `StaffAssignment.status` starts at `invited`,
 but **nothing redeems a staff invitation**. No endpoint takes a staff invite code and activates the assignment.
 
-*Client:* `/accept?code=…` calls the member endpoint. A staff invitation has nothing to call, so the assignment
-is expected to activate server-side once the invited email registers.
+It also cannot activate "once the invited email registers": `POST /access-control/staff/` only accepts an
+email that is **already** registered (404 otherwise), so there is no later registration to hang activation
+on. Left alone, an invited assignment stays `invited` indefinitely.
+
+The one route that does move it is `PATCH /access-control/staff/{assignment_id}/` with `{"status": "active"}`,
+which needs `people_roles:manage` — i.e. the inviter, not the invitee.
+
+*Client:* `/accept?code=…` calls the member endpoint only. For staff, People & Roles shows an **Activate**
+button on every `invited` row (and **Reactivate** on `inactive` ones) that sends that PATCH, and the add-person
+form says the person must be activated. All three statuses are shown; `inactive` used to be displayed as
+"Invited".
+
+*Wanted from the API:* either create the assignment as `active` (the person is a known account and the admin
+has chosen a role, so there is nothing left to redeem), or add `POST /access-control/staff/accept/` taking the
+invite token so the invitee can accept, mirroring the member flow. Whether an `invited` assignment already
+lets the person switch into the gym is not documented and has not been verified.
 
 ---
 
@@ -107,30 +122,53 @@ Tenancy is handled differently per module, with no apparent rule:
 A caller can't learn one rule and apply it. Endpoints that omit it rely entirely on the token's gym context,
 which is fine — but then the ones that require it are redundant, and vice versa.
 
-### 5. The same feature is published at six prefixes
+### 5. The same feature is published at several prefixes
 
-Follow is reachable at `/follow/`, `/follows/`, `/users/follow/`, `/auth/follow/`, each with and without
-`{target_id}`, plus `/users/{user_id}/follow/`, `/auth/{user_id}/follow/` and `/gyms/{gym_id}/follow/`.
-That is **18 operations** for one feature.
+The follow routes were trimmed in the schema: `/follow/`, `/users/follow/`, `/auth/follow/` and
+`/auth/{user_id}/follow/` are no longer documented, leaving `/follows/` (with and without `{target_id}`),
+`/users/{user_id}/follow/` and `/gyms/{gym_id}/follow/`. **The removed ones are still served** — see #39.
 
-`/auth/*` and `/users/*` are likewise complete aliases for profile, password and OTP — another 8.
+The pattern has spread to the newer features, though. Each of these is one capability at two or three paths:
 
-Roughly **26 of the 149 operations are duplicates**. Every one is a surface that has to stay in sync, and the
-docs can't tell a reader which is canonical.
+| Feature | Published at |
+|---|---|
+| Token refresh | `/auth/refresh/`, `/auth/token/refresh/`, `/token/refresh/` |
+| Login & security settings (8 operations) | `/users/settings/security/…` and `/auth/settings/security/…` |
+| Follow requests (list, accept, reject, cancel) | `/users/follow-requests/…` and `/auth/follow-requests/…`, plus by-user-id forms `/{users,auth}/{user_id}/follow/{accept,confirm,reject,cancel}/` — `accept` and `confirm` being the same thing |
+| Block a follower | `/users/followers/{id}/block/`, `/users/settings/followers/{id}/block/`, `/users/settings/blocked-users/followers/{id}/`, and two more under `/auth/settings/` |
+| Admin logs (6 operations) | `/gyms/admin-logs/…` and `/gyms/logs/admin/…` |
+| Comments (7 operations) | `/posts/{post_id}/comments/…` and `/comments/…` |
+| Reactions (4 operations × post, comment, story) | `/{target}/{id}/reactions/…` and `/reactions/{target}/{id}/…`, plus a third for comments under `/posts/{post_id}/comments/{comment_id}/reactions/` and a generic `POST /reactions/` |
+| Member joining requests | `/members/requests/…` and `/gyms/{gym_id}/member-requests/…`; submitting is also `POST /gyms/{gym_id}/join-request/` |
+| Feed | `/posts/` and `/posts/feed/`; repost at `/posts/{id}/repost/` and `/posts/repost/` |
+| Gym search / public profile | `/gyms/nearby/` and `/gyms/search/`; `/gyms/{id}/public/` and `/gyms/{id}/detail/` |
 
-### 6. Pagination is documented as a bare array
+Of the 291 operations, [coverage.md](./coverage.md) counts the ones this client never needs to call because a
+twin already does the job (`duplicate` and `superseded`), and a further share of the `handwritten` ones exist
+only as fallbacks in a chain. Every one is a surface that has to stay in sync, and the docs can't tell a
+reader which is canonical.
 
-`GET /members/`, `/leads/`, `/plans/` and others accept `page` and `page_size`, but their `200` is typed as a
-bare array (`[MemberList]`), not an envelope with `count`/`next`/`results`. Two of them — `/access-control/roles/`
-and `/access-control/staff/` — *are* typed as `PaginatedRoleList` / `PaginatedStaffAssignmentList`.
+*Client:* each family is a fallback chain (`lib/api/fallback.ts`), preferred path first.
 
-So a generated client cannot know whether to read `response` or `response.results`.
+### 6. Pagination is documented as a bare array — partly fixed
+
+`GET /members/`, `/leads/`, `/plans/` and `/posts/` are now typed as envelopes (`PaginatedMemberListList`, …),
+matching `/access-control/roles/` and `/staff/`. Nine list operations still accept `page` / `page_size` while
+documenting a bare array: `/routine-templates/`, `/gyms/followed/`, `/gyms/{gym_id}/followers/`,
+`/gyms/{gym_id}/members/`, `/users/{user_id}/following/`, `/users/follow-requests/` (and its `/auth/` twin),
+`/members/requests/` and `/gyms/{gym_id}/member-requests/`.
+
+For those, a generated client still cannot know whether to read `response` or `response.results`.
 
 *Client:* `asArray()` in `lib/api/adapters.ts` accepts either shape.
 
-### 7. `GET /posts/` is marked public but is not usable publicly
+### 7. ~~`GET /posts/` is marked public but is not usable publicly~~ — fixed in the API
 
-The operation has no security requirement, implying anonymous access. In practice:
+**Resolved.** An anonymous `GET /api/v1/posts/` now answers `200` with a paginated envelope of public posts
+(checked 2026-11-16), and `feed_type` selects the personalised views for a signed-in caller. What follows is
+the earlier behaviour, kept for the record.
+
+The operation has no security requirement, implying anonymous access. In practice it used to answer:
 
 ```
 GET /api/v1/posts/           → 400 {"code":"VALIDATION_ERROR",
@@ -143,9 +181,12 @@ gym's UUID — which is not what "public" implies.
 
 ### 8. Responses documented with no schema
 
-Ten operations declare a `2xx` with no body schema, so a generated client types them as `unknown`. The most
-consequential is `GET /access-control/permissions/` — the endpoint that defines the **permission vocabulary**,
-which a client needs in order to build a role editor.
+The original ten have been given schemas — `GET /access-control/permissions/` is now
+`SystemPermissionsByTopicResponse`, and the catalog, health and both metrics endpoints are typed too. Ten
+*different* operations declare a `2xx` with no body schema today: `PUT /enquiries/{id}/`,
+`POST /gyms/{gym_id}/followers/{user_id}/block/`, `GET /gyms/{gym_id}/following/`, both admin-log `export/`
+routes (a file download, so reasonable), `POST /messaging/conversations/{id}/read/`, the two messaging
+key-registration routes, and the education and social-link `DELETE`s.
 
 *Client:* `lib/permissions.ts` ships a guessed label→scope table and corrects it at runtime via
 `syncVocabulary()` once that endpoint responds.
@@ -222,17 +263,21 @@ DELETE /api/v1/follow/{target_id}/   (this one does take a path param)
 As published, the bare `DELETE /follow/` cannot say who to unfollow. Of the six follow prefixes, the DELETE
 variants are inconsistent about whether they accept a target at all.
 
+**Update:** `/follow/` has left the schema (though it is still served — #39). Its surviving twin,
+`DELETE /follows/`, now documents an optional `target_id` **query** parameter, which answers the original
+complaint for the one route that is still published.
+
 Confirmed live: `DELETE /api/v1/follow/` with a valid gym-context token returns
 `400 VALIDATION_ERROR "Validation failed for the submitted data."` — the route exists but is unusable, exactly as
 the schema suggested.
 
-*Client:* both directions go through `POST /follow/` with `action: "follow" | "unfollow"`, which is the only
-route that reliably identifies a target.
+*Client:* both directions now go through the target-in-path routes (`POST|DELETE /gyms/{id}/follow/`,
+`/users/{id}/follow/`) — the ones that report `status` / `request_id` for follow approval — with the unified
+`POST /follows/` (`action: "follow" | "unfollow"`) as the fallback. The bare `DELETE`s stay last in the chain.
 
-### 16. `/plans/metrics/` has no response schema
+### 16. ~~`/plans/metrics/` has no response schema~~ — fixed in the API
 
-Like `GET /access-control/permissions/`, the plan pricing metrics endpoint documents a `200` with no body
-schema, so a client can't know what it returns without calling it.
+**Resolved.** It is now typed as `MembershipPlanMetrics` (and `/members/metrics/` as `MemberMetrics`).
 
 *Client:* the plans screen renders whichever numeric fields come back, labelled from their key names.
 
@@ -533,8 +578,7 @@ the API with a bearer token it has obtained.
 |---|---|
 | No member number on `MemberDetail` | The UI shows a truncated UUID where it used to show `MG-00248` |
 | No `tagline` or `website` on the gym profile | Both fields removed from the profile screen's data |
-| Gym posts have no likes, comments or pinning | The Studio UI has all three; they are local-only and reset on reload |
-| `StaffAssignment.status` has three states (`invited`/`active`/`inactive`) | The UI models two, so `inactive` currently displays as "invited" |
+| Gym posts have no pinning | The Studio UI has a pin; it is local-only and resets on reload. (Likes and comments are now real: the reactions and comments APIs.) |
 | `MemberList` omits `subscriptions` | Directory rows rely on the server's precomputed `membership_status` / `payment_status`; detail screens must call `GET /members/{id}/` |
 | Plan instalments are an untyped JSON blob (`installment_schedule_config`) | The client shape-checks each entry rather than trusting it |
 
@@ -553,9 +597,10 @@ Without a `page` parameter, `/members/` and `/plans/` answer a **bare array** wh
 one of them to the envelope. The bare form carries no `count`, so a truncated list cannot be told apart from
 a complete one — which is why every list call now passes `page`/`page_size` explicitly.
 
-## 34. `/plans/` paginates, but the schema does not say so
+## 34. ~~`/plans/` paginates, but the schema does not say so~~ — fixed in the API
 
-`plansList` documents no `page` or `page_size`, yet `GET /plans/?page=1&page_size=100` returns a full
+**Resolved:** the schema now documents `page` / `page_size` and a `PaginatedMembershipPlanListList` response,
+and the client's signature matches. Previously: `plansList` documented no `page` or `page_size`, yet `GET /plans/?page=1&page_size=100` returns a full
 paginated envelope (`count: 7, total_pages: 1`). The generated signature therefore needs a cast at the one
 call site that pages through plans.
 
@@ -577,6 +622,52 @@ to select a gym — only the token context does that.
 
 Two gyms deleted earlier in this integration still appear in `GET /auth/me/`. See `lib/auth.ts`, which prunes
 them client-side on the first `404`.
+
+## 38. Unnamed twin operations
+
+Six operations have no `summary`, no description of their own and — for the `PUT`s — no documented request or
+response: `PUT /enquiries/{enquiry_id}/`, `PUT /users/profile/about/`, and the `DELETE` forms of the four
+follow-request cancel routes (`DELETE /{users,auth}/follow-requests/{request_id}/cancel/`,
+`DELETE /{users,auth}/{user_id}/follow/cancel/`), which answer `204` beside a documented `POST` that answers
+`200`. They look like framework defaults that were never switched off. They also carry lowercase catch-all
+tags (`enquiries`, `users`, `auth`, `posts`, `comments`, `stories`) instead of their feature's tag, so they
+land in their own groups in generated docs and collections.
+
+*Client:* the `PATCH` forms are used; the `PUT`s are declared variants of them in
+`scripts/check-api-coverage.mjs`. The cancel routes are not called at all — withdrawing a follow request goes
+through `DELETE /users/{user_id}/follow/`, which the follow guide documents for both unfollow and cancel.
+
+## 39. Routes removed from the schema are still served
+
+23 operations present in the earlier schema are gone from the current one — the `/follow/`, `/users/follow/`
+and `/auth/follow/` families, `/auth/{user_id}/follow|followers|following/`, and the `/users/` twins of
+register, the OTP routes and the password routes. Probed unauthenticated on 2026-11-16, **every one still
+answers with the API's own error envelope** (`401 AUTHENTICATION_REQUIRED`, or `400 VALIDATION_ERROR` for the
+public ones); a route that does not exist answers a bare HTML `404`. They are undocumented, not removed.
+
+If they are meant to be gone, they should stop routing; if they are kept for older clients, the schema should
+mark them `deprecated` rather than omit them. The per-route record is the `RETIRED` table in
+`scripts/check-api-conformance.mjs`.
+
+*Client:* the generated functions for them are kept as the tail of the fallback chains, so nothing breaks
+whichever way this is settled.
+
+## 40. `GET /reactions/items/` is documented as an array and answers an envelope
+
+The schema types the `200` as `[ReactionItem]`. Live, unauthenticated, it answers
+`{"count": 13, "results": [ … ]}` — neither the documented array nor the standard pagination envelope (there is
+no `next`, `previous`, `total_pages` or `current_page`). It is the mirror image of #6.
+
+*Client:* `lib/api/reactions.ts` accepts either shape.
+
+## 41. `messaging/keys` responses are documented as arrays
+
+`GET /messaging/keys/user/{user_id}/` and `/messaging/keys/gym/{gym_id}/` are typed `[PublicKeyBundle]`. The
+messaging integration found them answering an object — `{user_id, devices: [PublicKeyBundle]}` and
+`{gym_id, devices: […]}` — and the client is typed that way (`UserKeyBundleResponse` / `GymKeyBundleResponse`).
+This is the one place `scripts/check-api-conformance.mjs` still reports a mismatch, deliberately: either the
+schema or the client is wrong, and it should stay visible until someone confirms which against a signed-in
+session.
 
 ### Checked and correct
 

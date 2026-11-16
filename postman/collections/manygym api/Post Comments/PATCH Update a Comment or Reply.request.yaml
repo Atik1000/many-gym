@@ -1,0 +1,25 @@
+$kind: http-request
+name: 'Update a Comment or Reply'
+method: PATCH
+url: '{{base_url}}/api/v1/comments/:comment_id/'
+order: 4000
+description: |-
+  Retrieve, edit, or delete a single comment or nested reply.
+pathVariables:
+  - key: comment_id
+    value: '00000000-0000-0000-0000-000000000000'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "comment_text": "string",
+      "comment_photo": "string",
+      "comment_video": "string",
+      "comment_gif": "string",
+      "remove_media": false,
+      "duration_seconds": 0
+    }
+examples: './.resources/PATCH Update a Comment or Reply.resources/examples'

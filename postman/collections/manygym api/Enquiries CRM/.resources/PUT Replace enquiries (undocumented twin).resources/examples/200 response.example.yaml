@@ -1,0 +1,11 @@
+$kind: http-example
+name: '200 No response body'
+request:
+  url: '{{base_url}}/api/v1/enquiries/:enquiry_id/'
+  method: PUT
+response:
+  statusCode: 200
+  statusText: 'No response body'
+  body:
+    type: text
+    content: ''

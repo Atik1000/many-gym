@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Delete follow-requests cancel (undocumented twin)'
+method: DELETE
+url: '{{base_url}}/api/v1/auth/follow-requests/:request_id/cancel/'
+order: 4000
+description: |-
+  API endpoint for canceling/withdrawing a pending follow request sent by the authenticated user.
+  
+  The schema publishes this operation with no summary or description: it is the unnamed twin of the documented operation on the same resource.
+pathVariables:
+  - key: request_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/DELETE Delete follow-requests cancel (undocumented twin).resources/examples'

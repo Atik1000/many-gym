@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Cancel / Withdraw Follow Request'
+method: POST
+url: '{{base_url}}/api/v1/users/:user_id/follow/cancel/'
+order: 17000
+description: |-
+  ### Summary
+  Cancels/withdraws a pending follow request previously sent by the authenticated user.
+  Accepts `request_id` or `user_id` in path or body.
+pathVariables:
+  - key: user_id
+    value: '{{user_id}}'
+examples: './.resources/POST Cancel - Withdraw Follow Request (users-follow-cancel).resources/examples'

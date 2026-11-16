@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Reject / Decline Follow Request'
+method: POST
+url: '{{base_url}}/api/v1/auth/:user_id/follow/reject/'
+order: 10000
+description: |-
+  ### Summary
+  Rejects/declines a pending follow request received by the authenticated user.
+  Accepts `request_id` or `user_id` in path or body.
+pathVariables:
+  - key: user_id
+    value: '{{user_id}}'
+examples: './.resources/POST Reject - Decline Follow Request (auth-follow-reject).resources/examples'

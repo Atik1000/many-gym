@@ -1,0 +1,19 @@
+$kind: http-example
+name: '200 Contact information retrieved successfully.'
+request:
+  url: '{{base_url}}/api/v1/auth/settings/security/contact-info/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Contact information retrieved successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "primary_email": "person@example.com",
+        "secondary_email": "person@example.com",
+        "phone": "+8801700000000"
+      }

@@ -1,5 +1,11 @@
-// AUTO-GENERATED from https://v0.manygym.com/api/v1/schema/ — do not edit by hand.
-// 149 operations.
+// Generated from https://v0.manygym.com/api/v1/schema/ when the API had 149 operations.
+//
+// The generator is not in this repository, so this file is now maintained by hand against
+// postman/spec/manygym-openapi.json and kept honest by scripts/check-api-conformance.mjs, which compares every
+// function here with its operation (method, URL, path args, query params, body, return type).
+// Operations newer than this file are called from hand-written modules beside it (stories.ts, comments.ts,
+// reactions.ts, …) and are accounted for by scripts/check-api-coverage.mjs. Some functions here belong to
+// operations that have since left the schema; the conformance check lists those as "retired".
 
 import { request } from "./http";
 import type * as T from "./types";
@@ -7,7 +13,7 @@ import type * as T from "./types";
 // ===== Access Control & RBAC =====
 /** GET /api/v1/access-control/permissions/ — List System Permissions Grouped by Topic */
 export const accessControlPermissionsRetrieve = () =>
-  request<unknown>("GET", `/api/v1/access-control/permissions/`);
+  request<T.SystemPermissionsByTopicResponse>("GET", `/api/v1/access-control/permissions/`);
 
 /** GET /api/v1/access-control/roles/ — List Available Roles */
 export const accessControlRolesRetrieve = (query?: { gym_id?: string; page?: number; page_size?: number }) =>
@@ -48,7 +54,7 @@ export const accessControlStaffPartialUpdate = (assignmentId: string, body: T.Pa
 // ===== Amenities =====
 /** GET /api/v1/amenities/catalog/ — Get Master Amenities Catalog */
 export const amenitiesCatalogRetrieve = () =>
-  request<unknown>("GET", `/api/v1/amenities/catalog/`);
+  request<T.MasterAmenityCatalogResponse>("GET", `/api/v1/amenities/catalog/`);
 
 /** GET /api/v1/amenities/gym-amenities/ — Get Gym's Configured Amenities */
 export const amenitiesGymAmenitiesRetrieve = (query?: { gym_id?: string }) =>
@@ -162,28 +168,28 @@ export const followCreate2 = (targetId: string, body: T.FollowActionRequest) =>
   request<T.FollowActionResponse>("POST", `/api/v1/follow/${encodeURIComponent(targetId)}/`, { body });
 
 /** DELETE /api/v1/follows/ — Unfollow a User or Gym */
-export const followsDestroy = () =>
-  request<T.FollowActionResponse>("DELETE", `/api/v1/follows/`);
+export const followsDestroy = (query?: { target_id?: string }) =>
+  request<T.FollowActionResponse>("DELETE", `/api/v1/follows/`, { query });
 
 /** GET /api/v1/follows/ — Get Followers or Following List */
 export const followsRetrieve = (query?: { page?: number; page_size?: number; target_id?: string }) =>
   request<T.UnifiedTargetFollowersResponse>("GET", `/api/v1/follows/`, { query });
 
 /** POST /api/v1/follows/ — Follow or Unfollow a User or Gym */
-export const followsCreate = (body: T.FollowActionRequest) =>
-  request<T.FollowActionResponse>("POST", `/api/v1/follows/`, { body });
+export const followsCreate = (body: T.FollowActionRequest, query?: { target_id?: string }) =>
+  request<T.FollowActionResponse>("POST", `/api/v1/follows/`, { body, query });
 
 /** DELETE /api/v1/follows/{target_id}/ — Unfollow a User or Gym */
-export const followsDestroy2 = (targetId: string) =>
-  request<T.FollowActionResponse>("DELETE", `/api/v1/follows/${encodeURIComponent(targetId)}/`);
+export const followsDestroy2 = (targetId: string, query?: { target_id?: string }) =>
+  request<T.FollowActionResponse>("DELETE", `/api/v1/follows/${encodeURIComponent(targetId)}/`, { query });
 
 /** GET /api/v1/follows/{target_id}/ — Get Followers or Following List */
 export const followsRetrieve2 = (targetId: string, query?: { page?: number; page_size?: number; target_id?: string }) =>
   request<T.UnifiedTargetFollowersResponse>("GET", `/api/v1/follows/${encodeURIComponent(targetId)}/`, { query });
 
 /** POST /api/v1/follows/{target_id}/ — Follow or Unfollow a User or Gym */
-export const followsCreate2 = (targetId: string, body: T.FollowActionRequest) =>
-  request<T.FollowActionResponse>("POST", `/api/v1/follows/${encodeURIComponent(targetId)}/`, { body });
+export const followsCreate2 = (targetId: string, body: T.FollowActionRequest, query?: { target_id?: string }) =>
+  request<T.FollowActionResponse>("POST", `/api/v1/follows/${encodeURIComponent(targetId)}/`, { body, query });
 
 /** DELETE /api/v1/users/follow/ — Unfollow a User or Gym */
 export const usersFollowDestroy = () =>
@@ -381,12 +387,12 @@ export const gymsSettingsBlockedUsersDestroy = (userId: string, query?: { gym_id
 // ===== health =====
 /** GET /api/v1/health/ — Service Health Check */
 export const healthRetrieve = () =>
-  request<unknown>("GET", `/api/v1/health/`);
+  request<T.HealthCheckResponse>("GET", `/api/v1/health/`);
 
 // ===== Leads CRM =====
 /** GET /api/v1/leads/ — List Leads */
 export const leadsList = (query?: { assigned_staff_id?: string; gym_id?: string; interested_plan_id?: string; page?: number; page_size?: number; search?: string; source?: string; stage?: string }) =>
-  request<Array<T.LeadList>>("GET", `/api/v1/leads/`, { query });
+  request<T.PaginatedLeadListList>("GET", `/api/v1/leads/`, { query });
 
 /** POST /api/v1/leads/ — Create Lead */
 export const leadsCreate = (body: T.LeadCreateRequest, query?: { gym_id?: string }) =>
@@ -439,7 +445,7 @@ export const leadsNotesCreate = (leadId: string, body: T.LeadNoteCreateRequest, 
 // ===== Members & Lifecycle =====
 /** GET /api/v1/members/ — List Gym Members */
 export const membersList = (query?: { assigned_trainer_id?: string; gym_id?: string; joining_status?: string; membership_status?: string; page?: number; page_size?: number; payment_status?: string; search?: string }) =>
-  request<Array<T.MemberList>>("GET", `/api/v1/members/`, { query });
+  request<T.PaginatedMemberListList>("GET", `/api/v1/members/`, { query });
 
 /** POST /api/v1/members/ — Create / Onboard Member */
 export const membersCreate = (body: T.MemberCreateRequest) =>
@@ -451,7 +457,7 @@ export const membersAcceptInvitationCreate = (body: T.MemberAcceptInvitationRequ
 
 /** GET /api/v1/members/metrics/ — Get Member Directory Metrics */
 export const membersMetricsRetrieve = () =>
-  request<unknown>("GET", `/api/v1/members/metrics/`);
+  request<T.MemberMetrics>("GET", `/api/v1/members/metrics/`);
 
 /** DELETE /api/v1/members/{member_id}/ — Delete Member */
 export const membersDestroy = (memberId: string) =>
@@ -546,8 +552,8 @@ export const messagingKeysUserList = (userId: string) =>
 
 // ===== Membership Plans =====
 /** GET /api/v1/plans/ — List Gym Membership Plans */
-export const plansList = (query?: { gym_id?: string; plan_status?: string; plan_type?: string; search?: string }) =>
-  request<Array<T.MembershipPlanList>>("GET", `/api/v1/plans/`, { query });
+export const plansList = (query?: { gym_id?: string; page?: number; page_size?: number; plan_status?: string; plan_type?: string; search?: string }) =>
+  request<T.PaginatedMembershipPlanListList>("GET", `/api/v1/plans/`, { query });
 
 /** POST /api/v1/plans/ — Create Membership Plan (5-Step Lifecycle) */
 export const plansCreate = (body: T.MembershipPlanCreateRequest) =>
@@ -555,7 +561,7 @@ export const plansCreate = (body: T.MembershipPlanCreateRequest) =>
 
 /** GET /api/v1/plans/metrics/ — Get Gym Plan Pricing Metrics */
 export const plansMetricsRetrieve = () =>
-  request<unknown>("GET", `/api/v1/plans/metrics/`);
+  request<T.MembershipPlanMetrics>("GET", `/api/v1/plans/metrics/`);
 
 /** DELETE /api/v1/plans/{plan_id}/ — Delete Membership Plan */
 export const plansDestroy = (planId: string) =>
@@ -579,8 +585,8 @@ export const plansStatusCreate = (planId: string, body: T.PlanStatusTransitionRe
 
 // ===== Community Feed =====
 /** GET /api/v1/posts/ — List Gym Community Feed */
-export const postsList = (query: { gym_id: string; page?: number; page_size?: number; privacy?: string; search?: string }) =>
-  request<Array<T.GymPostList>>("GET", `/api/v1/posts/`, { query });
+export const postsList = (query?: { feed_type?: string; gym_id?: string; is_repost?: boolean; owner_type?: string; page?: number; page_size?: number; privacy?: string; search?: string; source?: string; user_id?: string }) =>
+  request<T.PaginatedGymPostListList>("GET", `/api/v1/posts/`, { query });
 
 /** POST /api/v1/posts/ — Create Community Post */
 export const postsCreate = (body: T.GymPostCreateRequest, query?: { gym_id?: string }) =>
@@ -588,7 +594,7 @@ export const postsCreate = (body: T.GymPostCreateRequest, query?: { gym_id?: str
 
 /** DELETE /api/v1/posts/{post_id}/ — Delete Community Post */
 export const postsDestroy = (postId: string, query?: { gym_id?: string }) =>
-  request<T.ErrorDetail>("DELETE", `/api/v1/posts/${encodeURIComponent(postId)}/`, { query });
+  request<T.MessageResponse>("DELETE", `/api/v1/posts/${encodeURIComponent(postId)}/`, { query });
 
 /** GET /api/v1/posts/{post_id}/ — Get Post Detail */
 export const postsRetrieve = (postId: string, query: { gym_id: string }) =>

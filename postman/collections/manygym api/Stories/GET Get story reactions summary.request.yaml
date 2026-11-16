@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Get story reactions summary'
+method: GET
+url: '{{base_url}}/api/v1/stories/:story_id/reactions/summary/'
+order: 11000
+description: |-
+  Returns total reactions, emoji frequency breakdown, and viewer reaction for a story.
+pathVariables:
+  - key: story_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/GET Get story reactions summary.resources/examples'

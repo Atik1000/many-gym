@@ -1,0 +1,17 @@
+$kind: http-example
+name: '201 Request submitted successfully.'
+request:
+  url: '{{base_url}}/api/v1/gyms/:gym_id/member-requests/'
+  method: POST
+response:
+  statusCode: 201
+  statusText: 'Request submitted successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

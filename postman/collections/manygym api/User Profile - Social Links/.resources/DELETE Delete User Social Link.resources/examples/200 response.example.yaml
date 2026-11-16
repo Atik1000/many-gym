@@ -1,0 +1,11 @@
+$kind: http-example
+name: '200 Social link successfully deleted.'
+request:
+  url: '{{base_url}}/api/v1/users/profile/about/social-links/:link_id/'
+  method: DELETE
+response:
+  statusCode: 200
+  statusText: 'Social link successfully deleted.'
+  body:
+    type: text
+    content: ''

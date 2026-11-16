@@ -1,0 +1,8 @@
+$kind: http-request
+name: 'List Admin Log Categories & Action Types'
+method: GET
+url: '{{base_url}}/api/v1/gyms/logs/admin/actions/'
+order: 9000
+description: |-
+  Returns predefined categories and action types for UI dropdown filters.
+examples: './.resources/GET List Admin Log Categories & Action Types (gyms-logs-admin-actions).resources/examples'

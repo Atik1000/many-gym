@@ -1,0 +1,34 @@
+$kind: http-request
+name: 'Perform Profile Access & Control Action'
+method: POST
+url: '{{base_url}}/api/v1/users/settings/access-control/'
+order: 1000
+description: |-
+  ### Summary
+  Executes administrative account lifecycle state transitions on the authenticated user profile.
+  
+  ### Actions & Workflow Rules
+  - `deactivate`: Temporarily suspend personal account. Revokes active session tokens.
+  - `reactivate`: Restore personal account from suspension. Restores `status=ACTIVE`.
+  - `delete`: Soft-delete personal user account. Requires valid `password` and `confirmation: "delete"`. Revokes all active session tokens.
+  - `restore`: Restore soft-deleted account. Requires valid `password`. Restores `status=ACTIVE`.
+  
+  ### Side Effects
+  - `deactivate` and `delete` immediately revoke all active `AuthToken` sessions.
+  - Deleted or deactivated accounts return structured reactivation/restoration notices upon subsequent login attempts.
+  
+  ### Error Responses
+  - `400 Bad Request`: Invalid action, incorrect password, or missing confirmation text.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "action": "deactivate",
+      "password": "{{password}}",
+      "confirmation": "string"
+    }
+examples: './.resources/POST Perform Profile Access & Control Action.resources/examples'

@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Accept / Confirm Follow Request'
+method: POST
+url: '{{base_url}}/api/v1/auth/:user_id/follow/confirm/'
+order: 9000
+description: |-
+  ### Summary
+  Confirms and accepts a pending follow request. The requester immediately becomes a follower of the authenticated user.
+  Accepts `request_id` or `user_id` in path or body.
+pathVariables:
+  - key: user_id
+    value: '{{user_id}}'
+examples: './.resources/POST Accept - Confirm Follow Request (auth-follow-confirm).resources/examples'

@@ -1,0 +1,67 @@
+$kind: http-request
+name: 'Update Current User ''About'' Profile'
+method: PATCH
+url: '{{base_url}}/api/v1/users/profile/about/'
+order: 3000
+description: |-
+  ### Summary
+  Updates the current user's Public Profile -> About details.
+  Supports both structured nested sections (`personal_details`, `education_list`, `hobbies`, `contact_info`, `details_about_you`) and direct flat properties.
+  
+  ### Validation Invariants
+  - **Email**: Immutable. Registered account email cannot be changed.
+  - **About You**: Maximum 320 characters.
+  - **Favourite Quote**: Maximum 160 characters.
+  - **Education Dates**: `till_year` cannot be earlier than `from_year`.
+  - **Social Platforms**: Must be one of the supported platform identifiers (`facebook`, `instagram`, `twitter_x`, `linkedin`, `youtube`, `tiktok`, `github`, `website`, `other`).
+  - **Gender**: Must be one of the supported enum choices (`male`, `female`, `other`, `prefer_not_to_say`).
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "personal_details": {
+        "current_address": "string",
+        "home_town": "string",
+        "date_of_birth": "2026-01-01",
+        "gender": null
+      },
+      "education_list": [
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "university_name": "Example name",
+          "from_year": "2026-01-01",
+          "till_year": "2026-01-01",
+          "subject": "string",
+          "graduated": false
+        }
+      ],
+      "hobbies": [
+        "string"
+      ],
+      "contact_info": {
+        "social_links": [],
+        "phone_number": "+8801700000000"
+      },
+      "details_about_you": {
+        "about_you": "string",
+        "favourite_quote": "string"
+      },
+      "current_address": "string",
+      "home_town": "string",
+      "date_of_birth": "2026-01-01",
+      "gender": "male",
+      "phone_number": "+8801700000000",
+      "social_links": [
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "platform": null,
+          "link": "string"
+        }
+      ],
+      "about_you": "string",
+      "favourite_quote": "string"
+    }
+examples: './.resources/PATCH Update Current User ''About'' Profile.resources/examples'

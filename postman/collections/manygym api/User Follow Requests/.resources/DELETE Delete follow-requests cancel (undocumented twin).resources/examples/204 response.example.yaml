@@ -1,0 +1,11 @@
+$kind: http-example
+name: '204 No response body'
+request:
+  url: '{{base_url}}/api/v1/auth/follow-requests/:request_id/cancel/'
+  method: DELETE
+response:
+  statusCode: 204
+  statusText: 'No response body'
+  body:
+    type: text
+    content: ''

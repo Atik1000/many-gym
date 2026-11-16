@@ -17,7 +17,7 @@ import type { Lead, NextMove, Stage } from "../leads";
 import type { Member, MemberStatus, Membership, Payment, PaymentStatus } from "../members";
 import type { Permissions, Person, Role } from "../people";
 import type { Plan, PlanStatus } from "../plans";
-import type { Post, PostMedia } from "../posts";
+import { asPrivacy, privacyOf, type Post, type PostMedia } from "../posts";
 import type { Day, Exercise, Routine, Session } from "../routines";
 
 /** Gym id for every gym-scoped call: the context the token was minted in. */
@@ -494,9 +494,7 @@ export const personFromApi = (s: T.StaffAssignment): Person => {
     roleId: str(s.role?.id),
     roleName: str(s.role?.name),
     roleSlug: str(s.role?.slug) || undefined,
-    // The API has three states (invited / active / inactive); the UI models only the first two,
-    // so an inactive assignment reads as "invited" until the UI grows a third state.
-    status: s.status === "active" ? "active" : "invited",
+    status: s.status === "active" ? "active" : s.status === "inactive" ? "inactive" : "invited",
     invitedAt: str(s.invited_at) || undefined,
     joinedAt: str(s.joined_at) || undefined,
   };
@@ -542,10 +540,29 @@ export const roles = {
 
 export const postFromApi = (p: T.GymPostDetail | T.GymPostList): Post => {
   const d = p as T.GymPostDetail;
+  // Fields newer than the committed schema: ownership, reposts, counters and the viewer's relationship.
+  const x = p as unknown as Record<string, unknown>;
+  const num = (v: unknown) => (typeof v === "number" ? v : undefined);
+  const flag = (v: unknown) => (typeof v === "boolean" ? v : undefined);
+  const source = x.source_post && typeof x.source_post === "object" ? postFromApi(x.source_post as T.GymPostDetail) : null;
+  const isRepost = x.is_repost === true;
   return {
     id: str(d.id),
     text: str(d.content_text),
     author: { name: str(d.author_name), avatarUrl: mediaUrl(d.author_avatar_url), userId: str(d.author_user_id) },
+    ownerType: x.owner_type === "user" ? "user" : x.owner_type === "gym" || d.gym_id ? "gym" : undefined,
+    gym: d.gym_id ? { id: str(d.gym_id), name: str(x.gym_name), avatarUrl: mediaUrl(x.gym_avatar_url as string | null | undefined) } : undefined,
+    privacy: asPrivacy(d.privacy),
+    isRepost,
+    source: isRepost ? source : undefined,
+    // A share whose original was deleted, made private or blocked stays visible, just without the original.
+    sourceUnavailable: isRepost ? x.source_post_unavailable === true || !source : undefined,
+    repostsCount: num(x.reposts_count),
+    commentsCount: num(x.comments_count),
+    reactionsCount: num(x.reactions_count),
+    followingGym: flag(x.is_following_gym),
+    followingAuthor: flag(x.is_following_author),
+    connectedGym: flag(x.is_connected_gym),
     media: (d.media_attachments ?? []).map((raw): PostMedia => {
       const m = raw as unknown as Record<string, string | undefined>;
       return {
@@ -556,8 +573,10 @@ export const postFromApi = (p: T.GymPostDetail | T.GymPostList): Post => {
         kind: m.media_type === "video" ? "video" : "image",
       };
     }),
-    members: d.privacy !== "public",
-    // The API has no pin, like or comment concept for gym posts, so these stay local to this browser.
+    members: asPrivacy(d.privacy) === "members_only",
+    // Pins have no server counterpart, so they stay local to this browser. Reactions and comments are real
+    // and load on demand (components/studio/Reactions.tsx, Comments.tsx); `likes`, `likedBy` and `comments`
+    // are unused for server posts and kept only for older call sites.
     pinned: false,
     createdAt: str(d.published_at ?? d.created_at),
     likes: 0,
@@ -568,7 +587,7 @@ export const postFromApi = (p: T.GymPostDetail | T.GymPostList): Post => {
 
 export const postToApi = (p: Post): T.GymPostCreateRequest => ({
   content_text: p.text || undefined,
-  privacy: p.members ? "members_only" : "public",
+  privacy: privacyOf(p) as T.GymPostCreateRequest["privacy"],
   media_items: p.media.length
     ? p.media
         .filter((m) => !m.url.startsWith("data:") && !m.url.startsWith("blob:"))
@@ -584,10 +603,10 @@ export const postToApi = (p: Post): T.GymPostCreateRequest => ({
  * server stores and converts them to WebP. Verified against the live API — `files` and `media_files` both
  * attach; a singular `file` returns 201 and is **silently ignored**, leaving a post with no media.
  */
-async function createPostWithFiles(text: string, membersOnly: boolean, files: File[]): Promise<T.GymPostDetail> {
+async function createPostWithFiles(text: string, privacy: string, files: File[]): Promise<T.GymPostDetail> {
   const form = new FormData();
   if (text) form.append("content_text", text);
-  form.append("privacy", membersOnly ? "members_only" : "public");
+  form.append("privacy", privacy);
   for (const f of files) form.append("files", f);
   const g = gym();
   return request<T.GymPostDetail>("POST", `/api/v1/posts/${g ? `?gym_id=${encodeURIComponent(g)}` : ""}`, { form });
@@ -601,11 +620,11 @@ export const posts = {
   },
   create: async (p: Post): Promise<Post> => {
     const files = p.media.map((m) => m.file).filter((f): f is File => !!f);
-    if (files.length) return postFromApi(await createPostWithFiles(p.text, p.members, files));
+    if (files.length) return postFromApi(await createPostWithFiles(p.text, privacyOf(p), files));
     return postFromApi(await api.postsCreate(postToApi(p), G()));
   },
   update: async (p: Post): Promise<Post> =>
-    postFromApi(await api.postsPartialUpdate(p.id, { content_text: p.text, privacy: p.members ? "members_only" : "public" }, G())),
+    postFromApi(await api.postsPartialUpdate(p.id, { content_text: p.text, privacy: privacyOf(p) as T.PatchedGymPostUpdateRequest["privacy"] }, G())),
   remove: (id: string) => api.postsDestroy(id, G()),
 };
 
@@ -687,7 +706,7 @@ export async function loadGym(): Promise<GymProfile | null> {
       city: str(loc.city),
       postcode: str(loc.postal_code),
       country: str(loc.country),
-      // The UI pin is a 0–1 fraction of its map image; the API stores real coordinates.
+      // Real coordinates: x = longitude, y = latitude. A gym that never set one reports 0,0.
       pin: { x: Number(loc.longitude ?? 0), y: Number(loc.latitude ?? 0) },
     },
     hours: byDay,

@@ -1,0 +1,37 @@
+$kind: http-example
+name: '200 Paginated admin logs.'
+request:
+  url: '{{base_url}}/api/v1/gyms/admin-logs/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Paginated admin logs.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "count": 1,
+        "page": 1,
+        "page_size": 1,
+        "total_pages": 1,
+        "results": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "admin": {},
+            "admin_name": "Example name",
+            "action": "string",
+            "action_type": null,
+            "category": null,
+            "category_display": "string",
+            "details": "string",
+            "target_type": "string",
+            "target_id": "00000000-0000-0000-0000-000000000000",
+            "metadata": "string",
+            "date_and_time": "2026-01-01T09:00:00Z",
+            "formatted_date_time": "string"
+          }
+        ]
+      }

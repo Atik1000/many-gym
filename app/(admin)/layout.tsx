@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import AuthProvider from "@/components/AuthProvider";
+import AuthProvider, { PersonalGate } from "@/components/AuthProvider";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import TableLabels from "@/components/ui/TableLabels";
@@ -21,7 +21,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Suspense>
           <main className="mx-auto min-w-0 max-w-[1240px] flex-1 px-4 pb-12 pt-5 sm:px-8 sm:pt-6 xl:px-14">
             {/* pages read today's date / localStorage, so they render after the shell instead of blocking prerender */}
-            <Suspense fallback={<div className="h-[400px] animate-pulse rounded-xl border border-line bg-surface" />}>{children}</Suspense>
+            <Suspense fallback={<div className="h-[400px] animate-pulse rounded-xl border border-line bg-surface" />}>
+              {/* A person without a gym gets the personal pages; gym-management routes show a pointer instead. */}
+              <PersonalGate>{children}</PersonalGate>
+            </Suspense>
           </main>
         </div>
       </div>

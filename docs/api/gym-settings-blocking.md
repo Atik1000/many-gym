@@ -1,6 +1,6 @@
 # Gym Settings - Blocking
 
-4 endpoints. Base URL `https://v0.manygym.com`.
+5 endpoints. Base URL `https://v0.manygym.com`.
 
 [← All domains](./README.md)
 
@@ -215,5 +215,33 @@ Removes an active block on a user for this gym workspace, allowing them to inter
 | `message` | string | Operation feedback message |
 
 </details>
+
+---
+
+## POST `/api/v1/gyms/{gym_id}/followers/{user_id}/block/`
+
+**Block User from Followers**
+
+- **Auth:** Bearer JWT
+- **operationId:** `gyms_followers_block_create`
+
+Blocks a follower from the gym workspace, immediately removing them from followers. Requires 'gym_profile:edit' scope.
+
+**Path parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `gym_id` | string(uuid) | yes |  |
+| `user_id` | string(uuid) | yes |  |
+
+**Responses**
+
+| Status | Body | Description |
+|---|---|---|
+| `200` | _no schema documented_ | Follower successfully blocked from gym. |
+| `400` | ErrorDetail | Validation failure or owner block attempt. |
+| `401` | ErrorDetail | Authentication required. |
+| `403` | ErrorDetail | Permission denied. |
+| `404` | ErrorDetail | Gym or user not found. |
 
 ---

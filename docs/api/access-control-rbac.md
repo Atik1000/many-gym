@@ -33,8 +33,24 @@ Retrieves all system permission scopes organized across the 9 core topics:
 
 | Status | Body | Description |
 |---|---|---|
-| `200` | _no schema documented_ | Permissions grouped by topic dictionary. |
+| `200` | SystemPermissionsByTopicResponse | Permissions grouped by topic dictionary. |
 | `401` | ErrorDetail | Authentication required. |
+
+<details><summary>Response fields (200)</summary>
+
+| Field | Type | Notes |
+|---|---|---|
+| `Studio` | array of Permission |  |
+| `Reports` | array of Permission |  |
+| `Gym Profile` | array of Permission |  |
+| `Subscription Plans` | array of Permission |  |
+| `Members` | array of Permission |  |
+| `Leads` | array of Permission |  |
+| `Trainers` | array of Permission |  |
+| `Routine Templates` | array of Permission |  |
+| `People & Roles` | array of Permission |  |
+
+</details>
 
 ---
 
@@ -387,6 +403,7 @@ When `inactive`, the staff member can no longer switch context to this gym or ex
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `status` | enum: `invited` \| `active` \| `inactive` | no |  |
+| `role_id` | string(uuid) | no | New Role UUID to reassign to this staff member. |
 
 **Responses**
 

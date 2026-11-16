@@ -6,8 +6,8 @@
  * `POST /members/accept-invitation/` redeems an onboarding token for a member. The endpoint requires a signed-in
  * session, so someone arriving without one is sent to sign in (or register) first and returned here.
  *
- * Staff invitations are different: `POST /access-control/staff/` emails them, but no endpoint redeems a staff
- * invite code — see docs/api/known-issues.md.
+ * Staff invitations are different: no endpoint redeems one, so there is no staff link to land here. An admin
+ * activates the person from People & Roles instead — see docs/api/known-issues.md #3.
  */
 import { LuUserPlus } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";

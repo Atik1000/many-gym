@@ -1,0 +1,45 @@
+$kind: http-request
+name: 'List Paginated Replies to a Comment'
+method: GET
+url: '{{base_url}}/api/v1/comments/:comment_id/replies/'
+order: 10000
+description: |-
+  Retrieves paginated direct replies for a specific comment (at any nesting level), with optional nested child previews.
+pathVariables:
+  - key: comment_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: include_replies
+    value: ''
+    disabled: true
+  - key: media_type
+    value: ''
+    description: '* `photo` - Photo * `video` - Video * `gif` - GIF * `text` - Text Only'
+    disabled: true
+  - key: page
+    value: ''
+    disabled: true
+  - key: page_size
+    value: ''
+    disabled: true
+  - key: replies_limit
+    value: ''
+    disabled: true
+  - key: reply_depth
+    value: ''
+    disabled: true
+  - key: reply_sort
+    value: ''
+    description: '* `oldest` - Oldest * `newest` - Newest * `most_replied` - Most Replied'
+    disabled: true
+  - key: sort
+    value: ''
+    description: '* `newest` - Newest * `oldest` - Oldest * `most_replied` - Most Replied'
+    disabled: true
+  - key: source_comment_id
+    value: ''
+    disabled: true
+  - key: source_post_id
+    value: ''
+    disabled: true
+examples: './.resources/GET List Paginated Replies to a Comment.resources/examples'

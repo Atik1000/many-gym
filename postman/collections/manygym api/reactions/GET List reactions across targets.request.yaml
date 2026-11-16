@@ -1,0 +1,32 @@
+$kind: http-request
+name: 'List reactions across targets'
+method: GET
+url: '{{base_url}}/api/v1/reactions/'
+order: 1000
+description: |-
+  Query reactions filtered by target (post_id, story_id, or comment_id) and reaction criteria.
+queryParams:
+  - key: code
+    value: ''
+    disabled: true
+  - key: comment_id
+    value: ''
+    disabled: true
+  - key: page
+    value: ''
+    description: 'A page number within the paginated result set.'
+    disabled: true
+  - key: page_size
+    value: ''
+    description: 'Number of results to return per page.'
+    disabled: true
+  - key: post_id
+    value: ''
+    disabled: true
+  - key: reaction_item_id
+    value: ''
+    disabled: true
+  - key: story_id
+    value: ''
+    disabled: true
+examples: './.resources/GET List reactions across targets.resources/examples'

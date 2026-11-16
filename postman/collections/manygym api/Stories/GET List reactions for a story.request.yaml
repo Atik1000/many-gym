@@ -1,0 +1,24 @@
+$kind: http-request
+name: 'List reactions for a story'
+method: GET
+url: '{{base_url}}/api/v1/stories/:story_id/reactions/'
+order: 8000
+description: |-
+  Returns paginated list of reactors and summary breakdown for a story.
+pathVariables:
+  - key: story_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: code
+    value: ''
+    description: 'Filter by reaction code'
+    disabled: true
+  - key: page
+    value: ''
+    description: 'A page number within the paginated result set.'
+    disabled: true
+  - key: page_size
+    value: ''
+    description: 'Number of results to return per page.'
+    disabled: true
+examples: './.resources/GET List reactions for a story.resources/examples'

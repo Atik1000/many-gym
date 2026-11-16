@@ -1,0 +1,11 @@
+$kind: http-example
+name: '200 Follower successfully blocked from gym.'
+request:
+  url: '{{base_url}}/api/v1/gyms/:gym_id/followers/:user_id/block/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Follower successfully blocked from gym.'
+  body:
+    type: text
+    content: ''

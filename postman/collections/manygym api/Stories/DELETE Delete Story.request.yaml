@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Delete Story'
+method: DELETE
+url: '{{base_url}}/api/v1/stories/:story_id/'
+order: 7000
+description: |-
+  Permanently deletes a story and cleans up story-owned media files. Owner/Gym manager only.
+pathVariables:
+  - key: story_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/DELETE Delete Story.resources/examples'

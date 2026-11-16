@@ -19,7 +19,21 @@ Returns system-wide master amenities categorized into 7 domains for UI rendering
 
 | Status | Body | Description |
 |---|---|---|
-| `200` | _no schema documented_ | Master catalog grouped by domain category. |
+| `200` | MasterAmenityCatalogResponse |  |
+
+<details><summary>Response fields (200)</summary>
+
+| Field | Type | Notes |
+|---|---|---|
+| `Changing & Storage` | array of AmenityCatalogItem |  |
+| `Wellness & Recovery` | array of AmenityCatalogItem |  |
+| `Comfort & Convenience` | array of AmenityCatalogItem |  |
+| `Food & Drink` | array of AmenityCatalogItem |  |
+| `Parking & Transport` | array of AmenityCatalogItem |  |
+| `Accessibility` | array of AmenityCatalogItem |  |
+| `Family Facilities` | array of AmenityCatalogItem |  |
+
+</details>
 
 ---
 

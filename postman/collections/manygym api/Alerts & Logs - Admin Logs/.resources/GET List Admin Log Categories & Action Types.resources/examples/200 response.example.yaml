@@ -1,0 +1,28 @@
+$kind: http-example
+name: '200 Available options.'
+request:
+  url: '{{base_url}}/api/v1/gyms/admin-logs/actions/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Available options.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "categories": [
+          {
+            "value": "string",
+            "label": "string"
+          }
+        ],
+        "action_types": [
+          {
+            "value": "string",
+            "label": "string"
+          }
+        ]
+      }

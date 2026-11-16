@@ -1,0 +1,8 @@
+$kind: http-request
+name: 'List available reaction items'
+method: GET
+url: '{{base_url}}/api/v1/reactions/items/'
+order: 7000
+description: |-
+  Returns the active catalog of reactions (emojis, labels, and codes) including 😊 and 😆.
+examples: './.resources/GET List available reaction items.resources/examples'

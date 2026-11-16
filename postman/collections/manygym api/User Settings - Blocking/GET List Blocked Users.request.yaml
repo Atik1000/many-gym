@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'List Blocked Users'
+method: GET
+url: '{{base_url}}/api/v1/users/settings/blocked-users/'
+order: 4000
+description: |-
+  ### Summary
+  Retrieves a list of all users currently blocked by the authenticated user.
+  
+  ### Authentication & Authorization
+  - **Authentication**: Required (`Bearer <JWT>`).
+  - **Authorization**: Returns only the block records initiated by the authenticated user.
+  
+  ### Success Response
+  Returns array of blocked user summaries including target user id, names, email, avatar, and blocking reason.
+examples: './.resources/GET List Blocked Users.resources/examples'

@@ -1,0 +1,35 @@
+$kind: http-request
+name: 'Export Admin Logs'
+method: GET
+url: '{{base_url}}/api/v1/gyms/logs/admin/export/?gym_id={{gym_id}}'
+order: 10000
+description: |-
+  ### Summary
+  Exports administration audit logs as a downloadable CSV or JSON file.
+  Accepts the same filtering parameters as the list endpoint.
+queryParams:
+  - key: action_type
+    value: ''
+    disabled: true
+  - key: actor_id
+    value: ''
+    disabled: true
+  - key: category
+    value: ''
+    disabled: true
+  - key: end_date
+    value: ''
+    disabled: true
+  - key: format
+    value: ''
+    description: 'Export format: ''csv'' (default) or ''json'''
+    disabled: true
+  - key: gym_id
+    value: '{{gym_id}}'
+  - key: search
+    value: ''
+    disabled: true
+  - key: start_date
+    value: ''
+    disabled: true
+examples: './.resources/GET Export Admin Logs (gyms-logs-admin-export).resources/examples'

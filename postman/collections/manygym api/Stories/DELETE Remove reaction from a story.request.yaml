@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Remove reaction from a story'
+method: DELETE
+url: '{{base_url}}/api/v1/stories/:story_id/reactions/'
+order: 10000
+description: |-
+  Explicitly removes viewer's reaction from the story.
+pathVariables:
+  - key: story_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/DELETE Remove reaction from a story.resources/examples'

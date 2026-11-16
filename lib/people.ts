@@ -22,7 +22,12 @@ export type Person = {
   roleName: string;
   /** The role's slug, e.g. "trainer" — what role *kind* checks should use. */
   roleSlug?: string;
-  status: "active" | "invited";
+  /**
+   * `invited` — added but never activated; `inactive` — switched off by an admin. Neither can act for the gym.
+   * Nothing on the server moves `invited` to `active` on its own (no endpoint redeems a staff invitation —
+   * docs/api/known-issues.md #3), so an admin activates the person from People & Roles.
+   */
+  status: "active" | "invited" | "inactive";
   /** When the invitation was sent / accepted, as reported by the API. */
   invitedAt?: string;
   joinedAt?: string;
@@ -62,6 +67,8 @@ export const SEED_PEOPLE = (): Person[] => (<Person[]>[
 export const PEOPLE_KEY = "people";
 export const ROLES_KEY = "roles";
 export const displayName = (p: Person) => p.name || "Invitation pending";
+export const STATUS_LABEL: Record<Person["status"], string> = { active: "Active", invited: "Invited", inactive: "Inactive" };
+export const STATUS_TONE: Record<Person["status"], "green" | "amber" | "gray"> = { active: "green", invited: "amber", inactive: "gray" };
 
 /**
  * Role *kind* checks. Role ids are server-assigned UUIDs, so a screen can't ask whether `roleId === "trainer"`;

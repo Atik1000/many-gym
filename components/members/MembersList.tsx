@@ -3,7 +3,7 @@
 import { MotionLink } from "@/components/ui/Motion";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LuEllipsis as MoreHorizontal, LuPlus as Plus, LuSearch as Search, LuEye } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { Avatar, ConfirmModal, Dot, Pagination, Pill, Select } from "@/components/ui/parts";
@@ -14,6 +14,8 @@ import { money, type Plan } from "@/lib/plans";
 import { useResource } from "@/lib/api";
 import { btnGhost, btnPrimary, card, input } from "@/lib/ui";
 import { Can, useAuth } from "@/components/AuthProvider";
+import { pendingMemberRequestCount } from "@/lib/api/member-requests";
+import MemberRequests from "./MemberRequests";
 
 const PAGE = 8;
 const TABS = [["all", "All Members"], ["active", "Active"], ["expiring", "Expiring Soon"], ["expired", "Expired"], ["scheduled", "Scheduled"]] as const;
@@ -36,6 +38,17 @@ export default function MembersList() {
   const [page, setPage] = useState(1);
   const [menu, setMenu] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Member | null>(null);
+  // Joining requests from the gym's public page live beside the directory. Trainers only ever see their own
+  // assigned members, so the whole-gym request queue isn't shown to them.
+  const showRequests = !trainerOnly;
+  const [requestsOpen, setRequestsOpen] = useState(params.get("view") === "requests");
+  const [pending, setPending] = useState(0);
+  useEffect(() => {
+    if (!showRequests) return;
+    let live = true;
+    void pendingMemberRequestCount().then((n) => live && setPending(n));
+    return () => { live = false; };
+  }, [showRequests]);
   // changing any filter returns to page 1
   const f = <T,>(fn: (v: T) => void) => (v: T) => { fn(v); setPage(1); };
 
@@ -66,11 +79,17 @@ export default function MembersList() {
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div className={`${card} inline-flex max-w-full gap-1 overflow-x-auto p-1.5`}>
-        {TABS.map(([id, t]) => <button key={id} onClick={() => f(setTab)(id)} className={`whitespace-nowrap rounded-[10px] px-5 py-2.5 font-medium ${tab === id ? "bg-primary-50 font-semibold text-primary" : "text-foreground hover:bg-background"}`}>{t}</button>)}
+        {TABS.map(([id, t]) => <button key={id} onClick={() => { f(setTab)(id); setRequestsOpen(false); }} className={`whitespace-nowrap rounded-[10px] px-5 py-2.5 font-medium ${!requestsOpen && tab === id ? "bg-primary-50 font-semibold text-primary" : "text-foreground hover:bg-background"}`}>{t}</button>)}
+        {showRequests && (
+          <button onClick={() => setRequestsOpen(true)} aria-label={pending ? `Requests, ${pending} waiting` : "Requests"} className={`inline-flex items-center gap-2 whitespace-nowrap rounded-[10px] px-5 py-2.5 font-medium ${requestsOpen ? "bg-primary-50 font-semibold text-primary" : "text-foreground hover:bg-background"}`}>
+            Requests{pending > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-white">{pending}</span>}
+          </button>
+        )}
       </div>
       <Can perm="Create members"><MotionLink href="/members/new" className={btnPrimary}><Plus size={18} />Add Member</MotionLink></Can>
       </div>
 
+      {requestsOpen && showRequests ? <MemberRequests onCount={setPending} /> : (
       <div className={`${card} overflow-hidden`}>
         <div className="grid grid-cols-1 gap-3 border-b border-line p-4 md:grid-cols-[minmax(0,1fr)_190px_180px_180px]">
           <label className="relative"><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
@@ -136,6 +155,7 @@ export default function MembersList() {
         </div>
         <Pagination page={Math.min(page, pages)} pages={pages} onPage={setPage} total={rows.length} size={PAGE} shown={view.length} />
       </div>
+      )}
 
       <ConfirmModal open={!!deleting} title="Delete member?" onClose={() => setDeleting(null)}
         body={<><b>{deleting && fullName(deleting)}</b> and their payment history will be permanently removed. Cancel the membership instead to keep the records.</>}

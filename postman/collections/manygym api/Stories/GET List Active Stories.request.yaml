@@ -1,0 +1,34 @@
+$kind: http-request
+name: 'List Active Stories'
+method: GET
+url: '{{base_url}}/api/v1/stories/?gym_id={{gym_id}}'
+order: 1000
+description: |-
+  Retrieves non-expired stories visible to the requesting user. Respects owner-type privacy rules (Public users: public/followers/private; Gyms: public/followers/members_only/private), blocklists, and age restrictions.
+queryParams:
+  - key: feed_type
+    value: ''
+    description: 'Feed filter: ''all'', ''followed'', ''connected'', or ''public''.'
+    disabled: true
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Filter active stories belonging to a specific gym.'
+  - key: owner_type
+    value: ''
+    description: 'Filter stories by uploader type (''user'' or ''gym''). * `user` - Public User * `gym` - Gym'
+    disabled: true
+  - key: page
+    value: ''
+    disabled: true
+  - key: page_size
+    value: ''
+    disabled: true
+  - key: privacy
+    value: ''
+    description: 'Filter by story privacy level. * `public` - Public * `followers` - Followers * `members_only` - Members Only * `private` - Private'
+    disabled: true
+  - key: user_id
+    value: ''
+    description: 'Filter active stories belonging to a specific public user.'
+    disabled: true
+examples: './.resources/GET List Active Stories.resources/examples'

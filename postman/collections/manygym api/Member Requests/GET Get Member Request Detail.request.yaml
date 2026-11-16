@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'Get Member Request Detail'
+method: GET
+url: '{{base_url}}/api/v1/gyms/:gym_id/member-requests/:request_id/?gym_id={{gym_id}}'
+order: 3000
+description: |-
+  Fetches detailed information for a specific member joining request. Requires 'members:read' permission.
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+  - key: request_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+examples: './.resources/GET Get Member Request Detail.resources/examples'

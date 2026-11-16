@@ -1,0 +1,27 @@
+$kind: http-example
+name: '200 List of gym members.'
+request:
+  url: '{{base_url}}/api/v1/gyms/:gym_id/members/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'List of gym members.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "member_id": "00000000-0000-0000-0000-000000000000",
+          "user_id": "00000000-0000-0000-0000-000000000000",
+          "first_name": "Example name",
+          "last_name": "Example name",
+          "full_name": "Example name",
+          "email": "person@example.com",
+          "avatar_url": "https://example.com/file.jpg",
+          "joined_at": "2026-01-01T09:00:00Z",
+          "joining_status": "string"
+        }
+      ]

@@ -1,6 +1,6 @@
 # Gym Social & Follow
 
-5 endpoints. Base URL `https://v0.manygym.com`.
+8 endpoints. Base URL `https://v0.manygym.com`.
 
 [← All domains](./README.md)
 
@@ -205,5 +205,142 @@ Lists all people and pages followed by the gym. Restricted by GymSetting.who_can
 | `401` | ErrorDetail | Authentication required. |
 | `403` | ErrorDetail | Following list is restricted by privacy settings. |
 | `404` | ErrorDetail | Gym not found. |
+
+---
+
+## GET `/api/v1/gyms/{gym_id}/join-request/`
+
+**Get Member Joining Request Status**
+
+- **Auth:** Bearer JWT
+- **operationId:** `gyms_join_request_retrieve`
+
+Retrieves the authenticated user's eligibility and current membership joining status for this gym.
+
+**Path parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `gym_id` | string(uuid) | yes |  |
+
+**Responses**
+
+| Status | Body | Description |
+|---|---|---|
+| `200` | GymMemberJoiningRequestStatus | Joining request status. |
+| `401` | ErrorDetail | Authentication required. |
+| `404` | ErrorDetail | Gym not found. |
+
+<details><summary>Response fields (200)</summary>
+
+| Field | Type | Notes |
+|---|---|---|
+| `gym_id` | string(uuid) |  |
+| `can_send_request` | boolean |  |
+| `is_member` | boolean |  |
+| `has_pending_request` | boolean |  |
+| `pending_request_id` | string(uuid) \| null |  |
+| `is_blocked` | boolean |  |
+| `who_can_send_joining_request` | string |  |
+
+</details>
+
+---
+
+## POST `/api/v1/gyms/{gym_id}/join-request/`
+
+**Submit Member Joining Request**
+
+- **Auth:** Bearer JWT
+- **operationId:** `gyms_join_request_create`
+
+Sends a joining request from the authenticated user to the gym. Restricted by GymSetting.who_can_send_joining_request ('everyone', 'no_one').
+
+**Path parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `gym_id` | string(uuid) | yes |  |
+
+**Request body** — `application/json` (GymMemberJoiningRequestCreateRequest)
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `interested_plan_id` | string(uuid) \| null | no |  |
+| `notes` | string | no |  |
+
+**Responses**
+
+| Status | Body | Description |
+|---|---|---|
+| `201` | GymMemberJoiningRequestResponse | Joining request submitted. |
+| `400` | ErrorDetail | Validation failure or already a member. |
+| `401` | ErrorDetail | Authentication required. |
+| `403` | ErrorDetail | Gym does not accept requests or user is blocked. |
+| `404` | ErrorDetail | Gym not found. |
+
+<details><summary>Response fields (201)</summary>
+
+| Field | Type | Notes |
+|---|---|---|
+| `message` | string |  |
+| `gym_id` | string(uuid) |  |
+| `gym_name` | string |  |
+| `status` | string |  |
+| `request_id` | string(uuid) |  |
+| `lead_id` | string(uuid) \| null |  |
+| `created` | boolean |  |
+
+</details>
+
+---
+
+## GET `/api/v1/gyms/{gym_id}/members/`
+
+**List Gym Members (Audience)**
+
+- **Auth:** Bearer JWT
+- **operationId:** `gyms_members_retrieve`
+
+Lists active gym members. Restricted by GymSetting.who_can_see_members ('everyone', 'only_members').
+
+**Path parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `gym_id` | string(uuid) | yes |  |
+
+**Query parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `page` | integer | no |  |
+| `page_size` | integer | no |  |
+| `search` | string | no |  |
+
+**Responses**
+
+| Status | Body | Description |
+|---|---|---|
+| `200` | array of GymMemberRosterItem | List of gym members. |
+| `401` | ErrorDetail | Authentication required. |
+| `403` | ErrorDetail | Roster is restricted by privacy settings. |
+| `404` | ErrorDetail | Gym not found. |
+
+<details><summary>Response fields (200)</summary>
+
+| Field | Type | Notes |
+|---|---|---|
+| `member_id` | string(uuid) |  |
+| `user_id` | string(uuid) \| null |  |
+| `first_name` | string |  |
+| `last_name` | string |  |
+| `full_name` | string |  |
+| `email` | string(email) |  |
+| `avatar_url` | string \| null |  |
+| `joined_at` | string(date-time) |  |
+| `joining_status` | string |  |
+
+</details>
 
 ---

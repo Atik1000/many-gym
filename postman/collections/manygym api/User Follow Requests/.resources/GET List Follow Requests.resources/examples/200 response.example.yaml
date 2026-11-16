@@ -1,0 +1,24 @@
+$kind: http-example
+name: '200 List of follow requests.'
+request:
+  url: '{{base_url}}/api/v1/auth/follow-requests/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'List of follow requests.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "status": "string",
+          "created_at": "2026-01-01T09:00:00Z",
+          "updated_at": "2026-01-01T09:00:00Z",
+          "requester": "string",
+          "target_user": "string"
+        }
+      ]

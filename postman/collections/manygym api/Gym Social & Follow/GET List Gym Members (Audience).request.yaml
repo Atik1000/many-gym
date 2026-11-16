@@ -1,0 +1,21 @@
+$kind: http-request
+name: 'List Gym Members (Audience)'
+method: GET
+url: '{{base_url}}/api/v1/gyms/:gym_id/members/'
+order: 8000
+description: |-
+  Lists active gym members. Restricted by GymSetting.who_can_see_members ('everyone', 'only_members').
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+queryParams:
+  - key: page
+    value: ''
+    disabled: true
+  - key: page_size
+    value: ''
+    disabled: true
+  - key: search
+    value: ''
+    disabled: true
+examples: './.resources/GET List Gym Members (Audience).resources/examples'

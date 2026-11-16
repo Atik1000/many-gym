@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Get comment reactions summary'
+method: GET
+url: '{{base_url}}/api/v1/comments/:comment_id/reactions/summary/'
+order: 9000
+description: |-
+  Returns total reactions, emoji frequency breakdown, and viewer reaction for a comment.
+pathVariables:
+  - key: comment_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/GET Get comment reactions summary.resources/examples'

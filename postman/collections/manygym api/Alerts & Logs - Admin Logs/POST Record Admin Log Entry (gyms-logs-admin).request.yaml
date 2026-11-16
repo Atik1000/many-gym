@@ -1,0 +1,29 @@
+$kind: http-request
+name: 'Record Admin Log Entry'
+method: POST
+url: '{{base_url}}/api/v1/gyms/logs/admin/?gym_id={{gym_id}}'
+order: 8000
+description: |-
+  ### Summary
+  Creates a new administrative audit log entry within the target gym workspace.
+  Useful for custom administrative actions, integrations, or client-side administrative event tracking.
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Target Gym UUID if not using a gym context JWT token.'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "action": "string",
+      "action_type": "update_page_info",
+      "category": "gym_profile",
+      "details": "string",
+      "target_type": "string",
+      "target_id": "00000000-0000-0000-0000-000000000000",
+      "metadata": {}
+    }
+examples: './.resources/POST Record Admin Log Entry (gyms-logs-admin).resources/examples'

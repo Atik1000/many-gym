@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Remove reaction from a comment'
+method: DELETE
+url: '{{base_url}}/api/v1/reactions/comments/:comment_id/'
+order: 5000
+description: |-
+  Explicitly removes viewer's reaction from the comment.
+pathVariables:
+  - key: comment_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/DELETE Remove reaction from a comment.resources/examples'

@@ -1,0 +1,37 @@
+$kind: http-request
+name: 'Block User From Followers'
+method: POST
+url: '{{base_url}}/api/v1/users/settings/blocked-users/followers/:user_id/'
+order: 6000
+description: |-
+  ### Summary
+  Blocks an existing follower and immediately removes them from your followers list.
+  
+  ### Parameters
+  - `user_id` (path, required, UUID): UUID of the follower to block.
+  
+  ### Request Body
+  - `reason` (optional, string, max 255 chars): Rationale for blocking from followers list. Defaults to `'Blocked from followers list'`.
+  
+  ### Side Effects
+  - Immediately deletes the follow relation from both users.
+  - Creates a `UserBlockedUser` entry.
+  
+  ### Error Responses
+  - `400 Bad Request`: Validation failure or attempt to block self.
+  - `401 Unauthorized`: Missing or invalid credentials.
+  - `404 Not Found`: Target user not found.
+pathVariables:
+  - key: user_id
+    value: '{{user_id}}'
+    description: 'UUID of the follower to block and remove.'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reason": "string"
+    }
+examples: './.resources/POST Block User From Followers (users-settings-blocked-users-followers).resources/examples'

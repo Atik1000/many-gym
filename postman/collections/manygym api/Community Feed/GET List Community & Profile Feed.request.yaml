@@ -1,0 +1,46 @@
+$kind: http-request
+name: 'List Community & Profile Feed'
+method: GET
+url: '{{base_url}}/api/v1/posts/feed/?gym_id={{gym_id}}'
+order: 7000
+description: |-
+  Retrieves community posts and reposts. Pass `user_id` for a public user's profile feed, `gym_id` for a gym's profile feed, or omit both for the personalized global feed. Supports filtering by `owner_type`, `feed_type`, `privacy`, `is_repost`, and `search`.
+queryParams:
+  - key: feed_type
+    value: ''
+    description: 'Feed stream filter: ''all'', ''followed'', ''connected'', or ''public''.'
+    disabled: true
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Optional UUID of a specific gym to view its profile feed.'
+  - key: is_repost
+    value: ''
+    description: 'Optional boolean filter: true for reposts only, false for original posts only.'
+    disabled: true
+  - key: owner_type
+    value: ''
+    description: 'Optional filter by post owner type (''user'' or ''gym''). * `user` - Public User * `gym` - Gym'
+    disabled: true
+  - key: page
+    value: ''
+    disabled: true
+  - key: page_size
+    value: ''
+    disabled: true
+  - key: privacy
+    value: ''
+    description: 'Filter by post privacy level. * `public` - Public * `followers` - Followers * `members_only` - Gym Members Only * `gym_members_only` - Gym Members Only * `private` - Private'
+    disabled: true
+  - key: search
+    value: ''
+    description: 'Keyword search matching post content, author name, or gym name.'
+    disabled: true
+  - key: source
+    value: ''
+    description: 'Alias for feed_type.'
+    disabled: true
+  - key: user_id
+    value: ''
+    description: 'Optional UUID of a public user to view their personal profile feed.'
+    disabled: true
+examples: './.resources/GET List Community & Profile Feed.resources/examples'

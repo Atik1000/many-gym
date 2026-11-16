@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Delete User Social Link'
+method: DELETE
+url: '{{base_url}}/api/v1/users/profile/about/social-links/:link_id/'
+order: 4000
+description: |-
+  API endpoint for updating or deleting an individual social link.
+pathVariables:
+  - key: link_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/DELETE Delete User Social Link.resources/examples'

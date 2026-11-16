@@ -8,7 +8,7 @@ import Link from "next/link";
 import { LuMail as Mail, LuUserPlus, LuUsers } from "react-icons/lu";
 import { Avatar, Pagination, Pill, usePaged } from "@/components/ui/parts";
 import { MEMBERS_KEY, fullName, memberStatus, type Member } from "@/lib/members";
-import { PEOPLE_KEY, type Person, isTrainer } from "@/lib/people";
+import { PEOPLE_KEY, STATUS_LABEL, STATUS_TONE, type Person, isTrainer } from "@/lib/people";
 import { useResource } from "@/lib/api";
 import { btnGhost, card } from "@/lib/ui";
 
@@ -36,7 +36,7 @@ export default function TrainersPage() {
                 <div className="flex items-center gap-3">
                   <Avatar name={t.name || t.email} size={52} />
                   <div className="min-w-0"><b className="block truncate text-lg">{t.name || "Invitation pending"}</b><span className="flex items-center gap-1.5 truncate text-muted"><Mail size={14} />{t.email}</span></div>
-                  <span className="ml-auto"><Pill tone={t.status === "active" ? "green" : "amber"}>{t.status === "active" ? "Active" : "Invited"}</Pill></span>
+                  <span className="ml-auto"><Pill tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Pill></span>
                 </div>
                 <div className="my-4 grid grid-cols-2 gap-3 text-center">
                   <div className="rounded-xl bg-background py-3"><b className="block text-2xl">{mine.length}</b><span className="text-muted">Assigned</span></div>

@@ -1,0 +1,44 @@
+$kind: http-example
+name: '200'
+request:
+  url: '{{base_url}}/api/v1/comments/:comment_id/reactions/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'OK'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "status": "created",
+        "reaction": {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "user_id": "00000000-0000-0000-0000-000000000000",
+          "user_name": "Example name",
+          "user_avatar_url": "https://example.com/file.jpg",
+          "owner_type": "string",
+          "gym_id": "00000000-0000-0000-0000-000000000000",
+          "gym_name": "Example name",
+          "gym_avatar_url": "https://example.com/file.jpg",
+          "reaction_item": null,
+          "post_id": "00000000-0000-0000-0000-000000000000",
+          "story_id": "00000000-0000-0000-0000-000000000000",
+          "comment_id": "00000000-0000-0000-0000-000000000000",
+          "created_at": "2026-01-01T09:00:00Z",
+          "updated_at": "2026-01-01T09:00:00Z"
+        },
+        "target": {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "type": "string",
+          "reactions_count": 1
+        },
+        "summary": {
+          "total_reactions": 1,
+          "reaction_counts": [],
+          "top_reactions": [],
+          "viewer_reaction": null
+        }
+      }

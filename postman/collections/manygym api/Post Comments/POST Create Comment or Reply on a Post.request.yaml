@@ -1,0 +1,26 @@
+$kind: http-request
+name: 'Create Comment or Reply on a Post'
+method: POST
+url: '{{base_url}}/api/v1/comments/?gym_id={{gym_id}}'
+order: 2000
+description: |-
+  Creates a top-level comment on a post, or a nested reply when `source_comment_id` is supplied. Supports optional `comment_text` and up to one media attachment (`comment_photo`, `comment_video`, or `comment_gif`).
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "source_post_id": "00000000-0000-0000-0000-000000000000",
+      "source_comment_id": "00000000-0000-0000-0000-000000000000",
+      "comment_text": "string",
+      "comment_photo": "string",
+      "comment_video": "string",
+      "comment_gif": "string",
+      "duration_seconds": 0
+    }
+examples: './.resources/POST Create Comment or Reply on a Post.resources/examples'

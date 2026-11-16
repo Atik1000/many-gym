@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Get Current User ''About'' Profile'
+method: GET
+url: '{{base_url}}/api/v1/users/profile/about/'
+order: 1000
+description: |-
+  ### Summary
+  Retrieves the current user's complete Public Profile -> About details across all 5 sections:
+  1. **Personal Details**: Current address, home town, date of birth, gender.
+  2. **Education**: University name, from year, till year (optional if continuing), subject, graduated status.
+  3. **Hobbies**: List of user hobbies (free text items).
+  4. **Contact Info**: Phone number, social links (platform + link URL), and registered account email (read-only).
+  5. **Details About You**: About you description (max 320 chars) and favourite quote (max 160 chars).
+  
+  ### Authentication & Authorization
+  - **Authentication**: Required (`Bearer <JWT>`).
+  - **Authorization**: Current authenticated user.
+examples: './.resources/GET Get Current User ''About'' Profile.resources/examples'

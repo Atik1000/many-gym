@@ -1,0 +1,24 @@
+$kind: http-request
+name: 'List reactions for a comment'
+method: GET
+url: '{{base_url}}/api/v1/reactions/comments/:comment_id/'
+order: 3000
+description: |-
+  Returns paginated list of reactors and summary breakdown for a post comment or nested reply.
+pathVariables:
+  - key: comment_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: code
+    value: ''
+    description: 'Filter by reaction code'
+    disabled: true
+  - key: page
+    value: ''
+    description: 'A page number within the paginated result set.'
+    disabled: true
+  - key: page_size
+    value: ''
+    description: 'Number of results to return per page.'
+    disabled: true
+examples: './.resources/GET List reactions for a comment.resources/examples'

@@ -1,69 +1,55 @@
-"use client";
-
-import { LuKeyRound, LuSave } from "react-icons/lu";
-import { MotionButton } from "@/components/ui/Motion";
-import { useState } from "react";
-import { changePassword, updateMyName } from "@/lib/auth";
-import { useAuth } from "@/components/AuthProvider";
-import { useToast } from "@/components/ui/Toast";
-import { Pill } from "@/components/ui/parts";
-import PasswordInput from "@/components/ui/PasswordInput";
+import Link from "next/link";
+import { Suspense } from "react";
+import { LuBan, LuDumbbell, LuIdCard, LuLock, LuMonitor, LuUser, LuUsers } from "react-icons/lu";
+import AccountSettings from "@/components/settings/AccountSettings";
+import AudienceSettings from "@/components/settings/AudienceSettings";
+import BlockingSettings from "@/components/settings/BlockingSettings";
+import DisplaySettings from "@/components/settings/DisplaySettings";
 import GymSettings from "@/components/settings/GymSettings";
-import { btnPrimary, card, errorText, hint, input, label } from "@/lib/ui";
+import LoginSecurity from "@/components/settings/LoginSecurity";
+import ProfileAbout from "@/components/settings/ProfileAbout";
+import { card } from "@/lib/ui";
 
-// Account settings for the signed-in person: their display name and password.
-export default function SettingsPage() {
-  const { ready, user, role } = useAuth();
-  const toast = useToast();
-  const [name, setNameDraft] = useState<string | null>(null);
-  const [current, setCurrent] = useState(""); const [next, setNext] = useState(""); const [again, setAgain] = useState("");
-  const [nameErr, setNameErr] = useState(""); const [pwErr, setPwErr] = useState("");
-  if (!ready || !user) return <div className={`${card} h-[300px] animate-pulse`} />;
-  const shownName = name ?? user.name;
+export const metadata = { title: "Settings · manygym" };
 
-  const saveName = async (e: React.FormEvent) => {
-    e.preventDefault(); setNameErr("");
-    const n = shownName.trim();
-    if (!n || n.length > 80) return setNameErr("Enter a name (up to 80 characters)");
-    const problem = await updateMyName(n);
-    if (problem) return setNameErr(problem);
-    setNameDraft(null); toast("Name updated");
-  };
-  const savePassword = async (e: React.FormEvent) => {
-    e.preventDefault(); setPwErr("");
-    if (next !== again) return setPwErr("The new passwords don't match");
-    const problem = await changePassword(current, next);
-    if (problem) return setPwErr(problem);
-    setCurrent(""); setNext(""); setAgain(""); toast("Password changed");
-  };
+// Each section is linkable: /settings?tab=audience, /settings?tab=security, …
+const TABS = [
+  { id: "account", label: "Account", icon: LuUser, View: AccountSettings },
+  { id: "profile", label: "Profile", icon: LuIdCard, View: ProfileAbout },
+  { id: "security", label: "Login & Security", icon: LuLock, View: LoginSecurity },
+  { id: "display", label: "Display", icon: LuMonitor, View: DisplaySettings },
+  { id: "blocking", label: "Blocking", icon: LuBan, View: BlockingSettings },
+  { id: "audience", label: "Audience", icon: LuUsers, View: AudienceSettings },
+  { id: "gym", label: "Gym", icon: LuDumbbell, View: GymSettings },
+];
 
+async function Sections({ searchParams }: { searchParams: PageProps<"/settings">["searchParams"] }) {
+  const { tab } = await searchParams;
+  const active = TABS.find((t) => t.id === tab) ?? TABS[0];
   return (
-    <div className="mx-auto grid max-w-[640px] gap-5">
-      <section className={`${card} p-6`}>
-        <h2 className="text-lg font-bold">Account</h2>
-        <p className="mb-4 mt-1 flex items-center gap-2 text-muted">{user.email}{role && <Pill tone="gray">{role.name}</Pill>}</p>
-        <form onSubmit={saveName}>
-          <label htmlFor="n" className={label}>Display name</label>
-          <input id="n" className={input} maxLength={80} value={shownName} onChange={(e) => setNameDraft(e.target.value)} />
-          {nameErr && <p className={errorText}>{nameErr}</p>}
-          <MotionButton className={`${btnPrimary} mt-4`} disabled={!shownName.trim() || shownName.trim() === user.name}><LuSave size={17} />Save name</MotionButton>
-        </form>
-      </section>
-      <section className={`${card} p-6`}>
-        <h2 className="mb-4 text-lg font-bold">Change password</h2>
-        <form onSubmit={savePassword}>
-          <label htmlFor="cp" className={label}>Current password</label>
-          <PasswordInput id="cp" value={current} onChange={setCurrent} />
-          <label htmlFor="np" className={`${label} mt-4`}>New password</label>
-          <PasswordInput id="np" autoComplete="new-password" value={next} onChange={setNext} />
-          <p className={hint}>At least 8 characters.</p>
-          <label htmlFor="rp" className={`${label} mt-4`}>Repeat new password</label>
-          <PasswordInput id="rp" autoComplete="new-password" value={again} onChange={setAgain} />
-          {pwErr && <p role="alert" className={errorText}>{pwErr}</p>}
-          <MotionButton className={`${btnPrimary} mt-4`} ><LuKeyRound size={17} />Change password</MotionButton>
-        </form>
-      </section>
-      <GymSettings />
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
+      {/* A row of tabs that scrolls sideways on small screens; a side menu from lg up. */}
+      <nav aria-label="Settings sections" className={`${card} flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-5 lg:flex-col`}>
+        {TABS.map((t) => (
+          <Link
+            key={t.id} href={`/settings?tab=${t.id}`} scroll={false}
+            aria-current={t.id === active.id ? "page" : undefined}
+            className={`flex items-center gap-2.5 whitespace-nowrap rounded-[10px] px-3 py-2.5 font-semibold ${t.id === active.id ? "bg-primary-50 text-primary" : "text-muted hover:bg-background hover:text-foreground"}`}
+          >
+            <t.icon size={18} />{t.label}
+          </Link>
+        ))}
+      </nav>
+      {/* key resets a section's state when switching sections */}
+      <div className="grid min-w-0 max-w-[720px] gap-5" key={active.id}><active.View /></div>
     </div>
+  );
+}
+
+export default function Page({ searchParams }: PageProps<"/settings">) {
+  return (
+    <Suspense fallback={<div className={`${card} h-[400px] animate-pulse`} />}>
+      <Sections searchParams={searchParams} />
+    </Suspense>
   );
 }

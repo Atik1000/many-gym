@@ -32,7 +32,7 @@ Retrieves the gym leads directory with stage, source, staff filters, search, and
 
 | Status | Body | Description |
 |---|---|---|
-| `200` | array of LeadList |  |
+| `200` | PaginatedLeadListList |  |
 | `400` | ErrorDetail |  |
 | `401` | ErrorDetail |  |
 | `403` | ErrorDetail |  |
@@ -41,26 +41,12 @@ Retrieves the gym leads directory with stage, source, staff filters, search, and
 
 | Field | Type | Notes |
 |---|---|---|
-| `id` | string(uuid) | read-only. |
-| `gym_id` | string(uuid) | read-only. |
-| `first_name` | string |  |
-| `last_name` | string \| null |  |
-| `full_name` | string | read-only. |
-| `phone` | string \| null |  |
-| `email` | any \| null |  |
-| `stage` | enum: `new` \| `contacted` \| `visit_trial_booked` \| `joined` \| `not_joining` |  |
-| `source` | enum: `walk_in` \| `phone` \| `social_media` \| `referral` \| `website` \| `other` |  |
-| `expected_start_date` | string(date) \| null |  |
-| `trial_booked_at` | string(date-time) \| null |  |
-| `not_joining_reason_standard` | any \| null |  |
-| `not_joining_custom_reason` | string | read-only. |
-| `interested_plan` | string | read-only. |
-| `assigned_staff` | string | read-only. |
-| `converted_member` | string | read-only. |
-| `fitness_goals` | array of object | read-only. |
-| `pending_next_moves_count` | integer | read-only. |
-| `created_at` | string(date-time) | read-only. |
-| `updated_at` | string(date-time) | read-only. |
+| `count` | integer |  |
+| `total_pages` | integer |  |
+| `current_page` | integer |  |
+| `next` | string(uri) \| null |  |
+| `previous` | string(uri) \| null |  |
+| `results` | array of LeadList |  |
 
 </details>
 

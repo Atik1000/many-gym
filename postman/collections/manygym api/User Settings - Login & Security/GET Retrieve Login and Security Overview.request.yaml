@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Retrieve Login and Security Overview'
+method: GET
+url: '{{base_url}}/api/v1/auth/settings/security/'
+order: 1000
+description: |-
+  ### Summary
+  Retrieves comprehensive Login and Security settings including:
+  - Contact info (primary email, optional secondary email, optional phone)
+  - Two Factor Authentication (2FA) status (ON/OFF)
+  - Active logged-in devices count (max 5)
+  - Account status (deactivation, deletion grace period status)
+examples: './.resources/GET Retrieve Login and Security Overview.resources/examples'

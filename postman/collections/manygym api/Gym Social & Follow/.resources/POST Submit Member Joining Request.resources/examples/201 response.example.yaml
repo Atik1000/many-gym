@@ -1,0 +1,23 @@
+$kind: http-example
+name: '201 Joining request submitted.'
+request:
+  url: '{{base_url}}/api/v1/gyms/:gym_id/join-request/'
+  method: POST
+response:
+  statusCode: 201
+  statusText: 'Joining request submitted.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string",
+        "gym_id": "00000000-0000-0000-0000-000000000000",
+        "gym_name": "Example name",
+        "status": "string",
+        "request_id": "00000000-0000-0000-0000-000000000000",
+        "lead_id": "00000000-0000-0000-0000-000000000000",
+        "created": false
+      }

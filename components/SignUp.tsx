@@ -38,9 +38,11 @@ export default function SignUp() {
   useEffect(() => {
     const waiting = new URLSearchParams(window.location.search).get("email");
     if (!waiting) return;
-    setEmail(waiting);
-    setNote(`Enter the 6-digit code we emailed to ${waiting}. If it has expired, resend it below.`);
-    setStep("code");
+    void Promise.resolve().then(() => {
+      setEmail(waiting);
+      setNote(`Enter the 6-digit code we emailed to ${waiting}. If it has expired, resend it below.`);
+      setStep("code");
+    });
   }, []);
 
   const submitDetails = async (e: React.FormEvent) => {
@@ -96,7 +98,7 @@ export default function SignUp() {
           <form onSubmit={submitDetails} className={`${card} p-7`}>
             <span className="mb-3 grid h-12 w-12 place-items-center rounded-full bg-primary-50 text-primary"><LuUserPlus size={22} /></span>
             <h1 className="text-xl font-bold">Create your account</h1>
-            <p className="mb-5 mt-1 text-muted">You&apos;ll set up your gym in the next step.</p>
+            <p className="mb-5 mt-1 text-muted">Join gyms, follow people and chat. Running a gym? You can create its page after signing up.</p>
 
             <div className="grid grid-cols-2 gap-3">
               <div>

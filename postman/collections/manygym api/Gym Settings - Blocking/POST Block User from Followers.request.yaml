@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Block User from Followers'
+method: POST
+url: '{{base_url}}/api/v1/gyms/:gym_id/followers/:user_id/block/'
+order: 5000
+description: |-
+  Blocks a follower from the gym workspace, immediately removing them from followers. Requires 'gym_profile:edit' scope.
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+  - key: user_id
+    value: '{{user_id}}'
+examples: './.resources/POST Block User from Followers.resources/examples'

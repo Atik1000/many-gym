@@ -1,0 +1,23 @@
+$kind: http-request
+name: 'List My Stories (Personal or Gym)'
+method: GET
+url: '{{base_url}}/api/v1/stories/my/'
+order: 3000
+description: |-
+  Lists stories owned by the current personal user or active gym context from the Bearer token (including private and optional expired archive).
+queryParams:
+  - key: include_archived
+    value: ''
+    disabled: true
+  - key: include_expired
+    value: ''
+    disabled: true
+  - key: page
+    value: ''
+    description: 'A page number within the paginated result set.'
+    disabled: true
+  - key: page_size
+    value: ''
+    description: 'Number of results to return per page.'
+    disabled: true
+examples: './.resources/GET List My Stories (Personal or Gym).resources/examples'

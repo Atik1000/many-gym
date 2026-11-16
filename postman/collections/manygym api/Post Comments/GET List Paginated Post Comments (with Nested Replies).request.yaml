@@ -1,0 +1,42 @@
+$kind: http-request
+name: 'List Paginated Post Comments (with Nested Replies)'
+method: GET
+url: '{{base_url}}/api/v1/comments/'
+order: 1000
+description: |-
+  Retrieves paginated top-level comments for a post with optional nested reply previews. Supports `sort` (`newest`, `oldest`, `most_replied`), `media_type` (`photo`, `video`, `gif`, `text`), `include_replies`, `replies_limit` (0-10), `reply_depth` (0-5), `page`, and `page_size`.
+queryParams:
+  - key: include_replies
+    value: ''
+    disabled: true
+  - key: media_type
+    value: ''
+    description: '* `photo` - Photo * `video` - Video * `gif` - GIF * `text` - Text Only'
+    disabled: true
+  - key: page
+    value: ''
+    disabled: true
+  - key: page_size
+    value: ''
+    disabled: true
+  - key: replies_limit
+    value: ''
+    disabled: true
+  - key: reply_depth
+    value: ''
+    disabled: true
+  - key: reply_sort
+    value: ''
+    description: '* `oldest` - Oldest * `newest` - Newest * `most_replied` - Most Replied'
+    disabled: true
+  - key: sort
+    value: ''
+    description: '* `newest` - Newest * `oldest` - Oldest * `most_replied` - Most Replied'
+    disabled: true
+  - key: source_comment_id
+    value: ''
+    disabled: true
+  - key: source_post_id
+    value: ''
+    disabled: true
+examples: './.resources/GET List Paginated Post Comments (with Nested Replies).resources/examples'

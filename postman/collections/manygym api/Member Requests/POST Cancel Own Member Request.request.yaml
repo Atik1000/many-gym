@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Cancel Own Member Request'
+method: POST
+url: '{{base_url}}/api/v1/members/requests/:request_id/cancel/'
+order: 10000
+description: |-
+  Allows an applicant user to cancel their own pending join request.
+pathVariables:
+  - key: request_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/POST Cancel Own Member Request.resources/examples'

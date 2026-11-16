@@ -1,0 +1,59 @@
+$kind: http-example
+name: '200'
+request:
+  url: '{{base_url}}/api/v1/stories/my/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'OK'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "count": 123,
+        "total_pages": 7,
+        "current_page": 1,
+        "next": "http://api.example.org/accounts/?page=2",
+        "previous": "http://api.example.org/accounts/?page=1",
+        "results": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "owner_type": "string",
+            "user_id": "00000000-0000-0000-0000-000000000000",
+            "user_name": "Example name",
+            "user_avatar_url": "https://example.com/file.jpg",
+            "gym_id": "00000000-0000-0000-0000-000000000000",
+            "gym_name": "Example name",
+            "gym_avatar_url": "https://example.com/file.jpg",
+            "source_post_id": "00000000-0000-0000-0000-000000000000",
+            "source_post": null,
+            "media_url": "https://example.com/file.jpg",
+            "original_url": "https://example.com/file.jpg",
+            "optimized_url": "https://example.com/file.jpg",
+            "thumbnail_url": "https://example.com/file.jpg",
+            "media_type": null,
+            "processing_status": null,
+            "file_size_bytes": 0,
+            "width": 0,
+            "height": 0,
+            "duration_seconds": 0,
+            "caption": "string",
+            "background_color": "string",
+            "lifetime_hours": null,
+            "lifetime_label": "string",
+            "privacy": null,
+            "published_at": "2026-01-01T09:00:00Z",
+            "expires_at": "2026-01-01T09:00:00Z",
+            "is_expired": false,
+            "is_archived": false,
+            "views_count": 1,
+            "reactions_count": 1,
+            "has_viewed": false,
+            "created_at": "2026-01-01T09:00:00Z",
+            "updated_at": "2026-01-01T09:00:00Z"
+          }
+        ]
+      }

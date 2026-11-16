@@ -1,0 +1,43 @@
+$kind: http-example
+name: '200 Paginated member requests list.'
+request:
+  url: '{{base_url}}/api/v1/members/requests/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Paginated member requests list.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "gym_id": "00000000-0000-0000-0000-000000000000",
+          "user": {
+            "id": null,
+            "first_name": null,
+            "last_name": null,
+            "email": null,
+            "phone": null,
+            "profile_photo_url": null
+          },
+          "interested_plan": {
+            "id": null,
+            "name": null,
+            "price": null,
+            "duration_value": null,
+            "duration_unit": null,
+            "plan_type": null
+          },
+          "notes": "string",
+          "status": "pending",
+          "created_member_id": "00000000-0000-0000-0000-000000000000",
+          "reviewed_by_name": "Example name",
+          "reviewed_at": "2026-01-01T09:00:00Z",
+          "created_at": "2026-01-01T09:00:00Z",
+          "updated_at": "2026-01-01T09:00:00Z"
+        }
+      ]

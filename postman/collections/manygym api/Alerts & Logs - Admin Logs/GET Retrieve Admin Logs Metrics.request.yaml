@@ -1,0 +1,17 @@
+$kind: http-request
+name: 'Retrieve Admin Logs Metrics'
+method: GET
+url: '{{base_url}}/api/v1/gyms/admin-logs/metrics/?gym_id={{gym_id}}'
+order: 5000
+description: |-
+  ### Summary
+  Returns aggregate statistics for gym administration logs:
+  - `total_logs`: Total number of administrative actions recorded.
+  - `logs_today`: Number of actions executed today.
+  - `by_category`: Count breakdown by category.
+  - `recent_logs`: 5 most recent administrative actions.
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Target Gym UUID if not using a gym context JWT token.'
+examples: './.resources/GET Retrieve Admin Logs Metrics.resources/examples'

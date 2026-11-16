@@ -1,13 +1,24 @@
 /**
  * Operation-by-operation conformance check of the generated client against the OpenAPI document.
  *
- * For each of the 149 operations it verifies, independently of the generator that produced the file:
- *   1. a client function exists for it
+ * lib/api/endpoints.ts was generated when the API had 149 operations, and the generator is not in this
+ * repository, so the file is maintained by hand. This check is what keeps it honest. Every function in it is
+ * compared with its operation in the spec:
+ *   1. (see "not generated" below)
  *   2. the HTTP method matches
  *   3. the URL template matches, with every path parameter interpolated (and encoded)
  *   4. the query parameters offered match the spec's, and required ones are non-optional
  *   5. a request body is accepted exactly when the spec documents one
  *   6. the declared return type matches the documented 2xx schema
+ *
+ * Two situations are reported but do not fail the check:
+ *   not generated — the operation is in the spec but has no function here. Newer routes are called from
+ *                   hand-written modules; whether each one is actually used is check-api-coverage.mjs's job.
+ *   retired       — a function here whose operation has left the spec. Fallback chains (lib/api/fallback.ts)
+ *                   still try these, so they stay; `RETIRED` records whether the server still answers.
+ *                   A retired function missing from that table fails, so removals from the schema are noticed.
+ *
+ * So a failure here always means drift: a function that disagrees with the operation it claims to call.
  */
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -17,6 +28,40 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SPEC = JSON.parse(readFileSync(join(ROOT, "postman/spec/manygym-openapi.json"), "utf8"));
 const SRC = readFileSync(join(ROOT, "lib/api/endpoints.ts"), "utf8");
 const METHODS = ["get", "post", "put", "patch", "delete"];
+
+/**
+ * Operations that were in the schema this client was generated from and are no longer documented.
+ * Probed unauthenticated with an empty request on 2026-11-16: every one still answered with the API's own
+ * `{code, message, details}` envelope (401 AUTHENTICATION_REQUIRED, or 400 VALIDATION_ERROR on the public
+ * ones), where a route that does not exist answers a bare HTML 404. They are undocumented, not removed.
+ */
+const STILL_SERVED_401 = "still served (401 envelope) — undocumented alias";
+const STILL_SERVED_400 = "still served (400 validation envelope) — undocumented alias";
+const RETIRED = {
+  "POST /api/v1/auth/{user_id}/follow/": STILL_SERVED_401,
+  "DELETE /api/v1/auth/{user_id}/follow/": STILL_SERVED_401,
+  "GET /api/v1/auth/{user_id}/followers/": STILL_SERVED_401,
+  "GET /api/v1/auth/{user_id}/following/": STILL_SERVED_401,
+  "GET /api/v1/auth/follow/": STILL_SERVED_401,
+  "POST /api/v1/auth/follow/": STILL_SERVED_401,
+  "DELETE /api/v1/auth/follow/": STILL_SERVED_401,
+  "GET /api/v1/follow/": STILL_SERVED_401,
+  "POST /api/v1/follow/": STILL_SERVED_401,
+  "DELETE /api/v1/follow/": STILL_SERVED_401,
+  "GET /api/v1/follow/{target_id}/": STILL_SERVED_401,
+  "POST /api/v1/follow/{target_id}/": STILL_SERVED_401,
+  "DELETE /api/v1/follow/{target_id}/": STILL_SERVED_401,
+  "GET /api/v1/users/follow/": STILL_SERVED_401,
+  "POST /api/v1/users/follow/": STILL_SERVED_401,
+  "DELETE /api/v1/users/follow/": STILL_SERVED_401,
+  "POST /api/v1/users/change-password/": STILL_SERVED_401,
+  "POST /api/v1/users/forgot-password/": STILL_SERVED_400,
+  "POST /api/v1/users/reset-password/": STILL_SERVED_400,
+  "POST /api/v1/users/verify-reset-otp/": STILL_SERVED_400,
+  "POST /api/v1/users/register/": STILL_SERVED_400,
+  "POST /api/v1/users/resend-otp/": STILL_SERVED_400,
+  "POST /api/v1/users/verify-signup-otp/": STILL_SERVED_400,
+};
 
 // Parse each generated function into something comparable with the spec. Return types contain nested
 // generics (Array<T.MemberList>), so the type and the options object are scanned with balanced-bracket
@@ -68,6 +113,8 @@ const camel = (s) => {
 };
 
 const rows = [];
+const notGenerated = [];
+const inSpec = new Set();
 for (const [path, item] of Object.entries(SPEC.paths)) {
   for (const method of METHODS) {
     const op = item[method];
@@ -75,9 +122,10 @@ for (const [path, item] of Object.entries(SPEC.paths)) {
     const key = `${method.toUpperCase()} ${path}`;
     const problems = [];
     const got = parsed.get(key);
+    inSpec.add(key);
 
     if (!got) {
-      rows.push({ key, ok: false, problems: ["no client function found"] });
+      notGenerated.push(key);
       continue;
     }
 
@@ -133,10 +181,17 @@ for (const [path, item] of Object.entries(SPEC.paths)) {
   }
 }
 
+// Functions whose operation is no longer in the spec.
+const retired = [...parsed.entries()].filter(([key]) => !inSpec.has(key)).map(([key, got]) => ({ key, fn: got.fn, note: RETIRED[key] }));
+const unexplained = retired.filter((r) => !r.note);
+const staleRetired = Object.keys(RETIRED).filter((key) => inSpec.has(key) || !parsed.has(key));
+
 const bad = rows.filter((r) => !r.ok);
-console.log(`Checked ${rows.length} operations against the spec, one by one.\n`);
-console.log(`  conformant : ${rows.length - bad.length}`);
-console.log(`  mismatched : ${bad.length}`);
+console.log(`Checked ${rows.length} generated functions against the spec, one by one.\n`);
+console.log(`  conformant    : ${rows.length - bad.length}`);
+console.log(`  mismatched    : ${bad.length}`);
+console.log(`  not generated : ${notGenerated.length}  (in the spec, called from hand-written modules — see check-api-coverage.mjs)`);
+console.log(`  retired       : ${retired.length}  (function kept for fallback chains; operation no longer in the spec)`);
 if (bad.length) {
   console.log("\n--- mismatches ---");
   for (const r of bad) {
@@ -144,4 +199,16 @@ if (bad.length) {
     for (const p of r.problems) console.log(`      - ${p}`);
   }
 }
-process.exit(bad.length ? 1 : 0);
+if (retired.length && process.argv.includes("--retired")) {
+  console.log("\n--- retired ---");
+  for (const r of retired) console.log(`  ${r.key}  (${r.fn})  —  ${r.note ?? "NOT RECORDED"}`);
+}
+if (unexplained.length) {
+  console.log("\n--- left the spec without a record (probe it, then add it to RETIRED or delete the function) ---");
+  for (const r of unexplained) console.log(`  ${r.key}  (${r.fn})`);
+}
+if (staleRetired.length) {
+  console.log("\n--- RETIRED entries that no longer apply (back in the spec, or the function is gone) ---");
+  for (const key of staleRetired) console.log(`  ${key}`);
+}
+process.exit(bad.length || unexplained.length || staleRetired.length ? 1 : 0);

@@ -1,0 +1,23 @@
+$kind: http-request
+name: 'Reject Member Request'
+method: POST
+url: '{{base_url}}/api/v1/members/requests/:request_id/reject/?gym_id={{gym_id}}'
+order: 11000
+description: |-
+  Rejects a pending member joining request with an optional reason. Requires 'members:edit' permission.
+pathVariables:
+  - key: request_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "rejection_reason": "string"
+    }
+examples: './.resources/POST Reject Member Request (members-requests-reject).resources/examples'

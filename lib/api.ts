@@ -5,6 +5,7 @@ import type { GymProfile } from "./gym-data";
 import { IMAGE_TYPES, VIDEO_TYPES } from "./media";
 import { ApiError, currentGymId } from "./api/http";
 import { clearAmenityIndex, gymProfile, leads, loadGym, members, people, plans, posts, resolveCatalogIds, roles, routines } from "./api/adapters";
+import { enquiries } from "./api/enquiries";
 import * as endpoints from "./api/endpoints";
 import { asArray } from "./api/adapters";
 
@@ -40,6 +41,7 @@ const REGISTRY: Record<string, Entity> = {
   plans: { list: plans.list, get: plans.get, create: (p) => plans.create(p as never), update: (p) => plans.update(p as never), remove: plans.remove, gymScoped: true },
   members: { list: members.list, get: members.get, create: (m) => members.create(m as never), update: (m) => members.update(m as never), remove: members.remove, gymScoped: true },
   leads: { list: leads.list, get: leads.get, create: (l) => leads.create(l as never), update: (l) => leads.update(l as never), remove: leads.remove, gymScoped: true },
+  enquiries: { list: enquiries.list, get: enquiries.get, create: (e) => enquiries.create(e as never), update: (e) => enquiries.update(e as never), remove: enquiries.remove, gymScoped: true },
   routines: { list: routines.list, get: routines.get, create: (r) => routines.create(r as never), update: (r) => routines.update(r as never), remove: routines.remove, gymScoped: true },
   posts: {
     list: posts.list,
@@ -49,8 +51,8 @@ const REGISTRY: Record<string, Entity> = {
     gymScoped: true,
     // Likes, comments and pinning don't exist server-side, so they must not count as a change.
     signature: (p) => {
-      const post = p as unknown as { text?: string; members?: boolean; media?: { id: string }[] };
-      return `${post.text ?? ""}|${post.members ?? false}|${(post.media ?? []).map((m) => m.id).join(",")}`;
+      const post = p as unknown as { text?: string; members?: boolean; privacy?: string; media?: { id: string }[] };
+      return `${post.text ?? ""}|${post.privacy ?? (post.members ? "members_only" : "public")}|${(post.media ?? []).map((m) => m.id).join(",")}`;
     },
   },
   people: {

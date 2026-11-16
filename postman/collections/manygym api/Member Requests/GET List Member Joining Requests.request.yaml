@@ -1,0 +1,28 @@
+$kind: http-request
+name: 'List Member Joining Requests'
+method: GET
+url: '{{base_url}}/api/v1/gyms/:gym_id/member-requests/?gym_id={{gym_id}}'
+order: 1000
+description: |-
+  Retrieves member joining requests for the gym with status filtering, keyword search, and pagination. Requires 'members:read' permission.
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+  - key: page
+    value: ''
+    disabled: true
+  - key: page_size
+    value: ''
+    disabled: true
+  - key: search
+    value: ''
+    description: 'Search by applicant name or email'
+    disabled: true
+  - key: status
+    value: ''
+    description: 'Filter by status: pending, accepted, rejected, cancelled'
+    disabled: true
+examples: './.resources/GET List Member Joining Requests.resources/examples'

@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Delete an Enquiry'
+method: DELETE
+url: '{{base_url}}/api/v1/enquiries/:enquiry_id/'
+order: 6000
+description: |-
+  Permanently deletes an enquiry. Staff only.
+pathVariables:
+  - key: enquiry_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/DELETE Delete an Enquiry.resources/examples'

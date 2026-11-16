@@ -1,0 +1,21 @@
+$kind: http-request
+name: 'Add Note to Enquiry'
+method: POST
+url: '{{base_url}}/api/v1/enquiries/:enquiry_id/notes/'
+order: 7000
+description: |-
+  Appends a text note to the enquiry's notes list. Staff only.
+pathVariables:
+  - key: enquiry_id
+    value: '00000000-0000-0000-0000-000000000000'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "note": "string",
+      "note_text": "string"
+    }
+examples: './.resources/POST Add Note to Enquiry.resources/examples'

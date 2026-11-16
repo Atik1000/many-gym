@@ -1,0 +1,23 @@
+$kind: http-example
+name: '200 Joining request status.'
+request:
+  url: '{{base_url}}/api/v1/gyms/:gym_id/join-request/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Joining request status.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "gym_id": "00000000-0000-0000-0000-000000000000",
+        "can_send_request": false,
+        "is_member": false,
+        "has_pending_request": false,
+        "pending_request_id": "00000000-0000-0000-0000-000000000000",
+        "is_blocked": false,
+        "who_can_send_joining_request": "string"
+      }

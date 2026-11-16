@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'View an Enquiry'
+method: GET
+url: '{{base_url}}/api/v1/enquiries/:enquiry_id/'
+order: 3000
+description: |-
+  Retrieves full details of a single enquiry by its UUID. Only staff of the respective gym can access.
+pathVariables:
+  - key: enquiry_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/GET View an Enquiry.resources/examples'

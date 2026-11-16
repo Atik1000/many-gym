@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Get post reactions summary'
+method: GET
+url: '{{base_url}}/api/v1/reactions/posts/:post_id/summary/'
+order: 11000
+description: |-
+  Returns total reactions count, breakdown by emoji, top reactions, and viewer reaction for a post.
+pathVariables:
+  - key: post_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/GET Get post reactions summary.resources/examples'

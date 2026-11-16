@@ -1,0 +1,28 @@
+$kind: http-request
+name: 'Repost Post (Share on Profile or Share on Story)'
+method: POST
+url: '{{base_url}}/api/v1/posts/repost/'
+order: 10000
+description: |-
+  Reposts an existing post (another user's/gym's post or your own previous post) to `target='profile'` (showing on profile feed) or `target='story'` (sharing on Story). Owner type (`user` vs `gym`) is automatically detected from the Bearer token. Public user privacy choices: `public`, `followers`, `private`. Gym privacy choices: `public`, `followers`, `members_only`, `private`.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "source_post_id": "00000000-0000-0000-0000-000000000000",
+      "target": "string",
+      "privacy": "string",
+      "content_text": "string",
+      "caption": "string",
+      "background_color": "string",
+      "lifetime_hours": "string",
+      "lifetime": "string",
+      "media_url": "https://example.com/file.jpg",
+      "thumbnail_url": "https://example.com/file.jpg",
+      "file_size_bytes": 0,
+      "duration_seconds": 0
+    }
+examples: './.resources/POST Repost Post (Share on Profile or Share on Story).resources/examples'

@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Get Member Joining Request Status'
+method: GET
+url: '{{base_url}}/api/v1/gyms/:gym_id/join-request/'
+order: 6000
+description: |-
+  Retrieves the authenticated user's eligibility and current membership joining status for this gym.
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+examples: './.resources/GET Get Member Joining Request Status.resources/examples'

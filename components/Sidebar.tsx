@@ -6,7 +6,8 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MotionButton } from "@/components/ui/Motion";
 import { LuPanelLeftClose, LuPanelLeftOpen, LuX } from "react-icons/lu";
-import { NAV, EXTRA_TITLES, type NavItem } from "@/lib/nav";
+import { NAV, PERSONAL_NAV, EXTRA_TITLES, type NavItem } from "@/lib/nav";
+import { Avatar } from "@/components/ui/parts";
 import { useGym } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -45,11 +46,12 @@ function Item({ item, active, group, collapsed }: { item: NavItem; active: boole
 
 function NavContent({ group, onNavigate, collapsed, onToggle }: { group: string; onNavigate?: () => void; collapsed?: boolean; onToggle?: () => void }) {
   const pathname = usePathname();
-  const { ready, can } = useAuth();
+  const { ready, can, personal, user } = useAuth();
   const [gym] = useGym();
-  // hide sections the role can't view (show everything until the role has loaded to avoid a flash)
-  const visible = NAV.filter((n) => !ready || !n.perm || can(n.perm));
-  const title = NAV.find((n) => pathname === n.href || pathname.startsWith(n.href + "/"))?.label ?? EXTRA_TITLES[Object.keys(EXTRA_TITLES).find((k) => pathname.startsWith(k)) ?? ""] ?? "";
+  // A person without a gym gets the personal menu. Otherwise hide sections the role can't view (show
+  // everything until the role has loaded to avoid a flash).
+  const visible = personal ? PERSONAL_NAV : NAV.filter((n) => !ready || !n.perm || can(n.perm));
+  const title = [...NAV, ...PERSONAL_NAV].find((n) => pathname === n.href || pathname.startsWith(n.href + "/"))?.label ?? EXTRA_TITLES[Object.keys(EXTRA_TITLES).find((k) => pathname.startsWith(k)) ?? ""] ?? "";
   const Toggle = collapsed ? LuPanelLeftOpen : LuPanelLeftClose;
   return (
     <>
@@ -60,11 +62,19 @@ function NavContent({ group, onNavigate, collapsed, onToggle }: { group: string;
             className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-background text-foreground hover:bg-line"><Toggle size={19} /></MotionButton>
         )}
       </div>
-      <div className={`flex items-center gap-2.5 ${collapsed ? "justify-center" : "px-2"}`} title={collapsed ? gym?.overview.name : undefined}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {gym?.overview.profileUrl ? <img src={gym.overview.profileUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" /> : <span className="h-9 w-9 shrink-0 rounded-full bg-background" />}
-        {!collapsed && <span className="truncate font-semibold">{gym?.overview.name ?? "Your gym"}</span>}
-      </div>
+      {personal ? (
+        // No gym to show — this is the person's own space.
+        <div className={`flex items-center gap-2.5 ${collapsed ? "justify-center" : "px-2"}`} title={collapsed ? user?.name : undefined}>
+          <Avatar name={user?.name || "You"} size={36} src="" />
+          {!collapsed && <span className="min-w-0"><span className="block truncate font-semibold">{user?.name ?? "You"}</span><span className="block truncate text-xs text-muted">Personal account</span></span>}
+        </div>
+      ) : (
+        <div className={`flex items-center gap-2.5 ${collapsed ? "justify-center" : "px-2"}`} title={collapsed ? gym?.overview.name : undefined}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {gym?.overview.profileUrl ? <img src={gym.overview.profileUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" /> : <span className="h-9 w-9 shrink-0 rounded-full bg-background" />}
+          {!collapsed && <span className="truncate font-semibold">{gym?.overview.name ?? "Your gym"}</span>}
+        </div>
+      )}
       <div className="border-t border-line" />
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto" onClick={(e) => { if ((e.target as HTMLElement).closest("a")) onNavigate?.(); }}>
         {visible.map((item) => (

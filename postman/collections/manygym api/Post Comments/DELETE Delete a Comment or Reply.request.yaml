@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Delete a Comment or Reply'
+method: DELETE
+url: '{{base_url}}/api/v1/comments/:comment_id/'
+order: 5000
+description: |-
+  Retrieve, edit, or delete a single comment or nested reply.
+pathVariables:
+  - key: comment_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/DELETE Delete a Comment or Reply.resources/examples'

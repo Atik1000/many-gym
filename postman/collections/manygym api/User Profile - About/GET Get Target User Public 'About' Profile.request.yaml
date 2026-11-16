@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Get Target User Public ''About'' Profile'
+method: GET
+url: '{{base_url}}/api/v1/users/:user_id/profile/about/'
+order: 4000
+description: |-
+  ### Summary
+  Retrieves the public "About" section for a specific user by UUID.
+  
+  ### Privacy & Access Rules
+  - **Soft-Deleted**: Returns `404 Not Found`.
+  - **Deactivated**: Returns `400 Bad Request` unless viewed by the account owner.
+  - **Blocked Users**: Returns `403 Forbidden` if the target user has blocked the requester.
+  - **Private Profiles**: Returns `403 Forbidden` if `is_private=True` and requester is not following the target user.
+pathVariables:
+  - key: user_id
+    value: '{{user_id}}'
+examples: './.resources/GET Get Target User Public ''About'' Profile.resources/examples'

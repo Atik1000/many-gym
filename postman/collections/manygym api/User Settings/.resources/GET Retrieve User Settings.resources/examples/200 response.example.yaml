@@ -1,0 +1,35 @@
+$kind: http-example
+name: '200 User settings retrieved successfully.'
+request:
+  url: '{{base_url}}/api/v1/users/settings/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'User settings retrieved successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "user_id": "00000000-0000-0000-0000-000000000000",
+        "language": "string",
+        "video_autoplay": false,
+        "dark_mode": false,
+        "two_factor_enabled": false,
+        "is_private": false,
+        "require_follow_approval": false,
+        "who_can_follow": "everyone",
+        "who_can_follow_me": "string",
+        "who_can_message": "everyone",
+        "who_can_see_followers": "everyone",
+        "who_can_see_following": "everyone",
+        "is_deactivated": false,
+        "deactivated_at": "2026-01-01T09:00:00Z",
+        "is_deleted": false,
+        "deleted_at": "2026-01-01T09:00:00Z",
+        "created_at": "2026-01-01T09:00:00Z",
+        "updated_at": "2026-01-01T09:00:00Z"
+      }

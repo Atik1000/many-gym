@@ -1,0 +1,26 @@
+$kind: http-request
+name: 'Upload Story'
+method: POST
+url: '{{base_url}}/api/v1/stories/'
+order: 2000
+description: |-
+  Uploads a single-media story (1 image or 1 video) as either a Public User or a Gym. Supports lifetime selection (6, 12, 18 [default], 24, 48 hours), optional source_post_id, and owner-specific privacy levels.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "source_post_id": "00000000-0000-0000-0000-000000000000",
+      "media_url": "https://example.com/file.jpg",
+      "thumbnail_url": "https://example.com/file.jpg",
+      "file_size_bytes": 0,
+      "duration_seconds": 0,
+      "lifetime_hours": "string",
+      "lifetime": "string",
+      "privacy": "string",
+      "caption": "string",
+      "background_color": "string"
+    }
+examples: './.resources/POST Upload Story.resources/examples'

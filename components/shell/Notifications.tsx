@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { LuBanknote, LuBell, LuCalendarClock, LuPartyPopper, LuTimer } from "react-icons/lu";
+import { LuBanknote, LuBell, LuCalendarClock, LuPartyPopper, LuTimer, LuUserPlus } from "react-icons/lu";
 import type { IconType } from "react-icons";
 import { useAuth } from "@/components/AuthProvider";
 import { useResource } from "@/lib/api";
 import { today } from "@/lib/dates";
 import { LEADS_KEY, leadName, nextMoveOf, type Lead } from "@/lib/leads";
+import { FOLLOW_REQUESTS_EVENT, followRequests } from "@/lib/api/social";
+import { MEMBER_REQUESTS_EVENT, pendingMemberRequestCount } from "@/lib/api/member-requests";
 import { MEMBERS_KEY, currentMembership, fullName, isExpiringSoon, paymentStatus, type Member } from "@/lib/members";
 
 type Alert = { key: string; icon: IconType; tone: string; title: string; detail: string; href: string };
@@ -30,9 +32,38 @@ export default function Notifications() {
   const stored = useSyncExternalStore(subscribeRead, () => { try { return localStorage.getItem(READ_KEY) ?? "[]"; } catch { return "[]"; } }, () => "[]");
   const read = useMemo<string[]>(() => { try { return JSON.parse(stored); } catch { return []; } }, [stored]);
 
+  // People waiting to be confirmed as followers (only arrives while "require approval" is on).
+  const [requests, setRequests] = useState<string[]>([]);
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) return;
+    let live = true;
+    const load = () =>
+      followRequests("received")
+        .then((list) => live && setRequests(list.map((r) => r.requester.name)))
+        .catch(() => live && setRequests([])); // not served by older deployments — just show nothing
+    void load();
+    window.addEventListener(FOLLOW_REQUESTS_EVENT, load);
+    return () => { live = false; window.removeEventListener(FOLLOW_REQUESTS_EVENT, load); };
+  }, [userId]);
+
+  // People asking to join the gym, for whoever can answer them.
+  const canAnswerJoins = can("Create members") || can("Edit members");
+  const [joinRequests, setJoinRequests] = useState(0);
+  useEffect(() => {
+    if (!userId || !canAnswerJoins) return;
+    let live = true;
+    const load = () => pendingMemberRequestCount().then((n) => live && setJoinRequests(n)).catch(() => undefined);
+    void load();
+    window.addEventListener(MEMBER_REQUESTS_EVENT, load);
+    return () => { live = false; window.removeEventListener(MEMBER_REQUESTS_EVENT, load); };
+  }, [userId, canAnswerJoins]);
+
   const alerts = useMemo<Alert[]>(() => {
     const out: Alert[] = [];
     const now = today();
+    if (canAnswerJoins && joinRequests > 0) out.push({ key: "join", icon: LuUserPlus, tone: "bg-ok-bg text-ok", title: `${joinRequests} request${joinRequests > 1 ? "s" : ""} to join the gym`, detail: "Review and accept or decline", href: "/members?view=requests" });
+    if (requests.length) out.push({ key: "follow", icon: LuUserPlus, tone: "bg-primary-50 text-primary", title: `${requests.length} follow request${requests.length > 1 ? "s" : ""}`, detail: names(requests), href: "/settings?tab=audience" });
     if (can("View members")) {
       const mine = trainerOnly ? members.filter((m) => m.trainerId === user?.id) : members;
       const expiring = mine.filter((m) => isExpiringSoon(m, now));
@@ -48,7 +79,7 @@ export default function Notifications() {
       if (fresh.length) out.push({ key: "new", icon: LuPartyPopper, tone: "bg-ok-bg text-ok", title: `${fresh.length} new lead${fresh.length > 1 ? "s" : ""}`, detail: names(fresh.map(leadName)), href: "/leads" });
     }
     return out;
-  }, [members, leads, can, trainerOnly, user]);
+  }, [members, leads, can, trainerOnly, user, requests, joinRequests, canAnswerJoins]);
 
   const markRead = (a: Alert) => {
     const next = [...new Set([...read, idOf(a)])];

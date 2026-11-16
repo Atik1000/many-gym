@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 2FA OTP code resent successfully.'
+request:
+  url: '{{base_url}}/api/v1/auth/resend-2fa/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: '2FA OTP code resent successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

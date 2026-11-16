@@ -1,0 +1,28 @@
+$kind: http-request
+name: 'List reactions for a post'
+method: GET
+url: '{{base_url}}/api/v1/reactions/posts/:post_id/'
+order: 8000
+description: |-
+  Returns paginated list of users/gyms who reacted to the post, along with breakdown summary.
+pathVariables:
+  - key: post_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: code
+    value: ''
+    description: 'Filter by reaction code (e.g. smile, laugh, fire)'
+    disabled: true
+  - key: page
+    value: ''
+    description: 'A page number within the paginated result set.'
+    disabled: true
+  - key: page_size
+    value: ''
+    description: 'Number of results to return per page.'
+    disabled: true
+  - key: reaction_item_id
+    value: ''
+    description: 'Filter by reaction item UUID'
+    disabled: true
+examples: './.resources/GET List reactions for a post.resources/examples'

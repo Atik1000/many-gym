@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 2FA status retrieved.'
+request:
+  url: '{{base_url}}/api/v1/users/settings/security/2fa/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: '2FA status retrieved.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "two_factor_enabled": false
+      }

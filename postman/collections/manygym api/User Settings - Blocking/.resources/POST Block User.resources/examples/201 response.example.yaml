@@ -1,0 +1,24 @@
+$kind: http-example
+name: '201 User successfully blocked.'
+request:
+  url: '{{base_url}}/api/v1/users/settings/blocked-users/'
+  method: POST
+response:
+  statusCode: 201
+  statusText: 'User successfully blocked.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "user_id": "00000000-0000-0000-0000-000000000000",
+        "email": "person@example.com",
+        "first_name": "Example name",
+        "last_name": "Example name",
+        "avatar_url": "https://example.com/file.jpg",
+        "reason": "string",
+        "created_at": "2026-01-01T09:00:00Z"
+      }

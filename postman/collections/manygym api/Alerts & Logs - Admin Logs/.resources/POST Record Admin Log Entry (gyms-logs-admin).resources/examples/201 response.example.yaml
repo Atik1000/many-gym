@@ -1,0 +1,29 @@
+$kind: http-example
+name: '201 Admin log entry created successfully.'
+request:
+  url: '{{base_url}}/api/v1/gyms/logs/admin/?gym_id={{gym_id}}'
+  method: POST
+response:
+  statusCode: 201
+  statusText: 'Admin log entry created successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "admin": {},
+        "admin_name": "Example name",
+        "action": "string",
+        "action_type": "update_page_info",
+        "category": "gym_profile",
+        "category_display": "string",
+        "details": "string",
+        "target_type": "string",
+        "target_id": "00000000-0000-0000-0000-000000000000",
+        "metadata": "string",
+        "date_and_time": "2026-01-01T09:00:00Z",
+        "formatted_date_time": "string"
+      }

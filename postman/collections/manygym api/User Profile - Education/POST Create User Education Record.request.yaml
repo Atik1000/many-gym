@@ -1,0 +1,22 @@
+$kind: http-request
+name: 'Create User Education Record'
+method: POST
+url: '{{base_url}}/api/v1/users/profile/about/educations/'
+order: 2000
+description: |-
+  API endpoint for listing and creating education records for the authenticated user.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "university_name": "Example name",
+      "from_year": "2026-01-01",
+      "till_year": "2026-01-01",
+      "subject": "string",
+      "graduated": false
+    }
+examples: './.resources/POST Create User Education Record.resources/examples'

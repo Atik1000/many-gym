@@ -1,0 +1,36 @@
+$kind: http-example
+name: '200 Admin log metrics retrieved successfully.'
+request:
+  url: '{{base_url}}/api/v1/gyms/logs/admin/metrics/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Admin log metrics retrieved successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "total_logs": 1,
+        "logs_today": 0,
+        "by_category": {},
+        "recent_logs": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "admin": {},
+            "admin_name": "Example name",
+            "action": "string",
+            "action_type": null,
+            "category": null,
+            "category_display": "string",
+            "details": "string",
+            "target_type": "string",
+            "target_id": "00000000-0000-0000-0000-000000000000",
+            "metadata": "string",
+            "date_and_time": "2026-01-01T09:00:00Z",
+            "formatted_date_time": "string"
+          }
+        ]
+      }

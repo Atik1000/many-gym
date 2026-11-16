@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * First-run screen: `POST /gyms/` creates a gym workspace.
+ * `/create-gym`: `POST /gyms/` creates a gym workspace.
  *
- * A freshly registered account belongs to no gym, and almost every endpoint in this API is gym-scoped — so
- * without this the panel has nothing to show and no way forward. After creating, the session swaps its
- * personal-context token for a gym-context one so the rest of the app can load.
+ * Optional — a person can use manygym without one (personal mode: feed, finding and joining gyms, following,
+ * messaging). After creating, the session swaps its personal-context token for a gym-context one so the
+ * gym-management screens open.
  */
 import { useState } from "react";
 import { LuBuilding2, LuArrowRight } from "react-icons/lu";
@@ -62,11 +62,11 @@ export default function CreateGym({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <main className="grid min-h-screen place-items-center bg-background px-4 py-10">
+    <div className="grid place-items-center py-6">
       <form onSubmit={submit} className={`${card} w-full max-w-[460px] p-7`}>
         <span className="mb-3 grid h-12 w-12 place-items-center rounded-full bg-primary-50 text-primary"><LuBuilding2 size={24} /></span>
-        <h1 className="text-xl font-bold">Set up your gym</h1>
-        <p className="mb-5 mt-1 text-muted">Your account isn&apos;t attached to a gym yet. Create one to open the admin panel.</p>
+        <h1 className="text-xl font-bold">Create a gym</h1>
+        <p className="mb-5 mt-1 text-muted">Run a gym? Set up its page to manage members, plans and staff. This is optional — you can keep using manygym as yourself, and join other gyms as a member.</p>
 
         <label htmlFor="gname" className={label}>Gym name</label>
         <input id="gname" autoFocus className={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Northside Strength" />
@@ -93,6 +93,6 @@ export default function CreateGym({ onCreated }: { onCreated: () => void }) {
         </MotionButton>
         <p className={hint}>You can change all of this later in Gym Profile.</p>
       </form>
-    </main>
+    </div>
   );
 }

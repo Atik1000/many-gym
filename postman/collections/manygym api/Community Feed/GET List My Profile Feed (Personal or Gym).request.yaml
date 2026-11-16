@@ -1,0 +1,26 @@
+$kind: http-request
+name: 'List My Profile Feed (Personal or Gym)'
+method: GET
+url: '{{base_url}}/api/v1/posts/my/'
+order: 9000
+description: |-
+  Lists posts and reposts belonging to the authenticated Personal User or active Gym token context.
+queryParams:
+  - key: is_repost
+    value: ''
+    disabled: true
+  - key: page
+    value: ''
+    description: 'A page number within the paginated result set.'
+    disabled: true
+  - key: page_size
+    value: ''
+    description: 'Number of results to return per page.'
+    disabled: true
+  - key: privacy
+    value: ''
+    disabled: true
+  - key: search
+    value: ''
+    disabled: true
+examples: './.resources/GET List My Profile Feed (Personal or Gym).resources/examples'

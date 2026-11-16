@@ -1,0 +1,27 @@
+$kind: http-request
+name: 'Update Contact Information'
+method: PATCH
+url: '{{base_url}}/api/v1/users/settings/security/contact-info/'
+order: 14000
+description: |-
+  ### Summary
+  Updates optional secondary email and/or phone.
+  Primary email is immutable and cannot be updated or deleted.
+  
+  ### Validation Rules
+  - `primary_email` or `email`: Attempting to submit either will return a 400 Bad Request error.
+  - `secondary_email`: Valid email string, or null/empty to remove. Cannot be identical to primary email.
+  - `phone`: Max 50 characters, or null/empty to remove.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "primary_email": "person@example.com",
+      "email": "person@example.com",
+      "secondary_email": "person@example.com",
+      "phone": "+8801700000000"
+    }
+examples: './.resources/PATCH Update Contact Information (users-settings-security-contact-info).resources/examples'

@@ -90,8 +90,15 @@ export class MessagingSocket {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(handlers: Handlers) {
+  /**
+   * `gymId` decides whose inbox this connection is for: a gym id for that gym's conversations, `null` for the
+   * signed-in person's own. Left out, it follows the session's token (the gym it is acting as, if any).
+   */
+  private gymId: () => string | null;
+
+  constructor(handlers: Handlers, opts: { gymId?: () => string | null } = {}) {
     this.handlers = handlers;
+    this.gymId = opts.gymId ?? currentGymId;
   }
 
   /** Swap in fresh callbacks (e.g. a React closure that captured newer state) without reconnecting. */
@@ -120,7 +127,7 @@ export class MessagingSocket {
     this.clearReconnect();
     this.setStatus("connecting");
 
-    const gym = currentGymId();
+    const gym = this.gymId();
     const params = new URLSearchParams({ token });
     if (gym) params.set("gym_id", gym);
     let ws: WebSocket;

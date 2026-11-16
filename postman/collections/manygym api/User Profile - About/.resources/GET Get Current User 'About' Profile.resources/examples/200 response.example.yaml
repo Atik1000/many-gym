@@ -1,0 +1,51 @@
+$kind: http-example
+name: '200 Complete user about profile data.'
+request:
+  url: '{{base_url}}/api/v1/users/profile/about/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Complete user about profile data.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "user_id": "00000000-0000-0000-0000-000000000000",
+        "first_name": "Example name",
+        "last_name": "Example name",
+        "avatar_url": "https://example.com/file.jpg",
+        "is_private": false,
+        "personal_details": {
+          "current_address": "string",
+          "home_town": "string",
+          "date_of_birth": "2026-01-01",
+          "gender": null
+        },
+        "education_list": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "university_name": "Example name",
+            "from_year": "2026-01-01",
+            "till_year": "2026-01-01",
+            "subject": "string",
+            "graduated": false,
+            "created_at": "2026-01-01T09:00:00Z",
+            "updated_at": "2026-01-01T09:00:00Z"
+          }
+        ],
+        "hobbies": [
+          "string"
+        ],
+        "contact_info": {
+          "social_links": [],
+          "phone_number": "+8801700000000",
+          "email": "person@example.com"
+        },
+        "details_about_you": {
+          "about_you": "string",
+          "favourite_quote": "string"
+        }
+      }

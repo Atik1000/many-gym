@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'Delete Logged-In Device'
+method: DELETE
+url: '{{base_url}}/api/v1/users/settings/security/devices/:device_id/'
+order: 16000
+description: |-
+  ### Summary
+  Removes a logged-in device session.
+  - Revokes active authentication tokens associated with the device.
+  - Cleans and purges all cryptographic device keys (`UserDeviceKey`) stored for this device.
+pathVariables:
+  - key: device_id
+    value: '00000000-0000-0000-0000-000000000000'
+    description: 'Client device identifier string or device record UUID.'
+examples: './.resources/DELETE Delete Logged-In Device (users-settings-security-devices).resources/examples'

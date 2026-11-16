@@ -1,0 +1,21 @@
+$kind: http-request
+name: 'Submit Member Joining Request'
+method: POST
+url: '{{base_url}}/api/v1/gyms/:gym_id/join-request/'
+order: 7000
+description: |-
+  Sends a joining request from the authenticated user to the gym. Restricted by GymSetting.who_can_send_joining_request ('everyone', 'no_one').
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "interested_plan_id": "00000000-0000-0000-0000-000000000000",
+      "notes": "string"
+    }
+examples: './.resources/POST Submit Member Joining Request.resources/examples'

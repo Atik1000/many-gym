@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Replace enquiries (undocumented twin)'
+method: PUT
+url: '{{base_url}}/api/v1/enquiries/:enquiry_id/'
+order: 4000
+description: |-
+  API endpoint for viewing, updating, and deleting an individual enquiry.
+  Restricted to staff/owner of that specific gym.
+  
+  The schema publishes this operation with no summary or description: it is the unnamed twin of the documented operation on the same resource.
+pathVariables:
+  - key: enquiry_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/PUT Replace enquiries (undocumented twin).resources/examples'

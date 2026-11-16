@@ -1,0 +1,19 @@
+$kind: http-request
+name: 'Create User Social Link'
+method: POST
+url: '{{base_url}}/api/v1/users/profile/about/social-links/'
+order: 2000
+description: |-
+  API endpoint for listing and creating social links for the authenticated user.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "platform": "facebook",
+      "link": "string"
+    }
+examples: './.resources/POST Create User Social Link.resources/examples'

@@ -1,0 +1,60 @@
+$kind: http-example
+name: '200'
+request:
+  url: '{{base_url}}/api/v1/posts/:post_id/comments/:comment_id/replies/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'OK'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "count": 123,
+        "total_pages": 7,
+        "current_page": 1,
+        "next": "http://api.example.org/accounts/?page=2",
+        "previous": "http://api.example.org/accounts/?page=1",
+        "results": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "user_id": "00000000-0000-0000-0000-000000000000",
+            "owner_type": "string",
+            "gym_id": "00000000-0000-0000-0000-000000000000",
+            "gym_name": "Example name",
+            "gym_avatar_url": "https://example.com/file.jpg",
+            "author_name": "Example name",
+            "author_avatar_url": "https://example.com/file.jpg",
+            "source_post_id": "00000000-0000-0000-0000-000000000000",
+            "source_comment_id": "00000000-0000-0000-0000-000000000000",
+            "root_comment_id": "00000000-0000-0000-0000-000000000000",
+            "depth": 0,
+            "reply_to_user_id": "00000000-0000-0000-0000-000000000000",
+            "reply_to_user_name": "Example name",
+            "comment_text": "string",
+            "comment_photo": "string",
+            "comment_video": "string",
+            "comment_gif": "string",
+            "media_type": null,
+            "media_url": "https://example.com/file.jpg",
+            "thumbnail_url": "https://example.com/file.jpg",
+            "processing_status": null,
+            "width": 0,
+            "height": 0,
+            "file_size_bytes": 0,
+            "duration_seconds": 0,
+            "replies_count": 1,
+            "total_replies_count": 1,
+            "reactions_count": 1,
+            "has_more_replies": false,
+            "replies": [],
+            "is_edited": false,
+            "edited_at": "2026-01-01T09:00:00Z",
+            "created_at": "2026-01-01T09:00:00Z",
+            "updated_at": "2026-01-01T09:00:00Z"
+          }
+        ]
+      }

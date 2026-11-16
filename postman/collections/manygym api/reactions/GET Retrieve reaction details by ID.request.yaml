@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Retrieve reaction details by ID'
+method: GET
+url: '{{base_url}}/api/v1/reactions/:reaction_id/'
+order: 16000
+description: |-
+  Direct lookup or deletion of a reaction by its primary UUID.
+pathVariables:
+  - key: reaction_id
+    value: '00000000-0000-0000-0000-000000000000'
+examples: './.resources/GET Retrieve reaction details by ID.resources/examples'

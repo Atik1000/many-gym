@@ -1,0 +1,25 @@
+$kind: http-request
+name: 'Update Story'
+method: PATCH
+url: '{{base_url}}/api/v1/stories/:story_id/'
+order: 6000
+description: |-
+  Updates story caption, background_color, privacy, lifetime, or archive status. Owner/Gym manager only.
+pathVariables:
+  - key: story_id
+    value: '00000000-0000-0000-0000-000000000000'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "caption": "string",
+      "background_color": "string",
+      "privacy": "string",
+      "lifetime_hours": "string",
+      "lifetime": "string",
+      "is_archived": false
+    }
+examples: './.resources/PATCH Update Story.resources/examples'

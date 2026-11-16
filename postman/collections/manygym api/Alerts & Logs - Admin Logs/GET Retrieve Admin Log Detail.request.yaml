@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'Retrieve Admin Log Detail'
+method: GET
+url: '{{base_url}}/api/v1/gyms/admin-logs/:log_id/?gym_id={{gym_id}}'
+order: 6000
+description: |-
+  Retrieves a specific administrative log record by UUID.
+pathVariables:
+  - key: log_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Target Gym UUID if not using a gym context JWT token.'
+examples: './.resources/GET Retrieve Admin Log Detail.resources/examples'

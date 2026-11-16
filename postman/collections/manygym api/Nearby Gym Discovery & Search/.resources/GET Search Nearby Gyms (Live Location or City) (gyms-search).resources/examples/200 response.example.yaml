@@ -1,0 +1,49 @@
+$kind: http-example
+name: '200 Paginated list of matching gyms.'
+request:
+  url: '{{base_url}}/api/v1/gyms/search/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Paginated list of matching gyms.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "name": "Example name",
+        "profile_picture_url": "https://example.com/file.jpg",
+        "cover_photo_url": "https://example.com/file.jpg",
+        "short_description": "string",
+        "primary_type": "string",
+        "primary_type_display": "string",
+        "secondary_type": "string",
+        "secondary_type_display": "string",
+        "gender_required": "string",
+        "gender_required_display": "string",
+        "min_age": 0,
+        "timezone": "string",
+        "location": {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "address": "string",
+          "latitude": "string",
+          "longitude": "string",
+          "city": "string",
+          "country": "string",
+          "postal_code": "string",
+          "is_primary": false,
+          "updated_at": "2026-01-01T09:00:00Z"
+        },
+        "distance_km": 0,
+        "is_open_now": false,
+        "today_opening_hours": "string",
+        "amenities_preview": [
+          "string"
+        ],
+        "followers_count": 1,
+        "is_following": false,
+        "created_at": "2026-01-01T09:00:00Z"
+      }

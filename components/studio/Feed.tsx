@@ -5,121 +5,38 @@ import { LuNewspaper } from "react-icons/lu";
 
 import { Reveal } from "@/components/ui/Motion";
 import { MotionButton } from "@/components/ui/Motion";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { LuGlobe as Globe, LuImage as ImageIcon, LuLink2 as Link2, LuLoaderCircle as Loader2, LuLock as Lock, LuMessageSquare as MessageSquare, LuEllipsis as MoreHorizontal, LuPencil as Pencil, LuPin as Pin, LuThumbsUp as ThumbsUp, LuTrash2 as Trash2, LuX as X, LuPlay, LuPlus, LuSend, LuX } from "react-icons/lu";
+import { LuImage as ImageIcon, LuLoaderCircle as Loader2, LuX as X, LuPlus, LuX } from "react-icons/lu";
 import { useAuth } from "@/components/AuthProvider";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-import { uploadFile, useGym, useResource } from "@/lib/api";
+import { uploadFile, useResource } from "@/lib/api";
 import { uid } from "@/lib/id";
 import { ACCEPT, validateFiles } from "@/lib/media";
-import { accountSlug, mediaPath, postPath, timeAgo, type Post, type PostMedia } from "@/lib/posts";
-import { btnGhost, btnPrimary, card, errorText, input } from "@/lib/ui";
+import { PRIVACY_HINT, PRIVACY_LABEL, privacyChoices, privacyOf, type Post, type PostMedia, type PostPrivacy } from "@/lib/posts";
+import { FEED_TABS, type FeedType } from "@/lib/api/feed";
+import { currentGymId } from "@/lib/api/http";
+import CommunityFeed from "./CommunityFeed";
+import MyPostsList from "./MyPostsList";
+import { posts as postsApi } from "@/lib/api/adapters";
+import { ApiError } from "@/lib/api/http";
+import { refreshResource } from "@/lib/api";
+import { Logo, PostCard } from "./PostCard";
+import { btnGhost, btnPrimary, card, errorText, hint } from "@/lib/ui";
 
 // a media item in the composer: already-uploaded (no `file`) or newly picked (uploaded when you publish)
 type DraftMedia = PostMedia & { file?: File };
 
-function Logo({ size = 44 }: { size?: number }) {
-  const [gym] = useGym();
-  const url = gym?.overview.profileUrl;
-  // eslint-disable-next-line @next/next/no-img-element
-  if (url) return <img src={url} alt="" style={{ width: size, height: size }} className="shrink-0 rounded-full object-cover" />;
-  return <span style={{ width: size, height: size }} className="grid shrink-0 place-items-center rounded-full bg-black text-[9px] font-extrabold text-white">GYM</span>;
-}
+// PostPages and older call sites import the card from here.
+export { PostCard };
 
-/** Each tile links to that file's own page: /studio/<account>/posts/<post>/media/<media>. */
-function Media({ items, account, postId }: { items: PostMedia[]; account: string; postId: string }) {
-  if (items.length === 0) return null;
-  const cols = items.length === 1 ? 1 : items.length === 2 ? 2 : 3;
-  return (
-    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-      {items.map((m) => (
-        <Link key={m.id} href={mediaPath(account, postId, m.id)} aria-label={m.kind === "video" ? "Open video" : "Open photo"} className={`relative block overflow-hidden rounded-[10px] bg-black ${items.length === 1 ? "aspect-[16/7]" : "aspect-[4/3]"}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {m.kind === "image" ? <img src={m.url} alt="" className="h-full w-full object-cover" /> : <video src={m.url} muted preload="metadata" className="h-full w-full object-cover" />}
-          {m.kind === "video" && <span className="absolute inset-0 grid place-items-center"><span className="grid h-12 w-12 place-items-center rounded-full bg-black/60 text-white"><LuPlay size={20} fill="currentColor" /></span></span>}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-export function PostCard({ post, onChange, onEdit, onDelete }: { post: Post; onChange: (p: Post) => void; onEdit?: () => void; onDelete?: () => void }) {
-  const { can, user } = useAuth();
-  const [gym] = useGym();
-  const toast = useToast();
-  const [menu, setMenu] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [comment, setComment] = useState("");
-  const canManage = can("Edit studio information");
-  const account = accountSlug(gym?.overview.name ?? "");
-  const link = postPath(account, post.id);
-  const liked = !!user && post.likedBy.includes(user.id);
-  const item = "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-background";
-
-  const toggleLike = () => user && onChange({ ...post, likedBy: liked ? post.likedBy.filter((x) => x !== user.id) : [...post.likedBy, user.id] });
-  const addComment = () => {
-    if (!comment.trim() || !user) return;
-    onChange({ ...post, comments: [...post.comments, { id: uid(), author: user.name, text: comment.trim(), createdAt: new Date().toISOString() }] });
-    setComment("");
-  };
-
-  return (
-    <article className={`${card} mt-4 px-[18px] py-4`}>
-      <div className="flex items-center gap-3">
-        <Logo />
-        <div>
-          <b className="block">{gym?.overview.name ?? "Your gym"}</b>
-          <small className="flex items-center gap-1.5 text-muted">
-            {/* The API reports who wrote each post; without it every post looked like the gym's. */}
-            {post.author?.name && <><span className="text-foreground">{post.author.name}</span> · </>}
-            <Link href={link} className="hover:underline" title="Open post">{timeAgo(post.createdAt)}</Link> · {post.members ? <Lock size={12} /> : <Globe size={12} />} {post.members ? "Gym members only" : "Public"}
-          </small>
-        </div>
-        {post.pinned && <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary"><Pin size={12} />Pinned</span>}
-        <div className={`relative ${post.pinned ? "" : "ml-auto"}`}>
-          <button aria-label="Post options" onClick={() => setMenu((v) => !v)} className="rounded-lg p-1 text-muted hover:bg-background"><MoreHorizontal size={20} /></button>
-          {menu && (<>
-            <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
-            <div className="absolute right-0 top-8 z-20 min-w-[190px] rounded-[10px] border border-line bg-surface p-1.5 shadow-xl" onClick={() => setMenu(false)}>
-              {canManage && <button className={item} onClick={() => { onChange({ ...post, pinned: !post.pinned }); toast(post.pinned ? "Post unpinned" : "Post pinned"); }}><Pin size={16} />{post.pinned ? "Unpin post" : "Pin post"}</button>}
-              {canManage && onEdit && <button className={item} onClick={onEdit}><Pencil size={16} />Edit post</button>}
-              <button className={item} onClick={() => { void navigator.clipboard?.writeText(`${location.origin}${link}`); toast("Post link copied"); }}><Link2 size={16} />Copy post link</button>
-              {canManage && onDelete && <button className={`${item} text-bad`} onClick={onDelete}><Trash2 size={16} />Delete post</button>}
-            </div>
-          </>)}
-        </div>
-      </div>
-      {post.text && <p className="my-3 whitespace-pre-wrap text-[15px]">{post.text}</p>}
-      <Media items={post.media} account={account} postId={post.id} />
-      <div className="flex justify-between border-b border-line py-2.5 text-[13px] text-muted">
-        <span className="inline-flex items-center gap-1.5"><span className="grid h-5 w-5 place-items-center rounded-full bg-primary text-white"><ThumbsUp size={11} fill="currentColor" /></span>{post.likes + post.likedBy.length}</span>
-        <button onClick={() => setShowComments((v) => !v)} className="hover:underline">{post.comments.length} comment{post.comments.length === 1 ? "" : "s"}</button>
-      </div>
-      <div className="grid grid-cols-2 text-muted">
-        <button onClick={toggleLike} aria-pressed={liked} className={`flex items-center justify-center gap-2 rounded-lg p-2.5 font-semibold hover:bg-background ${liked ? "text-primary" : ""}`}><ThumbsUp size={18} fill={liked ? "currentColor" : "none"} />Like</button>
-        <button onClick={() => setShowComments(true)} className="flex items-center justify-center gap-2 rounded-lg p-2.5 font-semibold hover:bg-background"><MessageSquare size={18} />Comment</button>
-      </div>
-      {showComments && (
-        <div className="mt-3 border-t border-line pt-3">
-          {post.comments.map((c) => (
-            <div key={c.id} className="mb-2.5 flex gap-2.5"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary-50 text-xs font-bold text-primary">{c.author.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span>
-              <div className="rounded-xl bg-background px-3 py-2"><b className="text-[13px]">{c.author}</b> <span className="text-xs text-muted">{timeAgo(c.createdAt)}</span><p>{c.text}</p></div></div>
-          ))}
-          <div className="flex gap-2"><input aria-label="Write a comment" className={input} placeholder="Write a comment…" value={comment} onChange={(e) => setComment(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addComment()} />
-            <MotionButton className={btnPrimary} disabled={!comment.trim()} onClick={addComment}><LuSend size={17} />Post</MotionButton></div>
-        </div>
-      )}
-    </article>
-  );
-}
-
-function Composer({ editing, onClose, onSave }: { editing: Post | null; onClose: () => void; onSave: (d: { text: string; media: PostMedia[]; members: boolean }) => void }) {
+function Composer({ editing, onClose, onSave }: { editing: Post | null; onClose: () => void; onSave: (d: { text: string; media: PostMedia[]; members: boolean; privacy: PostPrivacy }) => void }) {
   // the parent remounts this (via `key`) for each open, so initial state is always fresh
   const [text, setText] = useState(editing?.text ?? "");
   const [media, setMedia] = useState<DraftMedia[]>(editing?.media ?? []);
-  const [members, setMembers] = useState(editing?.members ?? false);
+  const [privacy, setPrivacy] = useState<PostPrivacy>(editing ? privacyOf(editing) : "public");
+  // A gym may limit a post to its members; a personal profile can't (the API rejects it).
+  const choices = privacyChoices(!!currentGymId());
   const [errors, setErrors] = useState<string[]>([]);
   const [over, setOver] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -135,7 +52,8 @@ function Composer({ editing, onClose, onSave }: { editing: Post | null; onClose:
     setMedia((m) => { const n = [...m]; n.splice(to, 0, n.splice(from, 1)[0]); return n; });
   };
   // A post may be text-only or media-only (like Facebook) — never empty.
-  const canPublish = (text.trim().length > 0 || media.length > 0) && !busy;
+  // …except a share, whose content is the original post: its commentary may be left blank.
+  const canPublish = (text.trim().length > 0 || media.length > 0 || !!editing?.isRepost) && !busy;
 
   const publish = async () => {
     setBusy(true); setErrors([]);
@@ -152,24 +70,24 @@ function Composer({ editing, onClose, onSave }: { editing: Post | null; onClose:
         }
       }
       cleanup();
-      onSave({ text: text.trim(), media: final, members });
+      onSave({ text: text.trim(), media: final, members: privacy === "members_only", privacy });
     } catch (e) { setErrors([(e as Error).message]); setBusy(false); }
   };
 
   return (
-    <Modal open title={editing ? "Edit post" : "Create post"} onClose={close}
+    <Modal open title={editing ? (editing.isRepost ? "Edit share" : "Edit post") : "Create post"} onClose={close}
       footer={<><MotionButton className={btnGhost} onClick={close} disabled={busy}><LuX size={17} />Cancel</MotionButton>
         <MotionButton className={btnPrimary} disabled={!canPublish} onClick={publish}>{busy ? <><Loader2 size={16} className="animate-spin" />{editing ? "Saving…" : "Publishing…"}</> : editing ? "Save" : "Publish"}</MotionButton></>}>
       <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder="Share an update from your gym…"
         className="min-h-[110px] w-full resize-y rounded-[10px] border border-line px-3.5 py-3 outline-none focus:border-primary focus:ring-3 focus:ring-primary-50" />
-      <div onClick={() => fileRef.current?.click()} onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
+      {!editing?.isRepost && <div onClick={() => fileRef.current?.click()} onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); add([...e.dataTransfer.files]); }}
         className={`cursor-pointer rounded-xl border-[1.5px] border-dashed p-[18px] text-center text-muted ${over ? "border-primary bg-primary-50" : "border-[#c6c9dc] bg-background"}`}>
         <ImageIcon className="mx-auto mb-1" />
         <b className="text-primary">Add photos / videos</b> or drag &amp; drop
         <small className="mt-1 block">JPG, JPEG, PNG, WebP up to 10 MB · MP4, MOV up to 200 MB</small>
         <input ref={fileRef} type="file" multiple hidden accept={ACCEPT} onChange={(e) => { add([...(e.target.files ?? [])]); e.target.value = ""; }} />
-      </div>
+      </div>}
       {errors.length > 0 && <p className={errorText}>{errors.join(" · ")}</p>}
       {media.length > 0 && (
         <div>
@@ -190,16 +108,22 @@ function Composer({ editing, onClose, onSave }: { editing: Post | null; onClose:
       )}
       <div className="flex items-center justify-between gap-3">
         <label htmlFor="privacy" className="font-semibold">Who can see this?</label>
-        <select id="privacy" value={members ? "members" : "public"} onChange={(e) => setMembers(e.target.value === "members")} className="rounded-[10px] border border-line bg-surface px-3 py-2">
-          <option value="public">Public</option><option value="members">Gym members only</option>
+        <select id="privacy" value={privacy} onChange={(e) => setPrivacy(e.target.value as PostPrivacy)} className="rounded-[10px] border border-line bg-surface px-3 py-2">
+          {(choices.includes(privacy) ? choices : [...choices, privacy]).map((p) => <option key={p} value={p}>{PRIVACY_LABEL[p]}</option>)}
         </select>
       </div>
+      <p className={`${hint} -mt-2 text-right`}>{PRIVACY_HINT[privacy]}</p>
     </Modal>
   );
 }
 
+/** Our gym's own wall first, then the wider feed: everyone followed, the gyms we belong to, and public posts. */
+type Tab = "wall" | FeedType;
+const TABS: { key: Tab; label: string }[] = [{ key: "wall", label: "Our gym" }, ...FEED_TABS.map(({ key, label }) => ({ key, label }))];
+
 export default function Feed() {
   const { can } = useAuth();
+  const [tab, setTab] = useState<Tab>("wall");
   const [posts, setPosts, ready] = useResource<Post>("posts");
   const [composer, setComposer] = useState<{ key: number; editing: Post | null } | null>(null);
   const [deleting, setDeleting] = useState<Post | null>(null);
@@ -221,8 +145,34 @@ export default function Feed() {
   }, [hasMore, shown]);
   const change = (p: Post) => setPosts((l) => l.map((x) => (x.id === p.id ? p : x)));
 
+  // Filters on our own wall. The default (everything, any audience) is the cached wall above; anything else
+  // is asked of `GET /posts/my/`, which filters server-side and also returns followers-only and private posts.
+  const [kind, setKind] = useState<"all" | "posts" | "shares">("all");
+  const [audience, setAudience] = useState<PostPrivacy | "any">("any");
+  const [version, setVersion] = useState(0);
+  const filtered = kind !== "all" || audience !== "any";
+  /** A filtered row may not be in the cached wall at all, so its edit/delete go straight to the API. */
+  const direct = async (work: () => Promise<unknown>, done: string, failed: string) => {
+    try {
+      await work();
+      toast(done);
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : failed);
+    }
+    setVersion((v) => v + 1);
+    void refreshResource("posts");
+  };
+
   return (
     <section>
+      <div role="tablist" aria-label="Feed" className={`${card} mb-4 flex gap-1 overflow-x-auto p-1.5`}>
+        {TABS.map((t) => (
+          <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
+            className={`whitespace-nowrap rounded-lg px-3.5 py-2 font-semibold ${tab === t.key ? "bg-primary-50 text-primary" : "text-muted hover:bg-background hover:text-foreground"}`}>{t.label}</button>
+        ))}
+      </div>
+
+      {tab !== "wall" ? <CommunityFeed key={tab} feedType={tab} /> : (<>
       {canPost && (
         <div className={`${card} grid grid-cols-[44px_minmax(0,1fr)] gap-3 p-4`}>
           <Logo />
@@ -236,25 +186,56 @@ export default function Feed() {
         </div>
       )}
 
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div role="group" aria-label="Show" className="flex flex-wrap gap-1.5">
+          {([["all", "All"], ["posts", "Posts"], ["shares", "Shares"]] as const).map(([k, text]) => (
+            <button key={k} aria-pressed={kind === k} onClick={() => setKind(k)}
+              className={`rounded-full px-3.5 py-1.5 text-[14px] font-semibold ${kind === k ? "bg-primary text-white" : "bg-surface text-muted ring-1 ring-line hover:text-foreground"}`}>{text}</button>
+          ))}
+        </div>
+        <label className="ml-auto flex items-center gap-2 text-[14px] text-muted">
+          <span>Audience</span>
+          <select aria-label="Filter by audience" value={audience} onChange={(e) => setAudience(e.target.value as PostPrivacy | "any")} className="rounded-[10px] border border-line bg-surface px-2.5 py-1.5 text-foreground">
+            <option value="any">Any</option>
+            {privacyChoices(!!currentGymId()).map((v) => <option key={v} value={v}>{PRIVACY_LABEL[v]}</option>)}
+          </select>
+        </label>
+      </div>
+
+      {filtered ? (
+        <MyPostsList kind={kind} privacy={audience} version={version}
+          onEdit={canPost ? (p) => openComposer(p) : undefined} onDelete={canPost ? (p) => setDeleting(p) : undefined} />
+      ) : (<>
       {!ready && <div className={`${card} mt-4 h-40 animate-pulse`} />}
       {ready && sorted.length === 0 && <div className={`${card} mt-4 p-10 text-center text-muted`}><EmptyState icon={LuNewspaper} title="No posts yet" hint="Share your first update." /></div>}
       {sorted.slice(0, shown).map((p, i) => <Reveal key={p.id} index={i % 5}><PostCard post={p} onChange={change} onEdit={() => openComposer(p)} onDelete={() => setDeleting(p)} /></Reveal>)}
       {hasMore && <div ref={sentinel} className="mt-4 h-16 animate-pulse rounded-xl border border-line bg-surface" aria-label="Loading more posts" />}
       {ready && sorted.length > 5 && !hasMore && <p className="mt-6 text-center text-sm text-muted">You&apos;re all caught up</p>}
+      </>)}
+      </>)}
 
       {composer && (
         <Composer key={composer.key} editing={composer.editing} onClose={() => setComposer(null)}
           onSave={(d) => {
             const editing = composer.editing;
-            if (editing) setPosts((l) => l.map((x) => (x.id === editing.id ? { ...x, ...d } : x)));
+            if (editing && filtered) void direct(() => postsApi.update({ ...editing, ...d }), "Post updated", "Couldn't save that post.");
+            else if (editing) setPosts((l) => l.map((x) => (x.id === editing.id ? { ...x, ...d } : x)));
             else setPosts((l) => [{ id: uid(), ...d, pinned: false, createdAt: new Date().toISOString(), likes: 0, likedBy: [], comments: [] }, ...l]);
-            setComposer(null); toast(editing ? "Post updated" : "Post published");
+            setComposer(null);
+            if (!(editing && filtered)) toast(editing ? "Post updated" : "Post published");
+            if (!editing && filtered) setVersion((v) => v + 1);
           }} />
       )}
 
       <Modal open={!!deleting} title="Delete post?" onClose={() => setDeleting(null)}
         footer={<><MotionButton className={btnGhost} onClick={() => setDeleting(null)}><LuX size={17} />Cancel</MotionButton>
-          <button className="rounded-[10px] bg-bad px-4 py-2 font-semibold text-white" onClick={() => { if (deleting) setPosts((l) => l.filter((x) => x.id !== deleting.id)); setDeleting(null); toast("Post deleted"); }}>Delete</button></>}>
+          <button className="rounded-[10px] bg-bad px-4 py-2 font-semibold text-white" onClick={() => {
+            const gone = deleting;
+            setDeleting(null);
+            if (!gone) return;
+            if (filtered) return void direct(() => postsApi.remove(gone.id), "Post deleted", "Couldn't delete that post.");
+            setPosts((l) => l.filter((x) => x.id !== gone.id)); toast("Post deleted");
+          }}>Delete</button></>}>
         <p>This post, its likes and comments will be removed.</p>
       </Modal>
     </section>

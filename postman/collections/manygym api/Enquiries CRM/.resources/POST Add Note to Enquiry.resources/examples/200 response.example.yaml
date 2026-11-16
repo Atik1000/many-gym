@@ -1,0 +1,42 @@
+$kind: http-example
+name: '200 Note added successfully.'
+request:
+  url: '{{base_url}}/api/v1/enquiries/:enquiry_id/notes/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Note added successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "gym_id": "00000000-0000-0000-0000-000000000000",
+        "gym_name": "Example name",
+        "manygym_user": {
+          "user_id": "00000000-0000-0000-0000-000000000000",
+          "email": "person@example.com",
+          "first_name": "Example name",
+          "last_name": "Example name",
+          "full_name": "Example name",
+          "avatar_url": "https://example.com/file.jpg",
+          "phone": "+8801700000000"
+        },
+        "first_name": "Example name",
+        "last_name": "Example name",
+        "full_name": "Example name",
+        "email": "person@example.com",
+        "phone": "+8801700000000",
+        "type": "GENERAL_INQUIRY",
+        "type_display": "string",
+        "status": "NEW",
+        "status_display": "string",
+        "summary": "string",
+        "notes": "string",
+        "notes_count": 1,
+        "created_at": "2026-01-01T09:00:00Z",
+        "updated_at": "2026-01-01T09:00:00Z"
+      }

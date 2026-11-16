@@ -1,0 +1,10 @@
+$kind: http-request
+name: 'List Logged-In Devices'
+method: GET
+url: '{{base_url}}/api/v1/users/settings/security/devices/'
+order: 15000
+description: |-
+  ### Summary
+  Lists all active logged-in devices for the authenticated user profile (up to 5 devices).
+  Each device record displays device identifier, friendly name, IP address, user agent, and last active timestamp.
+examples: './.resources/GET List Logged-In Devices (users-settings-security-devices).resources/examples'

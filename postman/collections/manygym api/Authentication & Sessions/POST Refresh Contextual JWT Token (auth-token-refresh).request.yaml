@@ -1,0 +1,24 @@
+$kind: http-request
+name: 'Refresh Contextual JWT Token'
+method: POST
+url: '{{base_url}}/api/v1/auth/token/refresh/'
+order: 6000
+description: |-
+  ### Summary
+  Exchanges an active refresh token for a fresh access and refresh token pair while preserving all tenant context claims (`context_type`, `gym_id`, and `scopes`). The provided refresh token is rotated and revoked.
+  
+  ### Authentication & Authorization
+  - **Authentication**: None (Public endpoint, refresh token provided in payload).
+  - **Authorization**: Public.
+auth:
+  type: noauth
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "refresh": "{{refresh_token}}"
+    }
+examples: './.resources/POST Refresh Contextual JWT Token (auth-token-refresh).resources/examples'

@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 Enquiry deleted successfully.'
+request:
+  url: '{{base_url}}/api/v1/enquiries/:enquiry_id/'
+  method: DELETE
+response:
+  statusCode: 200
+  statusText: 'Enquiry deleted successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

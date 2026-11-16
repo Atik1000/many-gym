@@ -1,0 +1,50 @@
+$kind: http-request
+name: 'Accept Member Request'
+method: POST
+url: '{{base_url}}/api/v1/gyms/:gym_id/member-requests/:request_id/accept/?gym_id={{gym_id}}'
+order: 4000
+description: |-
+  Accepts a pending member request and enrolls the user as an active gym member with the provided subscription, trainer, payment, and demographic details. Requires 'members:edit' permission.
+pathVariables:
+  - key: gym_id
+    value: '{{gym_id}}'
+  - key: request_id
+    value: '00000000-0000-0000-0000-000000000000'
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "plan_id": "00000000-0000-0000-0000-000000000000",
+      "start_date": "2026-01-01",
+      "end_date": "2026-01-01",
+      "assigned_trainer_id": "00000000-0000-0000-0000-000000000000",
+      "extra_amenity_ids": [
+        "00000000-0000-0000-0000-000000000000"
+      ],
+      "initial_payment_amount": "string",
+      "initial_payment_method": "cash",
+      "initial_payment_date": "2026-01-01",
+      "initial_payment_notes": "string",
+      "first_name": "Example name",
+      "last_name": "Example name",
+      "email": "person@example.com",
+      "phone": "+8801700000000",
+      "profile_photo_url": "https://example.com/file.jpg",
+      "address": "string",
+      "city": "string",
+      "country": "string",
+      "date_of_birth": "2026-01-01",
+      "sex": "string",
+      "nationality": "string",
+      "emergency_contact_name": "Example name",
+      "emergency_contact_phone": "+8801700000000",
+      "emergency_contact_relationship": "string",
+      "internal_notes": "string"
+    }
+examples: './.resources/POST Accept Member Request.resources/examples'

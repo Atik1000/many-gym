@@ -1,0 +1,22 @@
+$kind: http-example
+name: '200 Follow request accepted successfully.'
+request:
+  url: '{{base_url}}/api/v1/auth/follow-requests/:request_id/accept/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Follow request accepted successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string",
+        "status": "string",
+        "request_id": "00000000-0000-0000-0000-000000000000",
+        "is_following": false,
+        "target_user_id": "00000000-0000-0000-0000-000000000000",
+        "requester_id": "00000000-0000-0000-0000-000000000000"
+      }

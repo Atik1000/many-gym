@@ -1,0 +1,17 @@
+$kind: http-example
+name: '200 Follower blocked and removed.'
+request:
+  url: '{{base_url}}/api/v1/users/followers/:user_id/block/'
+  method: POST
+response:
+  statusCode: 200
+  statusText: 'Follower blocked and removed.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "string"
+      }

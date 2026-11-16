@@ -1,0 +1,42 @@
+$kind: http-example
+name: '200 Paginated list of enquiries.'
+request:
+  url: '{{base_url}}/api/v1/enquiries/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Paginated list of enquiries.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "count": 123,
+        "total_pages": 7,
+        "current_page": 1,
+        "next": "http://api.example.org/accounts/?page=2",
+        "previous": "http://api.example.org/accounts/?page=1",
+        "results": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "gym_id": "00000000-0000-0000-0000-000000000000",
+            "manygym_user": null,
+            "first_name": "Example name",
+            "last_name": "Example name",
+            "full_name": "Example name",
+            "email": null,
+            "phone": "+8801700000000",
+            "type": null,
+            "type_display": "string",
+            "status": null,
+            "status_display": "string",
+            "summary": "string",
+            "notes": "string",
+            "notes_count": 1,
+            "created_at": "2026-01-01T09:00:00Z",
+            "updated_at": "2026-01-01T09:00:00Z"
+          }
+        ]
+      }

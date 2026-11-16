@@ -1,0 +1,11 @@
+$kind: http-example
+name: '200 File download attachment (CSV) or JSON array.'
+request:
+  url: '{{base_url}}/api/v1/gyms/logs/admin/export/?gym_id={{gym_id}}'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'File download attachment (CSV) or JSON array.'
+  body:
+    type: text
+    content: ''

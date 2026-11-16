@@ -1,0 +1,32 @@
+$kind: http-request
+name: 'Replace profile about (undocumented twin)'
+method: PUT
+url: '{{base_url}}/api/v1/users/profile/about/'
+order: 2000
+description: |-
+  API endpoint for retrieving and updating the authenticated user's Public Profile -> About details.
+  
+  The schema publishes this operation with no summary or description: it is the unnamed twin of the documented operation on the same resource.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "user_id": "00000000-0000-0000-0000-000000000000",
+      "first_name": "Example name",
+      "last_name": "Example name",
+      "avatar_url": "https://example.com/file.jpg",
+      "is_private": false,
+      "education_list": [
+        {
+          "university_name": "Example name",
+          "from_year": "2026-01-01",
+          "till_year": "2026-01-01",
+          "subject": "string",
+          "graduated": false
+        }
+      ]
+    }
+examples: './.resources/PUT Replace profile about (undocumented twin).resources/examples'

@@ -1,0 +1,111 @@
+$kind: http-example
+name: '200 Gym details retrieved successfully.'
+request:
+  url: '{{base_url}}/api/v1/gyms/:gym_id/detail/'
+  method: GET
+response:
+  statusCode: 200
+  statusText: 'Gym details retrieved successfully.'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "name": "Example name",
+        "profile_picture_url": "https://example.com/file.jpg",
+        "cover_photo_url": "https://example.com/file.jpg",
+        "short_description": "string",
+        "primary_type": "string",
+        "primary_type_display": "string",
+        "secondary_type": "string",
+        "secondary_type_display": "string",
+        "gender_required": "string",
+        "gender_required_display": "string",
+        "min_age": 0,
+        "timezone": "string",
+        "created_at": "2026-01-01T09:00:00Z",
+        "owner_public": {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "name": "Example name"
+        },
+        "location": {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "address": "string",
+          "latitude": "string",
+          "longitude": "string",
+          "city": "string",
+          "country": "string",
+          "postal_code": "string",
+          "is_primary": false,
+          "updated_at": "2026-01-01T09:00:00Z"
+        },
+        "locations": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "address": "string",
+            "latitude": "string",
+            "longitude": "string",
+            "city": "string",
+            "country": "string",
+            "postal_code": "string",
+            "is_primary": false,
+            "updated_at": "2026-01-01T09:00:00Z"
+          }
+        ],
+        "today_status": {
+          "is_open_now": false,
+          "today_hours": "string"
+        },
+        "operating_hours": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "day_of_week": null,
+            "day_name": "Example name",
+            "start_time": "string",
+            "end_time": "string",
+            "is_closed": false
+          }
+        ],
+        "amenities": {
+          "free_amenities": [],
+          "paid_amenities": [],
+          "total_count": 1
+        },
+        "gallery": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "media_url": "https://example.com/file.jpg",
+            "media_type": "string",
+            "category": "string",
+            "category_display": "string",
+            "caption": "string",
+            "order_index": 0,
+            "original_url": "https://example.com/file.jpg",
+            "optimized_url": "https://example.com/file.jpg",
+            "thumbnail_url": "https://example.com/file.jpg",
+            "processing_status": "string"
+          }
+        ],
+        "membership_plans": [
+          {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "name": "Example name",
+            "description": "string",
+            "plan_type": "string",
+            "plan_type_display": "string",
+            "price": "string",
+            "duration_value": 0,
+            "duration_unit": "string",
+            "duration_unit_display": "string",
+            "joining_fee": "string"
+          }
+        ],
+        "social": {
+          "followers_count": 1,
+          "members_count": 1,
+          "is_following": false
+        }
+      }

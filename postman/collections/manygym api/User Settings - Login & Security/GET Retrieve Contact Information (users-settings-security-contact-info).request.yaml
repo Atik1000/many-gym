@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Retrieve Contact Information'
+method: GET
+url: '{{base_url}}/api/v1/users/settings/security/contact-info/'
+order: 13000
+description: |-
+  ### Summary
+  Retrieves the user's contact information:
+  - Primary email (immutable/read-only)
+  - Secondary email (optional)
+  - Phone number (optional)
+examples: './.resources/GET Retrieve Contact Information (users-settings-security-contact-info).resources/examples'

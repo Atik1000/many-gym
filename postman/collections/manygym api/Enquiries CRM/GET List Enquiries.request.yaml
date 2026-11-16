@@ -1,0 +1,35 @@
+$kind: http-request
+name: 'List Enquiries'
+method: GET
+url: '{{base_url}}/api/v1/enquiries/?gym_id={{gym_id}}'
+order: 1000
+description: |-
+  ### Summary
+  Retrieves paginated enquiries. Only authorized staff and owners of the respective gym can view inquiries.
+queryParams:
+  - key: gym_id
+    value: '{{gym_id}}'
+    description: 'Filter by Gym UUID (User must be gym staff/owner).'
+  - key: page
+    value: ''
+    disabled: true
+  - key: page_size
+    value: ''
+    disabled: true
+  - key: search
+    value: ''
+    description: 'Search by name, email, phone, or summary.'
+    disabled: true
+  - key: status
+    value: ''
+    description: 'Filter by status (NEW, CONTACTED, VISIT, BOOKED).'
+    disabled: true
+  - key: type
+    value: ''
+    description: 'Filter by type (GENERAL_INQUIRY, CALLBACK_REQUEST, COMPLAINT, EMERGENCY, SPECIAL_REQUEST).'
+    disabled: true
+  - key: user_id
+    value: ''
+    description: 'Filter by registered Manygym User UUID.'
+    disabled: true
+examples: './.resources/GET List Enquiries.resources/examples'

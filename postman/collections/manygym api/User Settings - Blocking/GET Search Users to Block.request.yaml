@@ -1,0 +1,21 @@
+$kind: http-request
+name: 'Search Users to Block'
+method: GET
+url: '{{base_url}}/api/v1/users/settings/blocked-users/search/'
+order: 7000
+description: |-
+  ### Summary
+  Searches active Manygym users by name or email to select for blocking.
+  
+  ### Filtering Rules
+  - Automatically excludes the authenticated user themselves.
+  - Automatically excludes users who are already in the authenticated user's blocklist.
+  
+  ### Parameters
+  - `q` (query, optional, string): Search query matching first name, last name, or email.
+queryParams:
+  - key: q
+    value: ''
+    description: 'Search query string matching first name, last name, or email.'
+    disabled: true
+examples: './.resources/GET Search Users to Block.resources/examples'

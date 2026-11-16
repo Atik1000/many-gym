@@ -20,6 +20,8 @@ Retrieves a list of membership plans for the gym, with optional filtering by sta
 | Name | Type | Required | Description |
 |---|---|---|---|
 | `gym_id` | string | no | Target gym UUID (if not inferred from active gym JWT context). |
+| `page` | integer | no | A page number within the paginated result set. |
+| `page_size` | integer | no | Number of results to return per page. |
 | `plan_status` | string | no | Filter by plan status ('draft', 'active', 'archived'). |
 | `plan_type` | string | no | Filter by plan type ('time_based', 'session_based'). |
 | `search` | string | no | Search keyword matching plan name or description. |
@@ -28,7 +30,7 @@ Retrieves a list of membership plans for the gym, with optional filtering by sta
 
 | Status | Body | Description |
 |---|---|---|
-| `200` | array of MembershipPlanList |  |
+| `200` | PaginatedMembershipPlanListList |  |
 | `400` | ErrorDetail |  |
 | `401` | ErrorDetail |  |
 | `403` | ErrorDetail |  |
@@ -37,20 +39,12 @@ Retrieves a list of membership plans for the gym, with optional filtering by sta
 
 | Field | Type | Notes |
 |---|---|---|
-| `id` | string(uuid) | read-only. |
-| `name` | string |  |
-| `description` | string \| null |  |
-| `plan_status` | enum: `draft` \| `active` \| `archived` |  |
-| `plan_type` | enum: `time_based` \| `session_based` |  |
-| `price` | string(decimal) |  |
-| `duration_value` | integer | e.g. 3 for 3 months or 10 for 10 sessions |
-| `duration_unit` | enum: `day` \| `week` \| `month` \| `session` |  |
-| `duration_display` | string | read-only. |
-| `joining_fee` | string(decimal) |  |
-| `payment_schedule` | enum: `full_payment` \| `instalments` |  |
-| `included_amenities_count` | integer | read-only. |
-| `created_at` | string(date-time) | read-only. |
-| `updated_at` | string(date-time) | read-only. |
+| `count` | integer |  |
+| `total_pages` | integer |  |
+| `current_page` | integer |  |
+| `next` | string(uri) \| null |  |
+| `previous` | string(uri) \| null |  |
+| `results` | array of MembershipPlanList |  |
 
 </details>
 
@@ -133,7 +127,27 @@ Returns aggregated metrics (count by status, count by type, average, min, max pr
 
 | Status | Body | Description |
 |---|---|---|
-| `200` | _no schema documented_ | Aggregated pricing and count metrics. |
+| `200` | MembershipPlanMetrics |  |
+| `401` | ErrorDetail |  |
+| `403` | ErrorDetail |  |
+
+<details><summary>Response fields (200)</summary>
+
+| Field | Type | Notes |
+|---|---|---|
+| `total_plans` | integer | Total number of plans. |
+| `active_plans` | integer | Number of active plans. |
+| `draft_plans` | integer | Number of draft plans. |
+| `archived_plans` | integer | Number of archived plans. |
+| `time_based_plans` | integer | Number of time-based plans. |
+| `session_based_plans` | integer | Number of session-based plans. |
+| `avg_price` | string(decimal) \| null |  |
+| `min_price` | string(decimal) \| null |  |
+| `max_price` | string(decimal) \| null |  |
+| `avg_time_based_price` | string(decimal) \| null |  |
+| `avg_session_based_price` | string(decimal) \| null |  |
+
+</details>
 
 ---
 

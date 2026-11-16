@@ -7,14 +7,16 @@
  * and the permission scopes that gym grants this user. The admin panel needs a gym-context token, so signing in
  * is two calls — `POST /auth/login/`, then `POST /auth/switch-context/` for the first gym the account can reach.
  *
- * Known gap: the API has no refresh endpoint. When the access token expires the only route back is a fresh
- * sign-in, which `setUnauthorizedHandler` turns into a redirect to /login.
+ * An expired access token is renewed silently by `request()` (`POST /auth/refresh/`, which keeps the gym
+ * context). Only when that refresh is refused does `setUnauthorizedHandler` send the person to /login.
  */
 import * as api from "./api/endpoints";
 import type * as T from "./api/types";
 import { ApiError, getTokens, setTokens, type Tokens } from "./api/http";
 import { firstAvailable } from "./api/fallback";
 import { invalidateAll } from "./api";
+import * as security from "./api/security";
+import { deviceKeys, supported as e2eeSupported } from "./api/e2ee";
 
 export const MIN_PASSWORD = 8;
 
@@ -155,49 +157,151 @@ export async function enterGym(gymId: string): Promise<string | null> {
   }
 }
 
-/** Returns an error message, or null when signed in. */
-export async function signIn(emailRaw: string, password: string): Promise<string | null> {
+// ---------------------------------------------------------------- this device
+
+/** Used only when the browser can't hold an E2EE device (no WebCrypto), so sign-in still names a device. */
+const DEVICE_ID_KEY = "manygym.device.v1";
+
+/** "Chrome on macOS" — what this browser is called in the signed-in devices list. */
+export function deviceName(ua = typeof navigator === "undefined" ? "" : navigator.userAgent): string {
+  const browser = /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Firefox\//.test(ua) ? "Firefox"
+    : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "";
+  const os = /iPhone|iPad|iPod/.test(ua) ? "iOS" : /Android/.test(ua) ? "Android" : /Mac OS X/.test(ua) ? "macOS"
+    : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : "";
+  return [browser, os].filter(Boolean).join(" on ") || "Web browser";
+}
+
+/**
+ * The identity this browser signs in as.
+ *
+ * The id is the **same one the E2EE layer registers its keys under** (`lib/api/e2ee.ts`), created here if
+ * messaging hasn't made it yet. That matters: removing a device under Login & Security deletes that device's
+ * encryption key server-side, which only lines up if the session and the key share an id. Where WebCrypto is
+ * unavailable there is no E2EE device, so a plain random id is persisted instead.
+ */
+export async function thisDevice(): Promise<security.DeviceIdentity> {
+  const device_name = deviceName();
+  try {
+    if (e2eeSupported()) return { device_id: (await deviceKeys()).deviceId, device_name };
+  } catch {
+    /* key generation unsupported (older browsers lack X25519) — fall through to the plain id */
+  }
+  try {
+    let id = localStorage.getItem(DEVICE_ID_KEY);
+    if (!id) {
+      id = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+      localStorage.setItem(DEVICE_ID_KEY, id);
+    }
+    return { device_id: id, device_name };
+  } catch {
+    return { device_name }; // storage blocked: an id that changes every visit would just fill the device list
+  }
+}
+
+// ---------------------------------------------------------------- sign-in
+
+/**
+ * Everything that follows a token pair being issued — shared by the password flow and the two-factor step so
+ * the two can't drift apart.
+ */
+async function completeSignIn(tokens: Tokens): Promise<void> {
+  setTokens(tokens);
+  invalidateAll();
+
+  const me = await loadMe();
+  /*
+   * The admin panel is gym-scoped, so land in a gym straight away. Try them in order rather than trusting
+   * the first: `/auth/me/` keeps listing gyms that have been deleted, and switching into one of those
+   * returns 404 "Gym not found." Treating that as a login failure locks the account out of the app
+   * entirely, even though its other gyms are fine.
+   */
+  if (!getTokens()?.gym_id) {
+    /*
+     * Order matters for how long sign-in feels. The gym that worked last time goes first, and gyms already
+     * known to 404 go last — otherwise every sign-in pays for a failed round-trip per dead gym before
+     * reaching a live one, which reads as the button doing nothing.
+     */
+    const dead = new Set(deadGyms());
+    const lastUsed = read<string | null>(LAST_GYM_KEY, null);
+    const candidates = [...(me?.accessibleGyms ?? [])].sort((a, b) => {
+      const rank = (id: string) => (id === lastUsed ? 0 : dead.has(id) ? 2 : 1);
+      return rank(a.id) - rank(b.id);
+    });
+
+    let lastProblem: string | null = null;
+    for (const candidate of candidates) {
+      lastProblem = await enterGym(candidate.id);
+      if (!lastProblem) break;
+    }
+    // Every gym failed, or the account has none: stay signed in on the personal token and let the app
+    // offer gym creation. Being signed in with no gym is a state the UI already handles.
+    if (lastProblem) await loadMe();
+  }
+  notifySession();
+}
+
+/** Where a two-factor code went, for the code step to show. */
+export type TwoFactorStep = { email: string; channel: string; destination: string; message: string };
+
+export type SignInOutcome =
+  | { status: "signed-in" }
+  /** The password was right, but the account has two-factor on: a code has been sent and must be entered. */
+  | { status: "two-factor"; challenge: TwoFactorStep }
+  | { status: "error"; error: string };
+
+/**
+ * `POST /auth/login/`. Answers with tokens, or — when two-factor is on — with a challenge instead, in which
+ * case nothing is signed in yet and `verifyTwoFactor` finishes the job.
+ */
+export async function signIn(emailRaw: string, password: string): Promise<SignInOutcome> {
   const email = emailRaw.trim().toLowerCase();
   try {
-    const res = await api.authLoginCreate({ email, password });
-    if (!res.tokens?.access) return "The server didn't return a session token.";
-    setTokens(res.tokens as Tokens);
-    invalidateAll();
-
-    const me = await loadMe();
-    /*
-     * The admin panel is gym-scoped, so land in a gym straight away. Try them in order rather than trusting
-     * the first: `/auth/me/` keeps listing gyms that have been deleted, and switching into one of those
-     * returns 404 "Gym not found." Treating that as a login failure locks the account out of the app
-     * entirely, even though its other gyms are fine.
-     */
-    if (!getTokens()?.gym_id) {
-      /*
-       * Order matters for how long sign-in feels. The gym that worked last time goes first, and gyms already
-       * known to 404 go last — otherwise every sign-in pays for a failed round-trip per dead gym before
-       * reaching a live one, which reads as the button doing nothing.
-       */
-      const dead = new Set(deadGyms());
-      const lastUsed = read<string | null>(LAST_GYM_KEY, null);
-      const candidates = [...(me?.accessibleGyms ?? [])].sort((a, b) => {
-        const rank = (id: string) => (id === lastUsed ? 0 : dead.has(id) ? 2 : 1);
-        return rank(a.id) - rank(b.id);
-      });
-
-      let lastProblem: string | null = null;
-      for (const candidate of candidates) {
-        lastProblem = await enterGym(candidate.id);
-        if (!lastProblem) break;
-      }
-      // Every gym failed, or the account has none: stay signed in on the personal token and let the app
-      // offer gym creation. Being signed in with no gym is a state the UI already handles.
-      if (lastProblem) await loadMe();
+    // `device_id`/`device_name` are newer than the generated `LoginRequest`, hence the cast. The generated
+    // call is kept because it sends the request without a stored (possibly expired) bearer token.
+    const body = { email, password, ...(await thisDevice()) };
+    const res: unknown = await api.authLoginCreate(body as T.LoginRequest);
+    if (security.isTwoFactorChallenge(res)) {
+      return {
+        status: "two-factor",
+        challenge: { email: res.email || email, channel: String(res.channel ?? ""), destination: String(res.destination ?? ""), message: String(res.message ?? "") },
+      };
     }
-    notifySession();
+    const tokens = (res as { tokens?: Tokens } | null)?.tokens;
+    if (!tokens?.access) return { status: "error", error: "The server didn't return a session token." };
+    await completeSignIn(tokens);
+    return { status: "signed-in" };
+  } catch (e) {
+    // Includes the API's own wording for a deleted account ("This account has been permanently deleted.").
+    if (e instanceof ApiError) return { status: "error", error: e.fieldErrors().non_field_errors ?? e.message };
+    return { status: "error", error: "Couldn't sign in. Check your connection and try again." };
+  }
+}
+
+/** `POST /auth/verify-2fa/` — returns an error message, or null once signed in. */
+export async function verifyTwoFactor(email: string, otp: string): Promise<string | null> {
+  try {
+    const res = await security.verifyTwoFactor(email.trim().toLowerCase(), otp.trim(), await thisDevice());
+    const tokens = (res as { tokens?: Tokens } | null)?.tokens;
+    if (!tokens?.access) return "The server didn't return a session token.";
+    await completeSignIn(tokens);
     return null;
   } catch (e) {
-    if (e instanceof ApiError) return e.message;
-    return "Couldn't sign in. Check your connection and try again.";
+    if (e instanceof ApiError) return e.fieldErrors().otp_code ?? e.message;
+    return "Couldn't verify that code. Check your connection and try again.";
+  }
+}
+
+/** `POST /auth/resend-2fa/`. With no `channel` the server walks primary email → secondary email → SMS. */
+export async function resendTwoFactor(
+  email: string,
+  channel?: security.TwoFactorChannel,
+): Promise<{ error: string } | { error: null; channel: string; destination: string; message: string }> {
+  try {
+    const res = await security.resendTwoFactor(email.trim().toLowerCase(), channel);
+    return { error: null, channel: String(res?.channel ?? channel ?? ""), destination: String(res?.destination ?? ""), message: String(res?.message ?? "") };
+  } catch (e) {
+    if (e instanceof ApiError) return { error: e.fieldErrors().channel ?? e.message };
+    return { error: "Couldn't resend the code." };
   }
 }
 
@@ -229,7 +333,7 @@ export async function switchAccount(gymId: string): Promise<boolean> {
 export async function changePassword(current: string, next: string): Promise<string | null> {
   if (next.length < MIN_PASSWORD) return `Use at least ${MIN_PASSWORD} characters`;
   try {
-    await either("change-password", () => api.authChangePasswordCreate({ current_password: current, new_password: next }), () => api.usersChangePasswordCreate({ current_password: current, new_password: next }));
+    await security.changePassword(current, next);
     return null;
   } catch (e) {
     if (e instanceof ApiError) {
@@ -342,10 +446,10 @@ export const resetPassword = async (email: string, otp: string, next: string): P
 // ---------------------------------------------------------------- staff invitations
 
 /**
- * Staff invitations. The API's own flow is: an owner invites by email
- * (`POST /access-control/staff/`), the person registers normally, and the assignment activates — there is
- * **no endpoint that redeems an invitation code**, so the old /accept?code=… screen has nothing to call.
- * `acceptInvite` therefore registers the account and reports anything the server rejects.
+ * Staff invitations. There is **no endpoint that redeems a staff invitation**, so /accept?code=… has nothing
+ * to call for staff: the person must already have an account, an admin adds them by email
+ * (`POST /access-control/staff/`) and then activates them from People & Roles (known-issues #3).
+ * `acceptInvite` only registers the account and reports anything the server rejects.
  */
 export async function acceptInvite(email: string, name: string, password: string): Promise<string | null> {
   if (!name.trim()) return "Enter your name";

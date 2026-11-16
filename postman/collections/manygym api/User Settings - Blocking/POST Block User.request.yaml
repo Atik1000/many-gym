@@ -1,0 +1,32 @@
+$kind: http-request
+name: 'Block User'
+method: POST
+url: '{{base_url}}/api/v1/users/settings/blocked-users/'
+order: 5000
+description: |-
+  ### Summary
+  Blocks another user from interacting with the authenticated user.
+  
+  ### Side Effects
+  - Automatically and immediately severs any mutual follow relationships in both directions.
+  - Prevents the blocked user from initiating direct messages or viewing followers/following lists.
+  
+  ### Request Body
+  - `user_id` (required, UUID): UUID of the user to block.
+  - `reason` (optional, string, max 255 chars): Rationale for the block.
+  
+  ### Error Responses
+  - `400 Bad Request`: Attempting to block yourself, malformed UUID, or invalid reason string.
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `404 Not Found`: Target user does not exist.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "user_id": "00000000-0000-0000-0000-000000000000",
+      "reason": "string"
+    }
+examples: './.resources/POST Block User.resources/examples'

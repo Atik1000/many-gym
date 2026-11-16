@@ -1,0 +1,31 @@
+$kind: http-request
+name: 'Create a New Enquiry'
+method: POST
+url: '{{base_url}}/api/v1/enquiries/'
+order: 2000
+description: |-
+  ### Summary
+  Creates a new Enquiry record for a gym. Any authenticated user can submit an enquiry.
+  - **Mandatory**: `gym_id`, `first_name`, `last_name`, and **either** `email` or `phone`.
+  - **Optional**: `manygym_user_id`, `type`, `status`, `summary`, `notes`.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "gym_id": "00000000-0000-0000-0000-000000000000",
+      "first_name": "Example name",
+      "last_name": "Example name",
+      "email": "person@example.com",
+      "phone": "+8801700000000",
+      "manygym_user_id": "00000000-0000-0000-0000-000000000000",
+      "type": "string",
+      "status": "string",
+      "summary": "string",
+      "notes": [
+        "string"
+      ]
+    }
+examples: './.resources/POST Create a New Enquiry.resources/examples'

@@ -5,11 +5,11 @@ import { LuUsers } from "react-icons/lu";
 
 import { MotionButton } from "@/components/ui/Motion";
 import { useMemo, useState } from "react";
-import { LuEllipsis as MoreHorizontal, LuPlus as Plus, LuSearch as Search, LuX as X, LuSend, LuShieldCheck, LuX } from "react-icons/lu";
+import { LuEllipsis as MoreHorizontal, LuPlus as Plus, LuSearch as Search, LuX as X, LuSend, LuShieldCheck, LuUserCheck, LuX } from "react-icons/lu";
 import { useToast } from "@/components/ui/Toast";
 import { Avatar, ConfirmModal, Pagination, Pill, Select, usePaged } from "@/components/ui/parts";
 import { MEMBERS_KEY, type Member } from "@/lib/members";
-import { DEFAULT_ROLES, PEOPLE_KEY, ROLES_KEY, displayName, isValidEmail, type Person, type Role, isTrainer, isAdministrator } from "@/lib/people";
+import { DEFAULT_ROLES, PEOPLE_KEY, ROLES_KEY, STATUS_LABEL, STATUS_TONE, displayName, isValidEmail, type Person, type Role, isTrainer, isAdministrator } from "@/lib/people";
 import { useResource } from "@/lib/api";
 import { peopleActions } from "@/lib/api/actions";
 import { btnGhost, btnPrimary, card, errorText, hint, input, label } from "@/lib/ui";
@@ -29,6 +29,7 @@ export default function PeoplePage() {
   const [menu, setMenu] = useState<string | null>(null);
   const [removing, setRemoving] = useState<Person | null>(null);
   const [changing, setChanging] = useState<Person | null>(null);
+  const [activating, setActivating] = useState<string | null>(null);
 
   const roleName = (id: string) => roles.find((r) => r.id === id)?.name ?? "Unknown role";
   const assigned = useMemo(() => { const m = new Map<string, number>(); members.forEach((x) => x.trainerId && m.set(x.trainerId, (m.get(x.trainerId) ?? 0) + 1)); return m; }, [members]);
@@ -37,8 +38,10 @@ export default function PeoplePage() {
   const custom = roles.filter((r) => !r.builtIn);
 
   /**
-   * `POST /access-control/staff/` invites by email against a role. The server mails the invitation; the person
-   * then registers normally — there is no invite-code endpoint for this app to build a link against.
+   * `POST /access-control/staff/` attaches an already-registered account to a role, with status `invited`.
+   * No endpoint lets the invited person redeem that (known-issues #3), and since they must already have an
+   * account there is no later "first registration" for the server to activate them on. The only route to
+   * `active` is `PATCH /access-control/staff/{id}/`, so activation is an explicit admin action here.
    */
   const invite = async () => {
     if (!isValidEmail(email)) return setErr("Enter a valid email address");
@@ -46,7 +49,13 @@ export default function PeoplePage() {
     if (people.some((p) => p.email.toLowerCase() === email.trim().toLowerCase())) return setErr("This person is already on your team");
     const problem = await peopleActions.invite(email.trim(), roleId);
     if (problem) return setErr(problem);
-    toast(`${email.trim()} invited`); setEmail(""); setErr(""); setInviting(false);
+    toast(`${email.trim()} added — activate them to give access`); setEmail(""); setErr(""); setInviting(false);
+  };
+  const activate = async (p: Person) => {
+    setActivating(p.id);
+    const problem = await peopleActions.setStatus(p.id, "active");
+    setActivating(null);
+    toast(problem ?? `${displayName(p) === "Invitation pending" ? p.email : displayName(p)} now has access`);
   };
   const lastAdmin = (p: Person) => isAdministrator(p) && people.filter((x) => isAdministrator(x) && x.status === "active").length <= 1;
 
@@ -67,7 +76,7 @@ export default function PeoplePage() {
                 <label className="relative"><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                   <input className={`${input} pl-10`} placeholder="Search name or email…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
                 <Select aria-label="Role" value={roleF} onChange={(e) => setRoleF(e.target.value)}><option value="all">All Roles</option>{roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</Select>
-                <Select aria-label="Status" value={statusF} onChange={(e) => setStatusF(e.target.value)}><option value="all">All Statuses</option><option value="active">Active</option><option value="invited">Invited</option></Select>
+                <Select aria-label="Status" value={statusF} onChange={(e) => setStatusF(e.target.value)}><option value="all">All Statuses</option><option value="active">Active</option><option value="invited">Invited</option><option value="inactive">Inactive</option></Select>
               </div>
               <div className="overflow-x-auto rounded-xl border border-line">
                 <table className="rt w-full min-w-[640px] text-left">
@@ -79,10 +88,12 @@ export default function PeoplePage() {
                       <tr key={p.id} className="border-t border-line">
                         <td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar name={p.name || p.email} /><div><b className="block">{displayName(p)}</b><span className="text-muted">{p.email}</span></div></div></td>
                         <td className="px-4"><Pill tone={isTrainer(p) ? "purple" : "gray"}>{p.roleName || roleName(p.roleId)}</Pill></td>
-                        <td className="px-4"><Pill tone={p.status === "active" ? "green" : "amber"}>{p.status === "active" ? "Active" : "Invited"}</Pill></td>
+                        <td className="px-4"><Pill tone={STATUS_TONE[p.status]}>{STATUS_LABEL[p.status]}</Pill></td>
                         <td className="px-4">
-                          {/* No endpoint redeems a staff invite code, so there is no link to hand out. */}
-                          {p.status === "invited" && <span className="mr-2 text-[13px] text-muted">Awaiting their first sign-in</span>}
+                          {/* No endpoint redeems a staff invitation, so an admin grants access directly. */}
+                          {p.status !== "active" && (can("Edit people")
+                            ? <button className="mr-2 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold text-primary hover:bg-primary-50 disabled:opacity-50" disabled={activating === p.id} onClick={() => void activate(p)}><LuUserCheck size={15} />{activating === p.id ? "Activating…" : p.status === "invited" ? "Activate" : "Reactivate"}</button>
+                            : <span className="mr-2 text-[13px] text-muted">{p.status === "invited" ? "Waiting for an admin to activate" : "Access switched off"}</span>)}
                           {(can("Edit people") || can("Remove people")) && <span className="relative inline-block">
                             <button aria-label={`Actions for ${displayName(p)}`} onClick={() => setMenu(menu === p.id ? null : p.id)} className="rounded-lg p-1.5 text-muted hover:bg-background"><MoreHorizontal size={18} /></button>
                             {menu === p.id && (<>
@@ -115,7 +126,7 @@ export default function PeoplePage() {
                     <optgroup label="Default Roles">{DEFAULT_ROLES.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</optgroup>
                     {custom.length > 0 && <optgroup label="Custom Roles">{custom.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</optgroup>}
                   </Select>
-                  <p className={hint}>They need a manygym account already — ask them to sign up first, then add them here with a role. The API can&apos;t email an invitation to someone who hasn&apos;t registered.</p>
+                  <p className={hint}>They need a manygym account already — ask them to sign up first, then add them here with a role. They start as Invited and can&apos;t accept it themselves: press Activate on their row to give them access.</p>
                   <div className="mt-4 grid grid-cols-2 gap-3"><MotionButton className={btnGhost} onClick={() => setInviting(false)}><LuX size={17} />Cancel</MotionButton><MotionButton className={btnPrimary} onClick={invite}><LuSend size={17} />Add to team</MotionButton></div>
                 </section>
               )}

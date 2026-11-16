@@ -1,0 +1,20 @@
+$kind: http-request
+name: 'Unblock User'
+method: DELETE
+url: '{{base_url}}/api/v1/users/settings/blocked-users/:user_id/'
+order: 8000
+description: |-
+  ### Summary
+  Removes a block on a previously restricted user.
+  
+  ### Parameters
+  - `user_id` (path, required, UUID): UUID of the blocked user to unblock.
+  
+  ### Error Responses
+  - `401 Unauthorized`: Missing or invalid credentials.
+  - `404 Not Found`: Blocked user record not found (e.g. user was not blocked by caller).
+pathVariables:
+  - key: user_id
+    value: '{{user_id}}'
+    description: 'UUID of the blocked user to remove from blocklist.'
+examples: './.resources/DELETE Unblock User.resources/examples'

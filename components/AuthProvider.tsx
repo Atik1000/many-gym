@@ -2,16 +2,15 @@
 
 import { MotionLink } from "@/components/ui/Motion";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { LuLock as Lock, LuArrowRight } from "react-icons/lu";
+import { usePathname, useRouter } from "next/navigation";
+import { LuLock as Lock, LuArrowRight, LuBuilding2, LuMapPin, LuUsers } from "react-icons/lu";
 import { roles as rolesApi } from "@/lib/api/adapters";
 import { getTokens, setUnauthorizedHandler } from "@/lib/api/http";
 import { cachedMe, loadMe, signOut, type Me } from "@/lib/auth";
 import { PERMISSION_SCOPES, cachePermissionCatalogue, matchScope, syncVocabulary } from "@/lib/permissions";
 import type { Person, Role } from "@/lib/people";
-import CreateGym from "@/components/CreateGym";
-import { NAV } from "@/lib/nav";
-import { btnPrimary, card } from "@/lib/ui";
+import { HOME, NAV, PERSONAL_HOME, isPersonalPath } from "@/lib/nav";
+import { btnGhost, btnPrimary, card } from "@/lib/ui";
 
 /**
  * "Who am I" now comes from the API: `/auth/me/` for the account, and the gym-context JWT for the gym and the
@@ -27,6 +26,11 @@ type Auth = {
   /** The gym role this account holds, with its permissions expanded from the token's scopes. */
   role: Role | null;
   can: (permission: string) => boolean;
+  /**
+   * True for a signed-in person who isn't on any gym's team: no gym at all, or in a gym's context with no
+   * permissions (a plain member). They get the personal menu and the personal routes only.
+   */
+  personal: boolean;
   /** Trainers only see members assigned to them (spec). */
   trainerOnly: boolean;
   logout: () => void;
@@ -58,7 +62,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
-  // An expired or rejected token is unrecoverable: the API has no refresh endpoint, so sign in again.
+  // Reached only once a silent refresh has failed (lib/api/http.ts) — the session is over, so sign in again.
   useEffect(() => {
     setUnauthorizedHandler(() => {
       setMe(null);
@@ -121,6 +125,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       role,
       // The owner of a gym is granted every permission across all topics (spec).
       can,
+      personal: isPersonal(me),
       trainerOnly: /trainer/i.test(me?.roleName ?? ""),
       logout: () => {
         void signOut().then(() => router.replace("/login"));
@@ -129,25 +134,61 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     };
   }, [checked, me, router, load]);
 
-  /*
-   * A signed-in account with no usable gym can't call any gym-scoped endpoint, so onboarding comes first.
-   * The test is the gym the *token* actually carries, not the length of accessibleGyms: `/auth/me/` keeps
-   * listing deleted gyms, so a non-empty list does not mean any of them can be opened.
-   */
-  const needsGym = checked && !!me && !me.gymId;
+  return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
+}
 
+/**
+ * Whether this account is using manygym as a person rather than as part of a gym's team.
+ *
+ * The test is the gym the *token* actually carries, not the length of accessibleGyms: `/auth/me/` keeps
+ * listing deleted gyms, so a non-empty list does not mean any of them can be opened. A token that is in a
+ * gym's context but grants nothing (a member, not staff) is personal too — there is no screen it could open.
+ */
+const isPersonal = (me: Me | null) => !!me && (!me.gymId || (!me.isOwner && (me.scopes ?? []).length === 0));
+
+/** What a person without a gym sees in place of a gym-management screen. */
+function TeamsOnly() {
   return (
-    <AuthCtx.Provider value={value}>
-      {needsGym ? <CreateGym onCreated={load} /> : children}
-    </AuthCtx.Provider>
+    <div className={`${card} mx-auto mt-10 max-w-md p-10 text-center`}>
+      <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-primary-50 text-primary"><LuUsers size={22} /></span>
+      <h2 className="text-xl font-bold">This area is for gym teams</h2>
+      <p className="mb-5 mt-1 text-muted">It manages a gym&apos;s members, plans and staff. You can join a gym as a member, or set up one of your own.</p>
+      <div className="flex flex-wrap justify-center gap-3">
+        <MotionLink href="/gyms" className={btnPrimary}><LuMapPin size={17} />Find a gym to join</MotionLink>
+        <MotionLink href="/create-gym" className={btnGhost}><LuBuilding2 size={17} />Create a gym</MotionLink>
+      </div>
+    </div>
   );
+}
+
+/**
+ * Wraps the page area of the signed-in shell. A person without a gym gets the personal routes as they are;
+ * the landing route sends them to their feed, and any other gym-management route shows `TeamsOnly` instead
+ * of a page whose every request would be refused.
+ */
+export function PersonalGate({ children }: { children: React.ReactNode }) {
+  const { personal, ready } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+  const landing = personal && pathname === HOME;
+  // Wait for the fresh profile before redirecting: the first paint comes from the cached one, which can
+  // still say "no gym" right after a gym was created or entered in another tab.
+  useEffect(() => {
+    if (landing && ready) router.replace(PERSONAL_HOME);
+  }, [landing, ready, router]);
+  if (!personal || isPersonalPath(pathname)) return <>{children}</>;
+  // On the landing route the redirect is already under way — hold a placeholder rather than flash the card.
+  if (landing) return <div className={`${card} h-[300px] animate-pulse`} />;
+  return <TeamsOnly />;
 }
 
 /** Page-level gate: shows a "no access" card instead of the page when the role lacks the permission. */
 export function Guard({ perm, children }: { perm: string; children: React.ReactNode }) {
-  const { ready, can, me } = useAuth();
+  const { ready, can, me, personal } = useAuth();
   if (!ready) return <div className={`${card} h-[300px] animate-pulse`} />;
   if (can(perm)) return <>{children}</>;
+  // Not a role problem — this person isn't on a gym's team at all.
+  if (personal) return <TeamsOnly />;
   const home = NAV.find((n) => n.ready && (!n.perm || can(n.perm))); // first page this role can actually open
   return (
     <div className={`${card} mx-auto mt-10 max-w-md p-10 text-center`}>
