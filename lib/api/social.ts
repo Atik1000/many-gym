@@ -264,3 +264,29 @@ export const followRoutes = () => ({
   follow: resolvedPath("follow:gym", []) ?? resolvedPath("follow:user", []),
   unfollow: resolvedPath("unfollow:gym", []) ?? resolvedPath("unfollow:user", []),
 });
+
+// ---------------------------------------------------------------- people lists
+
+export type FollowPerson = { id: string; name: string; sub: string };
+
+/**
+ * Followers of / people followed by a user or gym, as plain rows. The follow endpoints return several shapes
+ * (user item, wrapped `{user}`, `{results}`); they are all read here. Gyms in a following list are left out —
+ * these rows are people.
+ */
+export async function followPeople(t: Target, which: "followers" | "following"): Promise<FollowPerson[]> {
+  const raw = await (which === "followers" ? followersOf(t) : followingOf(t));
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const rows = Array.isArray(raw) ? raw : Array.isArray(o.results) ? o.results : Array.isArray(o[which]) ? (o[which] as unknown[]) : [];
+  const seen = new Set<string>();
+  return rows.flatMap((r) => {
+    const row = (r ?? {}) as Record<string, unknown>;
+    if (row.gym || row.gym_id || row.target_type === "gym") return [];
+    const inner = (row.user ?? row.target ?? row) as Record<string, unknown>;
+    const id = String(row.user_id ?? row.target_id ?? inner.id ?? row.id ?? "");
+    if (!id || seen.has(id)) return [];
+    seen.add(id);
+    const name = `${String(inner.first_name ?? "")} ${String(inner.last_name ?? "")}`.trim() || String(inner.full_name ?? inner.name ?? inner.email ?? "Unknown");
+    return [{ id, name, sub: String(inner.email ?? "") }];
+  });
+}

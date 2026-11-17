@@ -6,7 +6,7 @@ import { MotionButton } from "@/components/ui/Motion";
 import { useToast } from "@/components/ui/Toast";
 import { ApiError } from "@/lib/api/http";
 import { follow, unfollow } from "@/lib/api/social";
-import { btnGhost, btnPrimary } from "@/lib/ui";
+import { FOLLOWING, btnGhost, btnPrimary } from "@/lib/ui";
 
 /** Follow ⇄ Following for a gym. Following a gym is always automatic, so there is no "Requested" state. */
 export default function FollowGymButton({ gymId, name, following, onChange }: {
@@ -31,7 +31,7 @@ export default function FollowGymButton({ gymId, name, following, onChange }: {
   };
 
   return (
-    <MotionButton className={following ? btnGhost : btnPrimary} disabled={busy} aria-pressed={following} onClick={toggle}>
+    <MotionButton className={following ? `${btnGhost} ${FOLLOWING}` : btnPrimary} disabled={busy} aria-pressed={following} onClick={toggle}>
       {following ? <><LuCheck size={17} />Following</> : <><LuPlus size={17} />Follow</>}
     </MotionButton>
   );

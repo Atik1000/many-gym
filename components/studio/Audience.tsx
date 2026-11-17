@@ -227,10 +227,13 @@ export default function Audience() {
                 {r.kind === "gym" && <Pill tone="purple">Gym</Pill>}
                 {tab === "Followers" && canBlock && r.id !== user?.id && (
                   <button aria-label={`Block ${r.name}`} title="Block and remove from followers" disabled={busy === r.id} onClick={() => setBlocking(r)}
-                    className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-bad disabled:opacity-50"><LuBan size={16} /></button>
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-bad-bg text-bad transition-colors hover:bg-bad hover:text-white disabled:opacity-50"><LuBan size={15} /></button>
                 )}
                 {!r.member && <MotionButton
-                  className="rounded-lg px-2.5 py-1.5 font-semibold text-primary hover:bg-surface disabled:opacity-50"
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors disabled:opacity-50 ${
+                    requested.has(r.id) ? "bg-warn-bg text-warn"
+                      : tab === "Followers" && !r.following ? "bg-primary text-white shadow-[0_4px_10px_-4px_rgba(91,61,245,.6)] hover:bg-primary-600"
+                        : "border border-line bg-surface text-muted hover:border-bad/40 hover:bg-bad-bg hover:text-bad"}`}
                   disabled={busy === r.id}
                   aria-label={requested.has(r.id) ? `Withdraw follow request to ${r.name}` : undefined}
                   title={requested.has(r.id) ? "Waiting for them to confirm — press to withdraw" : undefined}

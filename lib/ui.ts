@@ -8,3 +8,7 @@ export const input =
 export const label = "mb-1.5 block text-[13px] font-semibold";
 export const hint = "mt-1 text-xs text-muted";
 export const errorText = "mt-1 text-xs text-bad";
+
+// Follow buttons carry their state in colour: green once following, amber while a request is waiting.
+export const FOLLOWING = "!border-ok/30 !bg-ok-bg !text-ok hover:!border-ok/50";
+export const REQUESTED = "!border-warn/30 !bg-warn-bg !text-warn hover:!border-warn/50";

@@ -7,57 +7,117 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
-  LuArrowLeft, LuBuilding2, LuLock, LuMaximize2, LuRefreshCw, LuSearch, LuSend, LuSmile, LuThumbsUp, LuUser, LuUserSearch, LuX,
+  LuArrowLeft, LuBuilding2, LuLock, LuMaximize2, LuMessageCircle, LuRefreshCw, LuSearch, LuSend, LuSmile, LuThumbsUp, LuUser, LuUserSearch, LuX,
 } from "react-icons/lu";
 import { Avatar } from "@/components/ui/parts";
+import { followPeople, type FollowPerson } from "@/lib/api/social";
 import type { Conversation, Message, Messaging } from "./useMessaging";
 
 const iconBtn = "grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted outline-none transition-colors hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-40";
 
 // ---------------------------------------------------------------- conversation list
 
+type View = "chats" | "followers" | "following";
+const VIEWS: [View, string][] = [["chats", "Chats"], ["followers", "Followers"], ["following", "Following"]];
+
+/**
+ * Chats, plus the two lists of people a chat can be started with: who follows this inbox's owner (the gym, or
+ * the person) and who they follow. Picking someone opens the conversation with them, creating it if needed.
+ */
 export function ConversationList({ m, compact = false, onPick }: { m: Messaging; compact?: boolean; onPick?: (c: Conversation) => void }) {
   const [query, setQuery] = useState("");
+  const [view, setView] = useState<View>("chats");
+  const [people, setPeople] = useState<{ key: string; rows: FollowPerson[]; failed: boolean } | null>(null);
   const q = query.trim().toLowerCase();
   const rows = q ? m.list.filter((c) => c.title.toLowerCase().includes(q)) : m.list;
   const size = compact ? 40 : 48;
+
+  // Whose followers: the gym's in the gym inbox, the person's own in the personal one.
+  const ownerId = m.scope === "gym" ? m.gymId : m.meId;
+  const ownerKind = m.scope === "gym" ? "gym" : "user";
+  const key = view === "chats" || !ownerId ? "" : `${ownerKind}:${ownerId}:${view}`;
+  useEffect(() => {
+    if (!key || !ownerId || view === "chats") return;
+    let live = true;
+    followPeople({ id: ownerId, kind: ownerKind }, view)
+      .then((list) => live && setPeople({ key, rows: list, failed: false }))
+      .catch(() => live && setPeople({ key, rows: [], failed: true }));
+    return () => { live = false; };
+  }, [key, ownerId, ownerKind, view]);
+  const loaded = people?.key === key ? people : null;
+  const shown = (loaded?.rows ?? []).filter((p) => p.id !== m.meId && (!q || p.name.toLowerCase().includes(q)));
+
+  const message = async (p: FollowPerson) => {
+    const existing = m.list.find((c) => c.targetUserId === p.id && (m.scope === "gym" || !c.targetGymId));
+    if (existing) await m.openConversation(existing);
+    else await m.startWith(p.id);
+    setView("chats");
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="px-3 pb-2">
         <label className="flex items-center gap-2 rounded-full bg-background px-3.5 py-2 text-muted focus-within:ring-2 focus-within:ring-primary/30">
           <LuSearch size={16} className="shrink-0" />
-          <input aria-label="Search conversations" placeholder="Search conversations" value={query} onChange={(e) => setQuery(e.target.value)}
+          <input aria-label={view === "chats" ? "Search conversations" : "Search people"} placeholder={view === "chats" ? "Search conversations" : "Search people"} value={query} onChange={(e) => setQuery(e.target.value)}
             className="min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted" />
         </label>
         {m.gymId && (
-          <div role="tablist" aria-label="Inbox" className="mt-2 flex gap-1.5">
-            {([["gym", m.me?.gymName || "Gym", LuBuilding2], ["personal", "Personal", LuUser]] as const).map(([key, text, Icon]) => (
-              <button key={key} role="tab" aria-selected={m.scope === key} onClick={() => m.setScope(key)}
-                title={key === "gym" ? "Conversations between the gym and people — replies are sent as the gym" : "Your own conversations — replies are sent as you"}
-                className={`flex min-w-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold ${m.scope === key ? "bg-primary-50 text-primary" : "bg-background text-muted hover:text-foreground"}`}>
+          <div role="group" aria-label="Inbox" className="mt-2 flex gap-1.5">
+            {([["gym", m.me?.gymName || "Gym", LuBuilding2], ["personal", "Personal", LuUser]] as const).map(([k, text, Icon]) => (
+              <button key={k} aria-pressed={m.scope === k} onClick={() => m.setScope(k)}
+                title={k === "gym" ? "Conversations between the gym and people — replies are sent as the gym" : "Your own conversations — replies are sent as you"}
+                className={`flex min-w-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold ${m.scope === k ? "bg-primary text-white" : "bg-background text-muted hover:text-foreground"}`}>
                 <Icon size={14} className="shrink-0" /><span className="truncate">{text}</span>
               </button>
             ))}
           </div>
         )}
+        <div role="tablist" aria-label="Show" className="mt-2 flex border-b border-line">
+          {VIEWS.map(([v, text]) => (
+            <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
+              className={`-mb-px flex-1 border-b-2 px-1 py-2 text-[13px] font-semibold ${view === v ? "border-primary text-primary" : "border-transparent text-muted hover:text-foreground"}`}>
+              {text}{v === "chats" && m.unread > 0 && <span className="ml-1.5 rounded-full bg-bad px-1.5 py-0.5 text-[10px] font-bold text-white">{m.unread}</span>}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
-        {m.loading ? (
-          <ul aria-hidden className="grid gap-1">
-            {[0, 1, 2, 3].map((i) => (
-              <li key={i} className="flex items-center gap-3 px-2 py-2">
-                <span style={{ width: size, height: size }} className="shrink-0 animate-pulse rounded-full bg-background" />
-                <span className="grid flex-1 gap-1.5"><span className="h-3 w-1/2 animate-pulse rounded bg-background" /><span className="h-2.5 w-1/3 animate-pulse rounded bg-background" /></span>
-              </li>
-            ))}
-          </ul>
+        {view !== "chats" ? (
+          !loaded ? (
+            <Skeleton size={size} />
+          ) : shown.length === 0 ? (
+            <p className="px-4 py-10 text-center text-muted">
+              {loaded.failed ? "Couldn't load that list." : q ? "Nobody matches that." : view === "followers" ? "No followers yet." : "Not following anyone yet."}
+            </p>
+          ) : (
+            <ul className="grid gap-0.5">
+              {shown.map((p) => (
+                <li key={p.id} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-background">
+                  <Avatar name={p.name} size={size} />
+                  <Link href={`/users/${p.id}`} className="min-w-0 flex-1 hover:underline">
+                    <span className="block truncate font-semibold">{p.name}</span>
+                    <span className="block truncate text-[13px] text-muted">{view === "followers" ? "Follows you" : "Following"}</span>
+                  </Link>
+                  <button aria-label={`Message ${p.name}`} title={`Message ${p.name}`} disabled={m.starting} onClick={() => void message(p)}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-white shadow-[0_4px_10px_-4px_rgba(91,61,245,.6)] outline-none transition-colors hover:bg-primary-600 focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-50">
+                    <LuMessageCircle size={17} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : m.loading ? (
+          <Skeleton size={size} />
         ) : rows.length === 0 ? (
           <div className="px-4 py-10 text-center text-muted">
             <p>{q ? "No conversation matches that." : "No conversations yet."}</p>
+            {!q && (
+              <button onClick={() => setView("followers")} className="mt-2 inline-flex items-center gap-1.5 font-semibold text-primary"><LuMessageCircle size={16} />Message a follower</button>
+            )}
             {!q && m.scope === "personal" && (
-              <Link href="/find-people" className="mt-2 inline-flex items-center gap-1.5 font-semibold text-primary"><LuUserSearch size={16} />Find people to message</Link>
+              <Link href="/find-people" className="mt-2 flex items-center justify-center gap-1.5 font-semibold text-primary"><LuUserSearch size={16} />Find people</Link>
             )}
           </div>
         ) : (
@@ -84,6 +144,19 @@ export function ConversationList({ m, compact = false, onPick }: { m: Messaging;
         )}
       </div>
     </div>
+  );
+}
+
+function Skeleton({ size }: { size: number }) {
+  return (
+    <ul aria-hidden className="grid gap-1">
+      {[0, 1, 2, 3].map((i) => (
+        <li key={i} className="flex items-center gap-3 px-2 py-2">
+          <span style={{ width: size, height: size }} className="shrink-0 animate-pulse rounded-full bg-background" />
+          <span className="grid flex-1 gap-1.5"><span className="h-3 w-1/2 animate-pulse rounded bg-background" /><span className="h-2.5 w-1/3 animate-pulse rounded bg-background" /></span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

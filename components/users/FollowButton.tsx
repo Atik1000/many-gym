@@ -11,7 +11,7 @@ import { LuCheck, LuClock, LuPlus } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
 import { useToast } from "@/components/ui/Toast";
 import * as social from "@/lib/api/social";
-import { btnGhost, btnPrimary } from "@/lib/ui";
+import { FOLLOWING, REQUESTED, btnGhost, btnPrimary } from "@/lib/ui";
 
 export default function FollowButton({ userId, name, initial, requestId, onState }: {
   userId: string;
@@ -46,7 +46,7 @@ export default function FollowButton({ userId, name, initial, requestId, onState
   };
 
   return (
-    <MotionButton className={state === "none" ? btnPrimary : btnGhost} disabled={busy} onClick={toggle} aria-pressed={state !== "none"}
+    <MotionButton className={state === "none" ? btnPrimary : `${btnGhost} ${state === "following" ? FOLLOWING : REQUESTED}`} disabled={busy} onClick={toggle} aria-pressed={state !== "none"}
       title={state === "pending" ? "Waiting for them to confirm — press to withdraw" : state === "following" ? "Press to unfollow" : undefined}>
       {state === "following" ? <><LuCheck size={17} />Following</> : state === "pending" ? <><LuClock size={17} />Requested</> : <><LuPlus size={17} />Follow</>}
     </MotionButton>
