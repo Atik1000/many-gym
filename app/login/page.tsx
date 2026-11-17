@@ -50,27 +50,40 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
     const outcome = await signIn(email, password);
-    setBusy(false);
-    if (outcome.status === "error") return setError(outcome.error);
+    if (outcome.status === "error") { setBusy(false); return setError(outcome.error); }
     if (outcome.status === "two-factor") {
+      setBusy(false);
       setChallenge(outcome.challenge); setCode(""); setCodeError(""); setNotice("");
       return;
     }
-    router.replace(destination()); // straight to the destination: routing via "/" relies on a server redirect
-                          // that a client-side replace does not follow in the production build
+    enter();
+  };
+
+  /**
+   * Leaves for the app once signed in. `busy` stays on: the route change takes a moment, and a button that
+   * goes back to "Sign in" while nothing visibly happens gets pressed a second time. If the client-side
+   * change hasn't landed after a few seconds, load the destination outright rather than leave them here.
+   */
+  const enter = () => {
+    const to = destination(); // straight there: routing via "/" relies on a server redirect that a
+    router.replace(to);       // client-side replace does not follow in the production build
+    window.setTimeout(() => {
+      if (window.location.pathname.startsWith("/login")) window.location.assign(to);
+    }, 4000);
   };
 
   const verify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!challenge) return;
     if (!/^\d{6}$/.test(code)) return setCodeError("Enter the 6-digit code");
+    if (busy) return;
     setBusy(true);
     const problem = await verifyTwoFactor(challenge.email, code);
-    setBusy(false);
-    if (problem) return setCodeError(problem);
-    router.replace(destination());
+    if (problem) { setBusy(false); return setCodeError(problem); }
+    enter();
   };
 
   const resend = async (channel?: TwoFactorChannel) => {
