@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import AuthProvider, { PersonalGate } from "@/components/AuthProvider";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
+import ChatDock from "@/components/messages/ChatDock";
 import TableLabels from "@/components/ui/TableLabels";
 import { ToastProvider } from "@/components/ui/Toast";
 
@@ -28,6 +29,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </main>
         </div>
       </div>
+      {/* Chat on every page; reads the pathname, hence the boundary. */}
+      <Suspense fallback={null}><ChatDock /></Suspense>
       </AuthProvider>
     </ToastProvider>
   );
