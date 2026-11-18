@@ -10,6 +10,7 @@
     "check:api": "node scripts/check-api-coverage.mjs && node scripts/check-api-conformance.mjs && node scripts/check-permissions.mjs && node scripts/check-field-coverage.mjs --strict"
   },
   "dependencies": {
+    "firebase": "^13.4.0",
     "framer-motion": "^14.3.0",
     "next": "16.4.2",
     "react": "19.3.0",

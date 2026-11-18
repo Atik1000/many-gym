@@ -189,7 +189,8 @@ export function notificationHref(n: Notification, ctx: { userId?: string; postHr
     case "gym_invite":
       return gymId ? `/gyms/${gymId}` : n.actorGym ? `/gyms/${n.actorGym.id}` : null;
     case "follow":
-      return n.actorGym ? `/gyms/${n.actorGym.id}` : n.actor ? `/users/${n.actor.id}` : null;
+      // A push or socket alert carries no actor object, only `actor_id`.
+      return n.actorGym ? `/gyms/${n.actorGym.id}` : n.actor ? `/users/${n.actor.id}` : n.data.actor_id ? `/users/${n.data.actor_id}` : null;
     default:
   }
   const postId = n.targetType === "post" ? n.targetId : n.data.post_id || (/\/posts\//.test(n.actionUrl) ? (n.actionUrl.match(UUID)?.[0] ?? "") : "");

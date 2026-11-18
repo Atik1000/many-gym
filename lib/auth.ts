@@ -17,6 +17,7 @@ import { firstAvailable } from "./api/fallback";
 import { invalidateAll } from "./api";
 import * as security from "./api/security";
 import { deviceKeys, supported as e2eeSupported } from "./api/e2ee";
+import { disablePush } from "./push";
 
 export const MIN_PASSWORD = 8;
 
@@ -306,6 +307,9 @@ export async function resendTwoFactor(
 }
 
 export async function signOut() {
+  // First, while the access token still works: stop pushes to this browser.
+  // Bounded, so a slow network can't hold up signing out.
+  await Promise.race([disablePush(), new Promise((done) => setTimeout(done, 3000))]);
   const refresh = getTokens()?.refresh;
   try {
     if (refresh) await api.authLogoutCreate({ refresh });

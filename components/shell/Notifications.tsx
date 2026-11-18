@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { LuBanknote, LuBell, LuCalendarClock, LuCheck, LuCheckCheck, LuHeart, LuLoaderCircle, LuMail, LuMessageSquare, LuPartyPopper, LuReply, LuTimer, LuTrash2, LuUserPlus, LuX } from "react-icons/lu";
 import type { IconType } from "react-icons";
@@ -20,6 +21,7 @@ import { ApiError } from "@/lib/api/http";
 import * as api from "@/lib/api/notifications";
 import type { Notification, NotificationType } from "@/lib/api/notifications";
 import { accountSlug, postPath, timeAgo } from "@/lib/posts";
+import { PUSH_EVENT, enablePush, listenForPush, pushState, resumePush } from "@/lib/push";
 import { today } from "@/lib/dates";
 import { LEADS_KEY, leadName, nextMoveOf, type Lead } from "@/lib/leads";
 import { FOLLOW_REQUESTS_EVENT, followRequests } from "@/lib/api/social";
@@ -213,6 +215,8 @@ function Row({ n, href, onOpen, onRemove }: { n: Notification; href: string | nu
 
 // ---------------------------------------------------------------- the bell
 
+const subscribePush = (cb: () => void) => { window.addEventListener(PUSH_EVENT, cb); return () => window.removeEventListener(PUSH_EVENT, cb); };
+
 export default function Notifications() {
   const { can, trainerOnly, user, personal } = useAuth();
   const [gym] = useGym();
@@ -288,6 +292,36 @@ export default function Notifications() {
     postHref: gymName ? (postId) => postPath(accountSlug(gymName), postId) : undefined,
   });
   const badge = server.unread + unreadAlerts.length;
+
+  // Web push: keep this browser's token registered, and follow a click on a system notification.
+  const router = useRouter();
+  const toast = useToast();
+  const push = useSyncExternalStore(subscribePush, pushState, () => "unavailable" as const);
+  const [pushBusy, setPushBusy] = useState(false);
+  const hrefRef = useRef(hrefOf);
+  useEffect(() => { hrefRef.current = hrefOf; });
+  useEffect(() => {
+    if (!userId) return;
+    void resumePush();
+    return listenForPush((data) => {
+      if (data.type === "chat_message") { router.push("/messages"); return; }
+      const href = hrefRef.current(api.notificationFromApi({ ...data, data }));
+      if (href) router.push(href);
+      else setOpen(true);
+    });
+  }, [userId, router]);
+  const turnOnPush = async () => {
+    setPushBusy(true);
+    try {
+      const state = await enablePush();
+      if (state === "on") toast("Push notifications are on for this browser");
+      else if (state === "blocked") toast("Notifications are blocked for this site in your browser settings");
+    } catch (e) {
+      toast(problem(e, "Couldn't turn on push notifications."));
+    } finally {
+      setPushBusy(false);
+    }
+  };
   const fresh = server.rows.filter((n) => !n.read);
   const earlier = server.rows.filter((n) => n.read);
   const firstLoad = server.loading && server.page === 0;
@@ -318,6 +352,13 @@ export default function Notifications() {
                 <button type="button" className={tool} disabled={server.working || server.unread === 0} onClick={() => void server.markAll()}><LuCheckCheck size={15} />Mark all as read</button>
                 <button type="button" className={tool} disabled={server.working || (earlier.length === 0 && filter === "all" && !server.hasMore)} onClick={() => void server.clearRead()}><LuTrash2 size={14} />Clear read</button>
               </div>
+
+              {push === "off" && (
+                <div className="mx-1.5 mb-1 flex items-center gap-3 rounded-lg bg-background px-3 py-2.5">
+                  <span className="min-w-0 flex-1 text-[13px]"><b className="block font-semibold">Get notified on this device</b><span className="text-muted">Even when manygym isn&apos;t open.</span></span>
+                  <button type="button" disabled={pushBusy} onClick={() => void turnOnPush()} className="shrink-0 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-semibold text-white disabled:opacity-60">{pushBusy ? "Turning on…" : "Turn on"}</button>
+                </div>
+              )}
 
               <div className="max-h-[min(64vh,560px)] overflow-y-auto overscroll-contain">
                 {nothing && <p className="px-3 py-6 text-center text-muted">{filter === "unread" ? "No unread notifications." : "You\u2019re all caught up."}</p>}
