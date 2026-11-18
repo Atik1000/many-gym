@@ -13,14 +13,15 @@
  * zero (nobody has reacted, so neither has the viewer).
  *
  * Every route exists twice: under its target (`/posts/{id}/reactions/`) and under `/reactions/posts/{id}/`.
- * The target-scoped one is preferred; the twin is the fallback. These routes postdate the committed OpenAPI
- * document, so they go through `request()` directly rather than the generated client.
+ * The target-scoped one is preferred; the twin is the fallback. They go through `request()` directly rather
+ * than the generated client.
  *
- * Who is reacting (the person, or the gym while the token is in gym context) is left to the server: no
- * `owner_type` / `gym_id` is sent.
+ * Who is reacting: the `user_id` always comes from the token. While the session is in gym context the
+ * reaction is made as the gym page, and the writes say so explicitly (`owner_type: "gym"` + `gym_id`) as the
+ * integration spec asks; in personal context both fields are left out, which the server reads as the person.
  */
 import { firstAvailable } from "./fallback";
-import { mediaUrl, request } from "./http";
+import { currentGymId, mediaUrl, request } from "./http";
 
 export type ReactionTarget = { kind: "post" | "comment" | "story"; id: string };
 
@@ -132,6 +133,12 @@ const either = <X,>(feature: string, t: ReactionTarget, tail: string, call: (pat
 /** How the target-agnostic routes name a target: `post_id`, `comment_id` or `story_id`. */
 const targetKey = (t: ReactionTarget) => ({ [`${t.kind}_id`]: t.id });
 
+/** The acting page for a write: the gym this session is scoped to, or nothing for a person. */
+const actor = (): { owner_type?: "gym"; gym_id?: string } => {
+  const gymId = currentGymId();
+  return gymId ? { owner_type: "gym", gym_id: gymId } : {};
+};
+
 // ---------------------------------------------------------------- catalogue
 
 let catalogue: Promise<ReactionItem[]> | null = null;
@@ -170,8 +177,8 @@ export const reactionSummary = async (t: ReactionTarget): Promise<ReactionSummar
  * returned summary rather than assuming the reaction is now set.
  */
 export async function react(t: ReactionTarget, code: string): Promise<ReactionSummary> {
-  const raw = await either<unknown>("set", t, "", (p) => request("POST", p, { body: { reaction_code: code } }), [
-    { path: "POST /reactions/", call: () => request("POST", "/api/v1/reactions/", { body: { reaction_code: code, ...targetKey(t) } }) },
+  const raw = await either<unknown>("set", t, "", (p) => request("POST", p, { body: { reaction_code: code, ...actor() } }), [
+    { path: "POST /reactions/", call: () => request("POST", "/api/v1/reactions/", { body: { reaction_code: code, ...targetKey(t), ...actor() } }) },
   ]);
   return summaryFromApi(obj(raw).summary);
 }
@@ -179,7 +186,9 @@ export async function react(t: ReactionTarget, code: string): Promise<ReactionSu
 /** Take the viewer's reaction back. `reactionId` (from the summary) enables the by-id route as a fallback. */
 export async function unreact(t: ReactionTarget, reactionId?: string): Promise<ReactionSummary> {
   let byId = false;
-  const raw = await either<unknown>("remove", t, "", (p) => request("DELETE", p), reactionId ? [
+  // The body only matters for a gym page's reaction; a person's needs none.
+  const as = currentGymId() ? { body: actor() } : {};
+  const raw = await either<unknown>("remove", t, "", (p) => request("DELETE", p, as), reactionId ? [
     { path: "DELETE /reactions/{reaction_id}/", call: () => { byId = true; return request("DELETE", `/api/v1/reactions/${encodeURIComponent(reactionId)}/`); } },
   ] : []);
   // The by-id route doesn't say what the target looks like afterwards, so ask.
