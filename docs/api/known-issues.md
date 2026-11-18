@@ -669,6 +669,27 @@ This is the one place `scripts/check-api-conformance.mjs` still reports a mismat
 schema or the client is wrong, and it should stay visible until someone confirms which against a signed-in
 session.
 
+## 42. Notifications: the spec and the deployment disagree in four places
+
+Checked against `v0.manygym.com` without a session (route existence, CORS, the published schema); the
+response bodies of the authenticated routes are still unconfirmed.
+
+- **`X-Gym-Context` cannot be sent from a browser.** The preflight answers
+  `access-control-allow-headers: accept, authorization, content-type, user-agent, x-csrftoken, x-requested-with`.
+  A request carrying `X-Gym-Context` is refused before it leaves the browser. Either add the header to the
+  CORS allow-list or confirm that a gym-context token is enough on its own.
+- **Three documented routes are not served:** `POST /notifications/batch-read/`,
+  `DELETE /notifications/clear-read/` and the `…/{id}/mark-read/` alias all answer Django's HTML `404`.
+  `…/{id}/read/`, `mark-all-read/`, `unread-count/`, `devices/` and `devices/unregister/` are there.
+- **The list is documented two ways.** The integration spec shows the pagination envelope; the published
+  schema types `GET /notifications/` as a bare `[NotificationDetail]`.
+- **The socket event is not in the messaging spec.** `notification.alert` arrives on `/ws/chat/` alongside the
+  chat events, with no `actor`, `actor_gym` or `gym`.
+
+*Client:* `lib/api/notifications.ts` sends no `X-Gym-Context`, falls back to the per-notification routes for
+batch-read and clear-read, and accepts either list shape. The bell treats a socket alert as a cue to re-read
+the count and the first page rather than trusting the event's own fields.
+
 ### Checked and correct
 
 Worth recording because each of these is a common place for an API to go wrong, and this one does not:

@@ -6,7 +6,8 @@
  * Connects to `wss://<host>/ws/chat/?token=<access>&gym_id=<gym>`. On connect the server sends
  * `connection_established`; from then on the socket carries live `new_message`, `incoming_notification`,
  * `typing_indicator`, `read_receipt`, `message_sent_ack`, `joined_conversation`, `left_conversation`, `pong`
- * and `error` events, and accepts the `join_conversation`, `leave_conversation`, `send_message`, `typing`,
+ * and `error` events — plus `notification.alert` for the in-app notifications, which is handed on to the bell
+ * as a window event rather than to the chat — and accepts the `join_conversation`, `leave_conversation`, `send_message`, `typing`,
  * `mark_read` and `ping` actions.
  *
  * It owns one connection, reconnects with capped exponential backoff, keeps a heartbeat, and re-joins the
@@ -17,6 +18,7 @@
  */
 
 import { API_BASE, currentGymId, getTokens } from "./http";
+import { NOTIFICATION_EVENT } from "./notifications";
 
 export type SocketStatus = "connecting" | "open" | "closed" | "auth-error";
 
@@ -158,6 +160,11 @@ export class MessagingSocket {
         this.startHeartbeat();
         // Re-join the room we were looking at before a reconnect.
         if (this.activeConversation) this.raw({ action: "join_conversation", conversation_id: this.activeConversation });
+      }
+      if (msg.type === "notification.alert") {
+        // Not a chat event: the notification bell listens for this (lib/api/notifications.ts).
+        window.dispatchEvent(new CustomEvent(NOTIFICATION_EVENT, { detail: msg }));
+        return;
       }
       this.handlers.onEvent?.(msg);
     };
