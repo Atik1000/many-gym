@@ -318,6 +318,27 @@ export const followRoutes = () => ({
 
 // ---------------------------------------------------------------- people lists
 
+/** How many rows a follow list holds, whichever of its shapes came back; null when it can't be told. */
+function listSize(raw: unknown, key: "followers" | "following"): number | null {
+  if (Array.isArray(raw)) return raw.length;
+  const o = (raw ?? {}) as Record<string, unknown>;
+  if (typeof o.count === "number") return o.count;
+  for (const v of [o.results, o[key]]) if (Array.isArray(v)) return v.length;
+  return null;
+}
+
+/**
+ * How many followers an account has and how many accounts it follows. No endpoint reports the two numbers,
+ * so they are read off the lists; either is null when its list can't be read (a private account, say).
+ */
+export async function followCounts(t: Target): Promise<{ followers: number | null; following: number | null }> {
+  const [a, b] = await Promise.allSettled([followersOf(t), followingOf(t)]);
+  return {
+    followers: a.status === "fulfilled" ? listSize(a.value, "followers") : null,
+    following: b.status === "fulfilled" ? listSize(b.value, "following") : null,
+  };
+}
+
 export type FollowPerson = { id: string; name: string; sub: string };
 
 /**

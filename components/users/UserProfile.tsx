@@ -56,6 +56,16 @@ export default function UserProfile() {
   const mine = !!user && user.id === id;
   const meId = user?.id ?? "";
 
+  // Followers / following, kept current: re-read when a follow is made here or someone follows this account.
+  const [counts, setCounts] = useState<{ followers: number | null; following: number | null } | null>(null);
+  useEffect(() => {
+    let live = true;
+    const read = () => social.followCounts({ id, kind: "user" }).then((c) => { if (live) setCounts(c); }).catch(() => undefined);
+    void read();
+    const stop = social.onAudienceChange(() => void read());
+    return () => { live = false; stop(); };
+  }, [id]);
+
   const load = useCallback(async () => {
     setProblem(null);
     try {
@@ -155,6 +165,12 @@ export default function UserProfile() {
         <Avatar name={name} size={84} src={mediaUrl(about.avatar_url)} />
         <div className="min-w-0 flex-1">
           <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold"><span className="truncate">{name}</span>{about.is_private && <Pill tone="gray"><LuLock size={12} className="mr-1 inline" />Private</Pill>}</h1>
+          {counts && (counts.followers !== null || counts.following !== null) && (
+            <p className="mt-1 flex flex-wrap gap-x-4 text-[15px] text-muted" aria-live="polite">
+              {counts.followers !== null && <span><b className="tabular-nums text-foreground">{counts.followers}</b> follower{counts.followers === 1 ? "" : "s"}</span>}
+              {counts.following !== null && <span><b className="tabular-nums text-foreground">{counts.following}</b> following</span>}
+            </p>
+          )}
           {d.about_you && <p className="mt-1 whitespace-pre-wrap text-muted">{d.about_you}</p>}
         </div>
         {mine
