@@ -8,11 +8,11 @@
  * removed one at a time (`DELETE {id}/`) or, for everything already read, with `clear-read/`.
  *
  * Whose notifications these are — the person's, or the gym's while the session is in gym context — comes from
- * the token. The spec also offers an `X-Gym-Context` header for that; it is deliberately not sent, because the
- * API's CORS policy does not allow the header and a browser would refuse the whole request (known-issues #42).
+ * the token. The spec also offers an optional `X-Gym-Context` header for that; it is not sent, because this app
+ * always holds a token minted for the context it is showing (known-issues #42).
  *
- * `batch-read/` and `clear-read/` are in the integration spec but not served by every deployment, so each has
- * a fallback built from the per-notification routes.
+ * `batch-read/` and `clear-read/` were missing from the deployment this was first written against (they are
+ * served now), so each keeps a fallback built from the per-notification routes.
  *
  * New notifications also arrive live on the chat WebSocket as `notification.alert`; the socket re-broadcasts
  * them as a `NOTIFICATION_EVENT` window event so the bell does not need a connection of its own.
@@ -96,13 +96,29 @@ export function notificationFromApi(raw: unknown): Notification {
 const ROOT = "/api/v1/notifications/";
 const one = (id: string, tail = "") => `${ROOT}${encodeURIComponent(id)}/${tail}`;
 
+export type NotificationFilter = {
+  unread?: boolean;
+  type?: NotificationType;
+  /** Only notifications about one kind of thing (`post`, `comment`, `member_request`, …) … */
+  targetType?: string;
+  /** … or about one particular thing. */
+  targetId?: string;
+  page?: number;
+  /** The server caps this at 100. */
+  pageSize?: number;
+};
+
 /** Newest first. `unread` narrows to what hasn't been read; `type` to one kind. */
-export async function listNotifications(o: { unread?: boolean; type?: NotificationType; page?: number; pageSize?: number } = {}): Promise<NotificationPage> {
+export async function listNotifications(o: NotificationFilter = {}): Promise<NotificationPage> {
   const page = o.page ?? 1;
   const raw = await request<unknown>("GET", ROOT, {
-    query: { is_read: o.unread ? false : undefined, notification_type: o.type, page, page_size: o.pageSize ?? 20 },
+    query: {
+      is_read: o.unread ? false : undefined, notification_type: o.type,
+      target_type: o.targetType || undefined, target_id: o.targetId || undefined,
+      page, page_size: Math.min(o.pageSize ?? 20, 100),
+    },
   });
-  // The spec answers the pagination envelope; the published schema says a bare array. Take either.
+  // The envelope is what is documented and served; an early schema said a bare array, so take either.
   const env = obj(raw);
   const results = Array.isArray(raw) ? raw : Array.isArray(env.results) ? env.results : [];
   const rows = results.map(notificationFromApi).filter((n) => n.id);
@@ -112,6 +128,10 @@ export async function listNotifications(o: { unread?: boolean; type?: Notificati
     hasMore: env.next != null ? !!env.next : num(env.total_pages) > (num(env.current_page) || page),
   };
 }
+
+/** One notification by id — e.g. to fill in the actor and gym a push or socket alert leaves out. */
+export const getNotification = async (id: string): Promise<Notification> =>
+  notificationFromApi(await request<unknown>("GET", one(id)));
 
 export const unreadNotificationCount = async (): Promise<number> =>
   num(obj(await request<unknown>("GET", `${ROOT}unread-count/`)).unread_count);
@@ -125,13 +145,22 @@ export const markNotificationRead = async (id: string): Promise<Notification> =>
 export const markAllNotificationsRead = async (): Promise<number> =>
   num(obj(await request<unknown>("POST", `${ROOT}mark-all-read/`, { body: {} })).marked_read_count);
 
-/** Marks these as read in one request where the server has `batch-read/`, one by one where it doesn't. */
+/** `batch-read/` takes at most this many ids per request. */
+const BATCH_MAX = 100;
+
+/** Marks these as read through `batch-read/` (100 at a time) where the server has it, one by one where it doesn't. */
 export function markNotificationsRead(ids: string[]): Promise<number> {
   if (!ids.length) return Promise.resolve(0);
   return firstAvailable<number>("notifications:batch-read", [
     {
       path: "POST /notifications/batch-read/",
-      call: async () => num(obj(await request<unknown>("POST", `${ROOT}batch-read/`, { body: { notification_ids: ids } })).marked_read_count),
+      call: async () => {
+        let marked = 0;
+        for (let i = 0; i < ids.length; i += BATCH_MAX) {
+          marked += num(obj(await request<unknown>("POST", `${ROOT}batch-read/`, { body: { notification_ids: ids.slice(i, i + BATCH_MAX) } })).marked_read_count);
+        }
+        return marked;
+      },
     },
     {
       path: "PATCH /notifications/{notification_id}/read/",

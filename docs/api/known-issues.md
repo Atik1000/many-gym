@@ -669,25 +669,32 @@ This is the one place `scripts/check-api-conformance.mjs` still reports a mismat
 schema or the client is wrong, and it should stay visible until someone confirms which against a signed-in
 session.
 
-## 42. Notifications: the spec and the deployment disagree in four places
+## 42. ~~Notifications: the spec and the deployment disagree in four places~~ — three fixed in the API
 
-Checked against `v0.manygym.com` without a session (route existence, CORS, the published schema); the
-response bodies of the authenticated routes are still unconfirmed.
+First checked against `v0.manygym.com` without a session (route existence, CORS, the published schema).
+**Re-checked the same way on 2026-11-19: three of the four are resolved.** The response bodies of the
+authenticated routes are still unconfirmed.
 
-- **`X-Gym-Context` cannot be sent from a browser.** The preflight answers
-  `access-control-allow-headers: accept, authorization, content-type, user-agent, x-csrftoken, x-requested-with`.
-  A request carrying `X-Gym-Context` is refused before it leaves the browser. Either add the header to the
-  CORS allow-list or confirm that a gym-context token is enough on its own.
-- **Three documented routes are not served:** `POST /notifications/batch-read/`,
-  `DELETE /notifications/clear-read/` and the `…/{id}/mark-read/` alias all answer Django's HTML `404`.
-  `…/{id}/read/`, `mark-all-read/`, `unread-count/`, `devices/` and `devices/unregister/` are there.
-- **The list is documented two ways.** The integration spec shows the pagination envelope; the published
-  schema types `GET /notifications/` as a bare `[NotificationDetail]`.
-- **The socket event is not in the messaging spec.** `notification.alert` arrives on `/ws/chat/` alongside the
-  chat events, with no `actor`, `actor_gym` or `gym`.
+- ~~**`X-Gym-Context` cannot be sent from a browser.**~~ **Resolved** — the preflight's
+  `access-control-allow-headers` now includes `x-gym-context`. The client still does not send it: it always
+  holds a token minted for the context it is showing, and the header is optional.
+- ~~**Three documented routes are not served.**~~ **Resolved** — `POST /notifications/batch-read/`,
+  `DELETE /notifications/clear-read/` and the `…/{id}/mark-read/` alias now answer the API's own
+  `401 AUTHENTICATION_REQUIRED` instead of Django's HTML `404`, and all three are in the published schema.
+- ~~**The list is documented two ways.**~~ **Resolved** — the published schema now types `GET /notifications/`
+  as `NotificationPaginatedResponse`, the envelope the integration spec shows. It also documents two filters
+  the integration spec does not mention, `target_type` and `target_id`, and a 100-id cap on `batch-read/`.
+- **The socket event is not in the messaging spec.** Still open. `notification.alert` arrives on `/ws/chat/`
+  alongside the chat events, with no `actor`, `actor_gym` or `gym`.
 
-*Client:* `lib/api/notifications.ts` sends no `X-Gym-Context`, falls back to the per-notification routes for
-batch-read and clear-read, and accepts either list shape. The bell treats a socket alert as a cue to re-read
+Smaller things in the published schema: `POST …/{id}/read/`, `POST …/{id}/mark-read/` and
+`POST /notifications/devices/unregister/` declare a `200` with no body schema (the `PATCH` twins are typed),
+and `DELETE /notifications/devices/unregister/` is documented as `204` where the integration spec shows a
+`200` with `{unregistered, message}` for both methods.
+
+*Client:* `lib/api/notifications.ts` sends no `X-Gym-Context`, calls `batch-read/` (100 ids at a time) and
+`clear-read/` first and keeps the per-notification routes as a fallback, uses `PATCH …/read/` and
+`POST devices/unregister/`, and accepts either list shape. The bell treats a socket alert as a cue to re-read
 the count and the first page rather than trusting the event's own fields.
 
 ### Checked and correct
