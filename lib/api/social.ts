@@ -19,6 +19,7 @@
 import * as api from "./endpoints";
 import { firstAvailable, resolvedPath, type Attempt } from "./fallback";
 import { ApiError, request } from "./http";
+import { NOTIFICATION_EVENT } from "./notifications";
 import type * as T from "./types";
 
 export type Target = { id: string; kind: "user" | "gym" };
@@ -60,6 +61,56 @@ const body = (t: Target, action: "follow" | "unfollow"): T.FollowActionRequest =
   action,
 });
 
+// ---------------------------------------------------------------- keeping every screen in step
+
+/**
+ * Fired on `window` after every follow, unfollow and withdrawn request, with what the server said happened.
+ * The same account is shown in many places at once — a post card, a profile, a list, a count — so each of
+ * them listens for this instead of trusting only its own button.
+ */
+export const FOLLOW_EVENT = "manygym:follow";
+export type FollowChange = { target: Target; state: FollowState; requestId?: string };
+
+const announce = (target: Target, result: FollowResult): FollowResult => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent<FollowChange>(FOLLOW_EVENT, { detail: { target, state: result.state, requestId: result.requestId } }));
+  }
+  return result;
+};
+
+/** Hear about each follow change made in this tab, straight away. Returns the cleanup. */
+export function onFollowChange(cb: (change: FollowChange) => void): () => void {
+  const on = (e: Event) => cb((e as CustomEvent<FollowChange>).detail);
+  window.addEventListener(FOLLOW_EVENT, on);
+  return () => window.removeEventListener(FOLLOW_EVENT, on);
+}
+
+/**
+ * Hear that the follower / following lists may have changed, for anything that shows those lists or their
+ * counts: a follow made here, a follow request answered here, or — live — someone else following this
+ * account (the server's `follow` notification, over the socket or a push). Bursts are folded into one call.
+ */
+export function onAudienceChange(cb: () => void): () => void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const soon = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(cb, 250);
+  };
+  const onAlert = (e: Event) => {
+    const d = ((e as CustomEvent).detail ?? {}) as { notification_type?: unknown; data?: { notification_type?: unknown } };
+    if ((d.notification_type ?? d.data?.notification_type) === "follow") soon();
+  };
+  window.addEventListener(FOLLOW_EVENT, soon);
+  window.addEventListener(FOLLOW_REQUESTS_EVENT, soon);
+  window.addEventListener(NOTIFICATION_EVENT, onAlert);
+  return () => {
+    if (timer) clearTimeout(timer);
+    window.removeEventListener(FOLLOW_EVENT, soon);
+    window.removeEventListener(FOLLOW_REQUESTS_EVENT, soon);
+    window.removeEventListener(NOTIFICATION_EVENT, onAlert);
+  };
+}
+
 // ---------------------------------------------------------------- writes
 
 export async function follow(t: Target): Promise<FollowResult> {
@@ -78,7 +129,7 @@ export async function follow(t: Target): Promise<FollowResult> {
     { path: "POST /users/follow/", call: () => api.usersFollowCreate(b) },
     { path: "POST /auth/follow/", call: () => api.authFollowCreate(b) },
   ];
-  return normalise(await firstAvailable(`follow:${t.kind}`, attempts), true);
+  return announce(t, normalise(await firstAvailable(`follow:${t.kind}`, attempts), true));
 }
 
 /**
@@ -105,7 +156,7 @@ export async function unfollow(t: Target): Promise<FollowResult> {
     { path: "DELETE /users/follow/", call: () => api.usersFollowDestroy() },
     { path: "DELETE /auth/follow/", call: () => api.authFollowDestroy() },
   ];
-  return normalise(await firstAvailable(`unfollow:${t.kind}`, attempts), false);
+  return announce(t, normalise(await firstAvailable(`unfollow:${t.kind}`, attempts), false));
 }
 
 export const setFollowing = (t: Target, following: boolean) => (following ? follow(t) : unfollow(t));
@@ -138,7 +189,7 @@ export async function cancelFollowRequest(userId: string, requestId?: string): P
   // A cancelled request answers `status: "cancelled"` with no follow flag — either way, not following.
   const raw = await firstAvailable(`follow-requests:cancel:${r ? "by-request" : "by-user"}`, attempts);
   const done = normalise(raw, false);
-  return { ...done, following: false, state: "none" };
+  return announce({ id: userId, kind: "user" }, { ...done, following: false, state: "none", requestId: undefined });
 }
 
 /**

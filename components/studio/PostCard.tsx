@@ -5,7 +5,7 @@
  * community feed (someone else's post — follow, comment and share only).
  */
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LuClock, LuEyeOff, LuGlobe, LuLink2, LuLock, LuMessageSquare, LuEllipsis, LuPencil, LuPin, LuPlay, LuRepeat2, LuShare2, LuTrash2, LuUserMinus, LuUserPlus, LuUsers, LuCircleDashed } from "react-icons/lu";
 import type { IconType } from "react-icons";
 import { useAuth } from "@/components/AuthProvider";
@@ -125,6 +125,21 @@ export function PostCard({ post, onChange, onEdit, onDelete, onFollowChange }: {
   const lead = post.media[0] ?? post.source?.media[0];
 
 
+  // A follow made anywhere on screen (another card, a profile button, a list) shows here too.
+  const sync = useRef({ post, onChange, following });
+  useEffect(() => { sync.current = { post, onChange, following }; });
+  useEffect(() => {
+    if (!owner.id) return;
+    return social.onFollowChange((c) => {
+      if (c.target.kind !== owner.kind || c.target.id !== owner.id) return;
+      setRequestId(c.requestId);
+      setRequested(c.state === "pending");
+      const now = c.state === "following";
+      const s = sync.current;
+      if (now !== !!s.following) s.onChange(owner.kind === "gym" ? { ...s.post, followingGym: now } : { ...s.post, followingAuthor: now });
+    });
+  }, [owner.id, owner.kind]);
+
   const setFollow = async (follow: boolean) => {
     if (!owner.id) return;
     setFollowBusy(true);
@@ -132,10 +147,7 @@ export function PostCard({ post, onChange, onEdit, onDelete, onFollowChange }: {
       const res = requested && !follow && owner.kind === "user"
         ? await social.cancelFollowRequest(owner.id, requestId)
         : await social.setFollowing({ id: owner.id, kind: owner.kind }, follow);
-      setRequestId(res.requestId);
-      setRequested(res.state === "pending");
       const now = res.state === "following";
-      onChange(owner.kind === "gym" ? { ...post, followingGym: now } : { ...post, followingAuthor: now });
       onFollowChange?.({ kind: owner.kind, id: owner.id }, now);
       toast(res.state === "pending" ? `Follow request sent to ${owner.name}` : now ? `Following ${owner.name}` : requested ? "Follow request withdrawn" : `Unfollowed ${owner.name}`);
     } catch (e) {

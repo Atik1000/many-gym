@@ -39,6 +39,8 @@ const ME_KEY = "manygym.me.v1";
 const LAST_GYM_KEY = "manygym.lastgym.v1";
 /** Gyms that returned 404/403 on switch-context, so sign-in stops paying for them again. */
 const DEAD_GYMS_KEY = "manygym.deadgyms.v1";
+/** The user id of someone who chose their own profile over a gym, so their next sign-in doesn't undo that. */
+const STAY_PERSONAL_KEY = "manygym.personal.v1";
 
 const read = <X,>(key: string, fallback: X): X => {
   try {
@@ -138,6 +140,7 @@ export async function enterGym(gymId: string): Promise<string | null> {
     setTokens(res.tokens as Tokens);
     try {
       localStorage.setItem(LAST_GYM_KEY, gymId);
+      localStorage.removeItem(STAY_PERSONAL_KEY);
     } catch {
       /* storage unavailable — sign-in just probes in list order next time */
     }
@@ -199,6 +202,31 @@ export async function thisDevice(): Promise<security.DeviceIdentity> {
   }
 }
 
+/**
+ * Leaves the gym and uses the app as the person: swaps the gym-scoped token for a personal one
+ * (`POST /auth/switch-context/` with `context_type: "personal"`). Anyone can do this — an owner, staff, or
+ * an account a gym created — because every account is a person first. Returns an error message, or null.
+ */
+export async function enterPersonal(): Promise<string | null> {
+  try {
+    const res = await api.authSwitchContextCreate({ context_type: "personal" as never });
+    if (!res.tokens?.access) return "The server didn't return a personal token.";
+    setTokens(res.tokens as Tokens);
+    invalidateAll();
+    const me = await loadMe();
+    try {
+      // Remembered per account: someone else signing in on this browser still lands in their gym.
+      localStorage.setItem(STAY_PERSONAL_KEY, JSON.stringify(me?.userId ?? ""));
+    } catch {
+      /* storage unavailable — the next sign-in just opens a gym first */
+    }
+    notifySession();
+    return null;
+  } catch (e) {
+    return e instanceof ApiError ? e.message : "Couldn't switch to your profile.";
+  }
+}
+
 // ---------------------------------------------------------------- sign-in
 
 /**
@@ -216,7 +244,8 @@ async function completeSignIn(tokens: Tokens): Promise<void> {
    * returns 404 "Gym not found." Treating that as a login failure locks the account out of the app
    * entirely, even though its other gyms are fine.
    */
-  if (!getTokens()?.gym_id) {
+  const stayPersonal = !!me?.userId && read<string | null>(STAY_PERSONAL_KEY, null) === me.userId;
+  if (!getTokens()?.gym_id && !stayPersonal) {
     /*
      * Order matters for how long sign-in feels. The gym that worked last time goes first, and gyms already
      * known to 404 go last — otherwise every sign-in pays for a failed round-trip per dead gym before

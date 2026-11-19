@@ -8,9 +8,9 @@ import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/ui/parts";
 import { useToast } from "@/components/ui/Toast";
 import { resetDemoData, useGym } from "@/lib/api";
-import { switchAccount } from "@/lib/auth";
+import { enterPersonal, switchAccount } from "@/lib/auth";
 import type { IconType } from "react-icons";
-import { LuArrowLeft, LuBuilding2, LuCheck, LuChevronRight, LuLogOut, LuMenu, LuRefreshCw, LuRotateCcw, LuSettings, LuUserPlus, LuUsers } from "react-icons/lu";
+import { LuArrowLeft, LuBuilding2, LuCheck, LuChevronRight, LuLogOut, LuMenu, LuRefreshCw, LuRotateCcw, LuSettings, LuUser, LuUserPlus, LuUsers } from "react-icons/lu";
 import GlobalSearch from "@/components/shell/GlobalSearch";
 import Notifications from "@/components/shell/Notifications";
 import { MotionButton } from "@/components/ui/Motion";
@@ -31,6 +31,28 @@ export default function Topbar() {
     if (await switchAccount(id)) { setOpen(false); router.replace(HOME); }
     else toast("Couldn't open that gym");
   };
+  // Out of the gym and into the person's own profile and feed — open to everyone, whoever made the account.
+  const [switching, setSwitching] = useState(false);
+  const goPersonal = async () => {
+    setSwitching(true);
+    const problem = await enterPersonal();
+    setSwitching(false);
+    if (problem) { toast(problem); return; }
+    setOpen(false);
+    router.replace(PERSONAL_HOME);
+  };
+  // In a gym's context the token carries that gym; a member with no staff role is shown the personal app
+  // already, and has nothing to switch out of.
+  const inGym = !personal && !!me?.gymId;
+  const ownProfile = (size: number) => (
+    <button role="menuitem" disabled={switching} onClick={() => void goPersonal()} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-background disabled:opacity-60">
+      <span className="relative">
+        <Avatar name={user?.name || "You"} size={size} src="" />
+        <span className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-surface text-muted"><LuUser size={11} /></span>
+      </span>
+      <span className="min-w-0"><b className="block truncate">{user?.name || "Your profile"}</b><span className="block truncate text-xs font-normal text-muted">{switching ? "Switching…" : "Switch to your own profile"}</span></span>
+    </button>
+  );
   return (
     <header className="sticky top-0 z-30 flex h-[60px] items-center gap-3 border-b border-line bg-surface px-4 sm:gap-4 sm:px-7">
       <MotionButton aria-label="Open menu" onClick={() => window.dispatchEvent(new Event(NAV_EVENT))} className="-ml-1 rounded-lg p-2 text-foreground hover:bg-background lg:hidden"><LuMenu size={22} /></MotionButton>
@@ -63,6 +85,7 @@ export default function Topbar() {
                       </Link>
                     )}
                     <hr className="mx-2 my-1 border-line" />
+                    {inGym && ownProfile(36)}
                     {others.slice(0, 2).map((p) => (
                       <button key={p.id} role="menuitem" onClick={() => pick(p.id)} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left font-semibold hover:bg-background">
                         <span className="relative">
@@ -101,6 +124,7 @@ export default function Topbar() {
                         <GymAvatar url={gym?.overview.profileUrl} name={gymName} size={40} />
                         <span className="min-w-0 flex-1"><b className="block truncate">{gymName || "Your gym"}</b><span className="block text-xs font-normal text-muted">Gym page</span></span>
                       </Link>
+                      {inGym && ownProfile(40)}
                       <hr className="mx-2 my-1 border-line" />
                     </>)}
                     {gyms.map((p) => {

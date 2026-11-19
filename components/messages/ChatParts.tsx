@@ -10,7 +10,7 @@ import {
   LuArrowLeft, LuBuilding2, LuLock, LuMaximize2, LuMessageCircle, LuRefreshCw, LuSearch, LuSend, LuSmile, LuThumbsUp, LuUser, LuUserSearch, LuX,
 } from "react-icons/lu";
 import { Avatar } from "@/components/ui/parts";
-import { followPeople, type FollowPerson } from "@/lib/api/social";
+import { followPeople, onAudienceChange, type FollowPerson } from "@/lib/api/social";
 import type { Conversation, Message, Messaging } from "./useMessaging";
 
 const iconBtn = "grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted outline-none transition-colors hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-40";
@@ -36,6 +36,9 @@ export function ConversationList({ m, compact = false, onPick }: { m: Messaging;
   const ownerId = m.scope === "gym" ? m.gymId : m.meId;
   const ownerKind = m.scope === "gym" ? "gym" : "user";
   const key = view === "chats" || !ownerId ? "" : `${ownerKind}:${ownerId}:${view}`;
+  // Re-read the open list when a follow changes it — one made here, or someone following this account.
+  const [tick, setTick] = useState(0);
+  useEffect(() => onAudienceChange(() => setTick((n) => n + 1)), []);
   useEffect(() => {
     if (!key || !ownerId || view === "chats") return;
     let live = true;
@@ -43,7 +46,7 @@ export function ConversationList({ m, compact = false, onPick }: { m: Messaging;
       .then((list) => live && setPeople({ key, rows: list, failed: false }))
       .catch(() => live && setPeople({ key, rows: [], failed: true }));
     return () => { live = false; };
-  }, [key, ownerId, ownerKind, view]);
+  }, [key, ownerId, ownerKind, view, tick]);
   const loaded = people?.key === key ? people : null;
   const shown = (loaded?.rows ?? []).filter((p) => p.id !== m.meId && (!q || p.name.toLowerCase().includes(q)));
 

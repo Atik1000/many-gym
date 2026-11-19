@@ -5,8 +5,11 @@
  *
  * Pressing "Requested" withdraws the request through the dedicated cancel routes; pressing "Following"
  * unfollows. Shared by the profile page and Find People.
+ *
+ * The button follows `FOLLOW_EVENT`, not just its own presses, so the same person reads the same on every
+ * button on screen the moment any one of them changes.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LuCheck, LuClock, LuPlus } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
 import { useToast } from "@/components/ui/Toast";
@@ -26,6 +29,15 @@ export default function FollowButton({ userId, name, initial, requestId, onState
   const [pendingId, setPendingId] = useState(requestId);
   const [busy, setBusy] = useState(false);
 
+  const onStateRef = useRef(onState);
+  useEffect(() => { onStateRef.current = onState; });
+  useEffect(() => social.onFollowChange((c) => {
+    if (c.target.kind !== "user" || c.target.id !== userId) return;
+    setState(c.state);
+    setPendingId(c.requestId);
+    onStateRef.current?.(c.state);
+  }), [userId]);
+
   const toggle = async () => {
     setBusy(true);
     try {
@@ -34,9 +46,6 @@ export default function FollowButton({ userId, name, initial, requestId, onState
         state === "none" ? await social.follow(target)
           : state === "pending" ? await social.cancelFollowRequest(userId, pendingId)
             : await social.unfollow(target);
-      setPendingId(result.requestId);
-      setState(result.state);
-      onState?.(result.state);
       toast(result.state === "pending" ? `Follow request sent to ${name}` : result.state === "following" ? `Following ${name}` : state === "pending" ? "Follow request withdrawn" : `Unfollowed ${name}`);
     } catch (e) {
       toast(social.followProblem(e));

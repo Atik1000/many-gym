@@ -13,7 +13,7 @@
  */
 import Link from "next/link";
 import { useCallback, useEffect, useState, useRef } from "react";
-import { LuBan, LuClock, LuUserMinus, LuUserPlus, LuUsers } from "react-icons/lu";
+import { LuBan, LuCheck, LuClock, LuUserPlus, LuUsers } from "react-icons/lu";
 import { MotionButton } from "@/components/ui/Motion";
 import { Avatar, ConfirmModal, Pill } from "@/components/ui/parts";
 import { useToast } from "@/components/ui/Toast";
@@ -77,11 +77,36 @@ export default function Audience() {
   const [rosterNote, setRosterNote] = useState("");
   const [blocking, setBlocking] = useState<Row | null>(null);
   const canBlock = can("Edit gym profile"); // the API asks for gym_profile:edit
+  // How many are in each follow list, for the tabs; null until known.
+  const [counts, setCounts] = useState<Partial<Record<Tab, number>>>({});
+  // Everyone this gym follows (people and gyms). A follower row doesn't reliably say whether we follow
+  // them back, so "Follow back" / "Following" is decided from this. Null until the lists have loaded.
+  const [followingIds, setFollowingIds] = useState<Set<string> | null>(null);
+  const tabRef = useRef<Tab>(tab);
+  useEffect(() => { tabRef.current = tab; }, [tab]);
+
+  const refreshAudience = useCallback(async () => {
+    if (!gymId) return;
+    const target = { id: gymId, kind: "gym" as const };
+    const [a, b, c] = await Promise.allSettled([social.followersOf(target), social.followingOf(target), social.followedGyms()]);
+    const idsOf = (r: PromiseSettledResult<unknown>, kind: Row["kind"]) =>
+      r.status === "fulfilled" ? asArray<unknown>(r.value).map((x) => toRow(x, kind).id).filter(Boolean) : null;
+    const followers = idsOf(a, "user");
+    const following = idsOf(b, "user");
+    const gyms = idsOf(c, "gym");
+    setCounts((prev) => ({
+      ...prev,
+      ...(followers && { Followers: followers.length }),
+      ...(following && { Following: following.length }),
+      ...(gyms && { "Gyms we follow": gyms.length }),
+    }));
+    if (following || gyms) setFollowingIds(new Set([...(following ?? []), ...(gyms ?? [])]));
+  }, [gymId]);
 
   const load = useCallback(
-    async (which: Tab) => {
+    async (which: Tab, quiet = false) => {
       if (!gymId) return;
-      setLoading(true);
+      if (!quiet) setLoading(true);
       try {
         const target = { id: gymId, kind: "gym" as const };
         setRosterNote("");
@@ -114,6 +139,36 @@ export default function Audience() {
   }, [tab, load]);
 
   useEffect(() => {
+    void Promise.resolve().then(refreshAudience);
+  }, [refreshAudience]);
+
+  // A follow made anywhere in the app shows on these buttons at once …
+  useEffect(() => social.onFollowChange((c) => {
+    setFollowingIds((prev) => {
+      if (!prev) return prev;
+      const next = new Set(prev);
+      if (c.state === "following") next.add(c.target.id);
+      else next.delete(c.target.id);
+      return next;
+    });
+    if (c.target.kind !== "user") return;
+    if (c.requestId) requestIds.current.set(c.target.id, c.requestId);
+    else requestIds.current.delete(c.target.id);
+    setRequested((prev) => {
+      const next = new Set(prev);
+      if (c.state === "pending") next.add(c.target.id);
+      else next.delete(c.target.id);
+      return next;
+    });
+  }), []);
+
+  // … and the lists and their counts are re-read after it, and when someone new follows the gym.
+  useEffect(() => social.onAudienceChange(() => {
+    void refreshAudience();
+    if (tabRef.current !== "Members") void load(tabRef.current, true);
+  }), [refreshAudience, load]);
+
+  useEffect(() => {
     let live = true;
     social.followRequests("sent")
       // If a deployment ignores `type`, received requests come back instead; their target is this account,
@@ -136,20 +191,12 @@ export default function Audience() {
       const result = wasRequested && !follow && row.kind === "user"
         ? await social.cancelFollowRequest(row.id, requestIds.current.get(row.id))
         : await social.setFollowing({ id: row.id, kind: row.kind }, follow);
-      if (result.requestId) requestIds.current.set(row.id, result.requestId);
-      else requestIds.current.delete(row.id);
-      setRequested((prev) => {
-        const next = new Set(prev);
-        if (result.state === "pending") next.add(row.id);
-        else next.delete(row.id);
-        return next;
-      });
+      // The buttons, lists and counts update from the follow event (above), not from here.
       toast(
         result.state === "pending" ? `Follow request sent to ${row.name}`
           : follow ? `Following ${row.name}`
             : wasRequested ? `Request to ${row.name} withdrawn` : `Unfollowed ${row.name}`,
       );
-      await load(tab);
     } catch (e) {
       toast(e instanceof ApiError && e.status === 404 ? "That account is no longer available." : social.followProblem(e));
     } finally {
@@ -178,7 +225,7 @@ export default function Audience() {
     try {
       await blockGymFollower(gymId, row.id);
       toast(`${row.name} blocked and removed from followers`);
-      await load(tab);
+      await Promise.all([load(tab, true), refreshAudience()]);
     } catch (e) {
       toast(e instanceof ApiError ? (e.status === 404 ? "That person is no longer a follower." : e.message) : "Couldn't block that person");
     } finally {
@@ -187,6 +234,9 @@ export default function Audience() {
   };
 
   if (!gymId) return null;
+
+  /** Do we follow this row's account? From our own following list once it has loaded. */
+  const follows = (r: Row) => (followingIds ? followingIds.has(r.id) : tab !== "Followers" || !!r.following);
 
   return (
     <section className={`${card} p-6`}>
@@ -203,6 +253,7 @@ export default function Audience() {
             className={`rounded-lg px-3 py-1.5 font-semibold ${tab === t ? "bg-surface text-primary shadow-sm" : "text-muted hover:text-foreground"}`}
           >
             {t}
+            {counts[t] !== undefined && <span className="ml-1.5 text-[13px] font-semibold tabular-nums text-muted">{counts[t]}</span>}
           </button>
         ))}
       </div>
@@ -232,15 +283,16 @@ export default function Audience() {
                 {!r.member && <MotionButton
                   className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors disabled:opacity-50 ${
                     requested.has(r.id) ? "bg-warn-bg text-warn"
-                      : tab === "Followers" && !r.following ? "bg-primary text-white shadow-[0_4px_10px_-4px_rgba(91,61,245,.6)] hover:bg-primary-600"
+                      : !follows(r) ? "bg-primary text-white shadow-[0_4px_10px_-4px_rgba(91,61,245,.6)] hover:bg-primary-600"
                         : "border border-line bg-surface text-muted hover:border-bad/40 hover:bg-bad-bg hover:text-bad"}`}
                   disabled={busy === r.id}
                   aria-label={requested.has(r.id) ? `Withdraw follow request to ${r.name}` : undefined}
-                  title={requested.has(r.id) ? "Waiting for them to confirm — press to withdraw" : undefined}
-                  onClick={() => void setFollow(r, !(requested.has(r.id) || tab !== "Followers" || r.following))}
+                  title={requested.has(r.id) ? "Waiting for them to confirm — press to withdraw" : follows(r) ? "Press to unfollow" : undefined}
+                  onClick={() => void setFollow(r, !(requested.has(r.id) || follows(r)))}
                 >
                   {requested.has(r.id) ? <><LuClock size={16} /> Requested</>
-                    : tab === "Followers" && !r.following ? <><LuUserPlus size={16} /> Follow back</> : <><LuUserMinus size={16} /> Unfollow</>}
+                    : follows(r) ? <><LuCheck size={16} /> Following</>
+                      : <><LuUserPlus size={16} /> {tab === "Followers" ? "Follow back" : "Follow"}</>}
                 </MotionButton>}
               </li>
             ))}

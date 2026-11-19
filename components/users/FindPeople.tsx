@@ -65,9 +65,12 @@ export default function FindPeople() {
   /** user id → request id, for requests still waiting on the other person. */
   const [requested, setRequested] = useState<Map<string, string>>(new Map());
   const [seeded, setSeeded] = useState(false);
+  /** Bumped whenever the lists may have changed — a follow here, or someone following me. */
+  const [tick, setTick] = useState(0);
+  useEffect(() => social.onAudienceChange(() => setTick((n) => n + 1)), []);
   const abort = useRef<AbortController | null>(null);
 
-  // Who I follow, who follows me, and which requests are still pending — once.
+  // Who I follow, who follows me, and which requests are still pending — now, and again when that changes.
   useEffect(() => {
     if (!meId) return;
     let live = true;
@@ -80,7 +83,7 @@ export default function FindPeople() {
       setSeeded(true);
     });
     return () => { live = false; };
-  }, [meId]);
+  }, [meId, tick]);
 
   // Debounced search; a newer keystroke cancels the request an older one started.
   const term = q.trim();
@@ -172,13 +175,13 @@ export default function FindPeople() {
 
       {!searching && following.length > 0 && (
         <section className={`${card} p-5`}>
-          <h2 className="mb-3 text-lg font-bold">People you follow</h2>
+          <h2 className="mb-3 text-lg font-bold">People you follow <span className="font-semibold text-muted">· {following.length}</span></h2>
           <ul className="grid gap-2">{following.slice(0, 8).map(row)}</ul>
         </section>
       )}
       {!searching && followers.length > 0 && (
         <section className={`${card} p-5`}>
-          <h2 className="mb-3 text-lg font-bold">Your followers</h2>
+          <h2 className="mb-3 text-lg font-bold">Your followers <span className="font-semibold text-muted">· {followers.length}</span></h2>
           <ul className="grid gap-2">{followers.slice(0, 8).map(row)}</ul>
         </section>
       )}
