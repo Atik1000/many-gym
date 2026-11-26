@@ -61,7 +61,7 @@ export type SendPayload = {
   ephemeral_public_key?: string;
   recipient_key_fingerprint?: string;
   sender_device_id?: string;
-  encrypted_keys?: Record<string, string>;
+  encrypted_keys?: Record<string, unknown>;
   sender_type?: "user" | "gym";
 };
 

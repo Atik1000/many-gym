@@ -6,15 +6,16 @@
  * (`ChatDock`) on every other page.
  *
  * `/messages?user=<id>` opens — or starts — the personal conversation with that person, which is how profiles
- * and Find People link here.
+ * and search results link here. "New message" finds someone among the person's follows and followers.
  */
-import Link from "next/link";
-import { LuLock, LuMessageCircle, LuRefreshCw, LuUserSearch } from "react-icons/lu";
+import { useState } from "react";
+import { LuKeyRound, LuLock, LuMessageCircle, LuRefreshCw } from "react-icons/lu";
 import { Select } from "@/components/ui/parts";
 import { useResource } from "@/lib/api";
 import { MEMBERS_KEY, fullName, type Member } from "@/lib/members";
 import { card } from "@/lib/ui";
-import { ConversationList, Thread } from "./ChatParts";
+import { ConversationList, NewMessageButton, Thread } from "./ChatParts";
+import RecoveryCodeModal from "./RecoveryCode";
 import { useMessaging } from "./useMessaging";
 
 const iconBtn = "grid h-9 w-9 shrink-0 place-items-center rounded-full bg-background text-foreground outline-none transition-colors hover:bg-primary-50 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-40";
@@ -23,6 +24,7 @@ export default function MessagesPage() {
   const m = useMessaging({ readQuery: true });
   const [memberRows] = useResource<Member>(MEMBERS_KEY);
   // Only members linked to a user account can be messaged; the directory row carries that id.
+  const [changingCode, setChangingCode] = useState(false);
   const members = memberRows.filter((x) => x.userId).map((x) => ({ id: x.id, name: fullName(x), userId: x.userId! }));
 
   return (
@@ -30,11 +32,8 @@ export default function MessagesPage() {
       <aside className={`${m.active ? "hidden lg:flex" : "flex"} min-h-0 flex-col border-line lg:border-r`}>
         <div className="flex items-center gap-2 px-4 pb-3 pt-4">
           <h1 className="flex-1 text-2xl font-extrabold">Chats</h1>
-          <span title={m.online ? "Connected — messages arrive live" : "Live updates are offline — messages still send"}
-            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold ${m.online ? "bg-ok-bg text-ok" : "bg-background text-muted"}`}>
-            <span className={`h-2 w-2 rounded-full ${m.online ? "bg-ok" : "bg-muted"}`} />{m.statusLabel}
-          </span>
-          {m.scope === "personal" && <Link href="/find-people" aria-label="Find people to message" title="Find people to message" className={iconBtn}><LuUserSearch size={17} /></Link>}
+          {m.keyState === "ready" && <button aria-label="Change recovery code" title="Change recovery code" onClick={() => setChangingCode(true)} className={iconBtn}><LuKeyRound size={16} /></button>}
+          <NewMessageButton m={m} className={iconBtn} />
           <button aria-label="Refresh" title="Refresh" disabled={m.loading} onClick={() => void m.refresh()} className={iconBtn}><LuRefreshCw size={16} /></button>
         </div>
         {/* Members can only be picked from the gym's inbox — the list is the gym's, and so is the conversation. */}
@@ -55,6 +54,7 @@ export default function MessagesPage() {
           </p>
         )}
         <ConversationList m={m} />
+        <RecoveryCodeModal key={changingCode ? "change" : "none"} m={m} mode={changingCode ? "change" : null} onClose={() => setChangingCode(false)} />
       </aside>
 
       <section className={`${m.active ? "flex" : "hidden lg:flex"} min-h-0 flex-col`}>

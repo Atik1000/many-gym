@@ -19,15 +19,24 @@
  * **Keys.** Nobody can be written to until their browser has published a key, so the device is registered as
  * soon as this mounts — and because the chat box is on every page, simply being signed in is enough.
  *
+ * **History on every device.** Messages are sent in the v2 envelope format (see `lib/api/e2ee.ts`): wrapped for
+ * the other side's devices and backup key, and for this device and the person's own backup key. The backup key
+ * is protected by a 5-digit recovery code — `keyState` says whether this browser still needs it set up
+ * ("setup") or entered ("restore") before older messages can be read.
+ *
  * Only one instance should be mounted at a time (each owns a socket): the chat box steps aside on `/messages`.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuth } from "@/components/AuthProvider";
 import { asArray } from "@/lib/api/adapters";
 import * as api from "@/lib/api/endpoints";
 import { ApiError, currentGymId } from "@/lib/api/http";
-import { deviceKeys, open as openMessage, publicBundle, seal, supported } from "@/lib/api/e2ee";
+import {
+  authProofFor, createMaster, deviceKeys, isEnvelope, isX25519Public, loadMaster, open as openMessage, openBackup, openEnvelope, publicBundle,
+  saveMaster, sealBackup, sealFor, supported, type MasterKey, type Reader,
+} from "@/lib/api/e2ee";
+import { backupStatus, changeBackupCode, messageHistory, restoreBackup, saveBackup, type BackupStatus } from "@/lib/api/messaging-keys";
 import { MessagingSocket, type ServerEvent, type SocketStatus, type WireMessage } from "@/lib/api/messaging-socket";
 
 export type Conversation = { id: string; title: string; sub: string; unread: number; targetUserId?: string; targetGymId?: string };
@@ -55,10 +64,29 @@ function toConversation(raw: unknown, meId: string): Conversation {
   };
 }
 
+export type KeyState = "unknown" | "setup" | "restore" | "ready";
+
+/**
+ * Everyone a message to this bundle's owner must be readable by: each registered device (by device id) and,
+ * for a person, their backup key as `backup:<user_id>`.
+ */
+function bundleReaders(bundle: unknown, userId?: string): Reader[] {
+  const o = (bundle ?? {}) as { devices?: unknown; backup_key?: { backup_public_key?: unknown } | null };
+  const devices = Array.isArray(bundle) ? (bundle as unknown[]) : asArray<unknown>(o.devices);
+  const out: Reader[] = devices
+    .map((d) => d as { device_id?: unknown; identity_key?: unknown })
+    .filter((d) => str(d.device_id) && isX25519Public(d.identity_key))
+    .map((d) => ({ id: str(d.device_id), publicKey: str(d.identity_key) }));
+  const backup = o.backup_key?.backup_public_key;
+  if (userId && !Array.isArray(bundle) && isX25519Public(backup)) out.push({ id: `backup:${userId}`, publicKey: backup });
+  return out;
+}
+
 /**
  * The server returns `{user_id|gym_id, devices:[{identity_key,…}]}`. A user can have several registered
  * devices (old browsers, other sessions); pick the most recently registered one whose identity key is a
- * valid 32-byte X25519 public key, so a stale or malformed entry doesn't break encryption.
+ * valid 32-byte X25519 public key, so a stale or malformed entry doesn't break encryption. Only used to
+ * read v1 messages, which were keyed to one identity.
  */
 function bundleIdentityKey(bundle: unknown): string | null {
   // The schema documents a bare array of device bundles; the server has been seen answering
@@ -107,6 +135,15 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState("");
   const [peerKey, setPeerKey] = useState<string | null>(null);
+  /** Who a message in the open conversation must be readable by on the other side (v2). */
+  const [peerReaders, setPeerReaders] = useState<Reader[]>([]);
+  /** The other person's backup key, for Compare keys. */
+  const [peerBackupKey, setPeerBackupKey] = useState<string | null>(null);
+  const [backup, setBackup] = useState<BackupStatus | null>(null);
+  /** The open conversation has messages older than the ones loaded (history loads newest first). */
+  const [hasOlder, setHasOlder] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [master, setMaster] = useState<MasterKey | null>(null);
   const [registered, setRegistered] = useState(false);
   const [starting, setStarting] = useState(false);
   const [status, setStatus] = useState<SocketStatus>("closed");
@@ -116,6 +153,9 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
   const socketRef = useRef<MessagingSocket | null>(null);
   const activeRef = useRef<Conversation | null>(null);
   const peerKeyRef = useRef<string | null>(null);
+  const peerReadersRef = useRef<Reader[]>([]);
+  /** The gym's other devices (staff browsers), so a reply sent as the gym stays readable to them. */
+  const gymReadersRef = useRef<Reader[]>([]);
   const pendingRef = useRef<string[]>([]); // optimistic temp ids awaiting their ack
   const seenRef = useRef<Set<string>>(new Set());
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -124,6 +164,16 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
   // (The synchronous flows also set these directly where ordering matters.)
   useEffect(() => { activeRef.current = active; }, [active]);
   useEffect(() => { peerKeyRef.current = peerKey; }, [peerKey]);
+  useEffect(() => { peerReadersRef.current = peerReaders; }, [peerReaders]);
+
+  /** Opens a stored or live message: v2 with this device or the restored backup key, v1 with the peer's identity key. */
+  const decode = useCallback(async (r: { ciphertext?: unknown; nonce?: unknown; encrypted_keys?: unknown }, legacyPeer: string | null) => {
+    const cipher = str(r.ciphertext);
+    const nonce = str(r.nonce);
+    if (!cipher || !nonce) return null;
+    if (isEnvelope(r.encrypted_keys)) return openEnvelope(cipher, nonce, r.encrypted_keys, meId);
+    return legacyPeer ? openMessage(cipher, nonce, legacyPeer) : null;
+  }, [meId]);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -165,8 +215,7 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
 
       if (cur && cid === cur.id) {
         // Decrypt against the other party's identity key (for our own echo, that's the peer too).
-        const key = peerKeyRef.current;
-        const text = key && wire.ciphertext && wire.nonce ? await openMessage(wire.ciphertext, wire.nonce, key) : null;
+        const text = await decode(wire, peerKeyRef.current);
         if (id) seenRef.current.add(id);
         setMessages((prev) => {
           // Reconcile our own optimistic copy if its ack hasn't landed yet.
@@ -200,7 +249,7 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
         });
       }
     },
-    [meId],
+    [meId, decode],
   );
 
   const onEvent = useCallback(
@@ -320,6 +369,70 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
     void Promise.resolve().then(() => registerDevice(true));
   }, [meId, registerDevice]);
 
+  // ---- recovery code / backup key ----
+  const loadBackup = useCallback(async () => {
+    if (!meId || !supported()) return;
+    setMaster(loadMaster(meId));
+    try { setBackup(await backupStatus()); } catch { /* leave it unknown: no prompt rather than a wrong one */ }
+  }, [meId]);
+  useEffect(() => { void Promise.resolve().then(loadBackup); }, [loadBackup]);
+
+  const keyState: KeyState = !backup ? "unknown"
+    : !backup.has_backup ? "setup"
+      : !master || master.publicKey !== backup.backup_public_key ? "restore"
+        : "ready";
+
+  /** First device: keep this browser's backup key if it has one, otherwise make it, and store it under `code`. */
+  const setupCode = async (code: string, opts: { fresh?: boolean } = {}) => {
+    const m = (!opts.fresh && loadMaster(meId)) || (await createMaster());
+    await saveBackup(await sealBackup(m, code));
+    saveMaster(meId, m);
+    setMaster(m);
+    await loadBackup();
+  };
+
+  /** New device: prove the code, take the backup back, and re-read the open conversation with it. */
+  const restoreCode = async (code: string) => {
+    const st = backup ?? (await backupStatus());
+    if (!st.salt || !st.kdf_iterations) throw new Error("This backup can't be restored here.");
+    const r = await restoreBackup(await authProofFor(code, st.salt, st.kdf_iterations));
+    const m = await openBackup(r.encrypted_key_bundle, r.nonce, r.salt || st.salt, r.kdf_iterations || st.kdf_iterations, code);
+    saveMaster(meId, m);
+    setMaster(m);
+    await loadBackup();
+    const cur = activeRef.current;
+    if (cur) await openConversation(cur);
+  };
+
+  /** Same keys, new code — old history stays readable. */
+  const changeCode = async (current: string, next: string) => {
+    const st = backup ?? (await backupStatus());
+    const m = loadMaster(meId);
+    if (!m || !st.salt || !st.kdf_iterations) throw new Error("Enter your current recovery code on this device first.");
+    const sealed = await sealBackup(m, next);
+    await changeBackupCode({
+      current_auth_proof: await authProofFor(current, st.salt, st.kdf_iterations),
+      new_auth_proof: sealed.auth_proof,
+      encrypted_key_bundle: sealed.encrypted_key_bundle,
+      nonce: sealed.nonce,
+      salt: sealed.salt,
+      kdf_algorithm: sealed.kdf_algorithm,
+      kdf_iterations: sealed.kdf_iterations,
+      cipher_algorithm: sealed.cipher_algorithm,
+      secret_type: "pin",
+    });
+    await loadBackup();
+  };
+
+  // The gym's own devices, for replies sent as the gym.
+  useEffect(() => {
+    gymReadersRef.current = [];
+    if (!scopeGym) return;
+    let live = true;
+    void api.messagingKeysGymList(scopeGym).then((b) => { if (live) gymReadersRef.current = bundleReaders(b); }).catch(() => null);
+    return () => { live = false; };
+  }, [scopeGym]);
+
   // `/messages?user=<id>`: remember who was asked for and show the personal inbox.
   useEffect(() => {
     if (!readQuery) return;
@@ -368,14 +481,15 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
     }
   };
 
-  /** Fetches the key to encrypt to: the gym's bundle for a gym, the person's for a person. */
-  const fetchPeerKey = async (c: Conversation): Promise<string | null> => {
+  /** The other side's keys: the gym's bundle for a gym, the person's (devices + backup key) for a person. */
+  const fetchPeerKeys = async (c: Conversation) => {
     const bundle = c.targetGymId
       ? await api.messagingKeysGymList(c.targetGymId).catch(() => null)
       : c.targetUserId
         ? await api.messagingKeysUserList(c.targetUserId).catch(() => null)
         : null;
-    return bundleIdentityKey(bundle);
+    const readers = bundleReaders(bundle, c.targetGymId ? undefined : c.targetUserId);
+    return { legacy: bundleIdentityKey(bundle), readers, backup: readers.find((r) => r.id.startsWith("backup:"))?.publicKey ?? null };
   };
 
   const openConversation = async (c: Conversation) => {
@@ -384,6 +498,10 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
     setMessages([]);
     setPeerKey(null);
     peerKeyRef.current = null;
+    setPeerReaders([]);
+    peerReadersRef.current = [];
+    setPeerBackupKey(null);
+    setHasOlder(false);
     setPeerTyping(false);
     pendingRef.current = [];
     seenRef.current = new Set();
@@ -391,9 +509,13 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
     // Subscribe to the live room immediately (the socket re-joins this on any reconnect).
     socketRef.current?.setActiveConversation(c.id);
     try {
-      const key = await fetchPeerKey(c);
+      const keys = await fetchPeerKeys(c);
+      const key = keys.legacy;
       setPeerKey(key);
       peerKeyRef.current = key;
+      setPeerReaders(keys.readers);
+      peerReadersRef.current = keys.readers;
+      setPeerBackupKey(keys.backup);
 
       const detail = await api.messagingConversationsRetrieve(c.id).catch(() => null);
       if (detail) {
@@ -402,25 +524,10 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
         setActive((a) => (a && a.id === c.id ? { ...a, ...d, targetUserId: d.targetUserId ?? a.targetUserId, targetGymId: d.targetGymId ?? a.targetGymId, title: d.title === "Conversation" ? a.title : d.title } : a));
       }
 
-      const rows = asArray<Record<string, unknown>>(await api.messagingConversationsMessagesList(c.id));
-      const decoded = await Promise.all(
-        rows.map(async (r): Promise<Message> => {
-          const cipher = str(r.ciphertext);
-          const nonce = str(r.nonce);
-          const text = key && cipher && nonce ? await openMessage(cipher, nonce, key) : null;
-          const id = str(r.id);
-          if (id) seenRef.current.add(id);
-          return {
-            id: id || crypto.randomUUID(),
-            mine: str(r.sender_user_id ?? r.sender_id) === meId,
-            at: str(r.sent_at ?? r.created_at),
-            text,
-            locked: text === null,
-            read: str(r.delivery_status) === "read" || !!r.read_at,
-          };
-        }),
-      );
-      setMessages(decoded);
+      // Newest page first, so a long conversation opens on its latest messages; older pages load on demand.
+      const page = await messageHistory(c.id);
+      setMessages(await toMessages(page.rows, key));
+      setHasOlder(page.hasOlder);
       // Mark read over both channels: REST persists it, the socket notifies the other side live.
       await api.messagingConversationsReadCreate(c.id, {}).catch(() => null);
       socketRef.current?.markRead(c.id);
@@ -432,7 +539,44 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
     }
   };
 
+  /** Stored rows → bubbles, decrypted with whatever this browser holds. */
+  const toMessages = (rows: Record<string, unknown>[], legacyPeer: string | null) =>
+    Promise.all(rows.map(async (r): Promise<Message> => {
+      const text = await decode(r, legacyPeer);
+      const id = str(r.id);
+      if (id) seenRef.current.add(id);
+      return {
+        id: id || crypto.randomUUID(),
+        mine: str(r.sender_user_id ?? r.sender_id) === meId,
+        at: str(r.sent_at ?? r.created_at),
+        text,
+        locked: text === null,
+        read: str(r.delivery_status) === "read" || !!r.read_at,
+      };
+    }));
+
+  /** The next page of older messages (`before` the oldest one shown), added above the current ones. */
+  const loadOlder = async () => {
+    const c = activeRef.current;
+    const oldest = messages.find((x) => !x.id.startsWith("tmp-"))?.id;
+    if (!c || !oldest || loadingOlder || !hasOlder) return;
+    setLoadingOlder(true);
+    try {
+      const page = await messageHistory(c.id, { before: oldest });
+      const older = await toMessages(page.rows, peerKeyRef.current);
+      if (activeRef.current?.id !== c.id) return; // switched conversation meanwhile
+      setMessages((prev) => [...older.filter((o) => !prev.some((p) => p.id === o.id)), ...prev]);
+      setHasOlder(page.hasOlder && older.length > 0);
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "Couldn't load earlier messages");
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
+
   const withPerson = !!active && !active.targetGymId;
+  /** Something on the other side to encrypt to — a device or, for a person, their backup key. */
+  const canSend = peerReaders.length > 0;
   const noKeyNote = withPerson
     ? "They haven't signed in on this version yet, so there is no key to encrypt to. Once they sign in, press Refresh."
     : "This gym hasn't published an encryption key yet. Once its owner signs in, press Refresh.";
@@ -444,6 +588,10 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
     setMessages([]);
     setPeerKey(null);
     peerKeyRef.current = null;
+    setPeerReaders([]);
+    peerReadersRef.current = [];
+    setPeerBackupKey(null);
+    setHasOlder(false);
     setPeerTyping(false);
     socketRef.current?.setActiveConversation(null);
   };
@@ -461,19 +609,27 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
   const send = async (quick?: string) => {
     const text = (quick ?? draft).trim();
     if (!text || !active) return;
-    if (!peerKey) return toast(noKeyNote);
+    if (!canSend) return toast(noKeyNote);
     if (quick === undefined) setDraft("");
     const tmpId = `tmp-${crypto.randomUUID()}`;
     const optimistic: Message = { id: tmpId, mine: true, at: new Date().toISOString(), text, locked: false, pending: true };
     setMessages((m) => [...m, optimistic]);
     try {
-      const keys = await deviceKeys();
-      const sealed = await seal(text, peerKey);
+      const mine = await deviceKeys();
+      const own = loadMaster(meId);
+      // The other side, this browser, the person's own backup key (their other devices), and — writing as a
+      // gym — the gym's other staff browsers.
+      const readers: Reader[] = [
+        ...peerReadersRef.current,
+        { id: mine.deviceId, publicKey: mine.publicKey },
+        ...(own ? [{ id: `backup:${meId}`, publicKey: own.publicKey }] : []),
+        ...(scopeGym ? gymReadersRef.current : []),
+      ];
+      const sealed = await sealFor(text, readers);
       const base = {
         ...sealed,
         sender_type: (scopeGym ? "gym" : "user") as "gym" | "user",
-        sender_device_id: keys.deviceId,
-        encrypted_keys: {} as Record<string, string>,
+        sender_device_id: mine.deviceId,
       };
 
       // Prefer the socket (live + ack); fall back to REST when it's not connected.
@@ -514,14 +670,9 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
   const refresh = async () => {
     await loadList();
     const cur = activeRef.current;
-    if (cur && !peerKeyRef.current && (await fetchPeerKey(cur))) await openConversation(cur);
+    if (cur && !peerReadersRef.current.length && (await fetchPeerKeys(cur)).readers.length) await openConversation(cur);
   };
 
-  const online = status === "open";
-  const statusLabel = useMemo(
-    () => (status === "open" ? "Live" : status === "connecting" ? "Connecting…" : status === "auth-error" ? "Offline" : "Offline"),
-    [status],
-  );
 
   /** Opens — or starts — the personal conversation with a person, from anywhere. */
   const openWithUser = (userId: string) => {
@@ -532,8 +683,9 @@ export function useMessaging({ readQuery = false }: { readQuery?: boolean } = {}
   return {
     me, meId, gymId, scope, setScope: setChoice,
     list, loading, unread: list.reduce((n, c) => n + c.unread, 0),
-    active, messages, busy, draft, setDraft, peerKey, peerTyping,
-    registered, starting, startProblem, status, statusLabel, online, withPerson, noKeyNote,
+    active, messages, busy, hasOlder, loadingOlder, loadOlder, draft, setDraft, peerKey, canSend, peerBackupKey, peerTyping,
+    registered, starting, startProblem, withPerson, noKeyNote,
+    keyState, backup, master, setupCode, restoreCode, changeCode,
     openConversation, closeConversation, startWith, openWithUser, send, emitTyping, refresh, registerDevice,
   };
 }

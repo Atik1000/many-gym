@@ -12,7 +12,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LuMaximize2, LuMessageCircle, LuX } from "react-icons/lu";
 import { useAuth } from "@/components/AuthProvider";
-import { ConversationList, Thread } from "./ChatParts";
+import { ConversationList, NewMessageButton, Thread } from "./ChatParts";
 import { useMessaging } from "./useMessaging";
 
 const iconBtn = "grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted outline-none transition-colors hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40";
@@ -62,6 +62,7 @@ function Dock() {
         <>
           <header className="flex items-center gap-1 px-4 pb-2 pt-3">
             <h2 className="flex-1 text-xl font-extrabold">Chats</h2>
+            <NewMessageButton m={m} className={iconBtn} />
             <Link href="/messages" aria-label="Open Messages" title="Open Messages" className={iconBtn}><LuMaximize2 size={16} /></Link>
             <button aria-label="Close chat" onClick={close} className={iconBtn}><LuX size={18} /></button>
           </header>

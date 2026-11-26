@@ -5,15 +5,56 @@
  * the floating chat box. All state lives in `useMessaging`; these only draw it.
  */
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-  LuArrowLeft, LuBuilding2, LuLock, LuMaximize2, LuMessageCircle, LuRefreshCw, LuSearch, LuSend, LuSmile, LuThumbsUp, LuUser, LuUserSearch, LuX,
+  LuArrowLeft, LuBuilding2, LuLock, LuMaximize2, LuMessageCircle, LuRefreshCw, LuSearch, LuSend, LuShieldCheck, LuSmile, LuSquarePen, LuThumbsUp, LuUser, LuX,
 } from "react-icons/lu";
 import { Avatar } from "@/components/ui/parts";
 import { followPeople, onAudienceChange, type FollowPerson } from "@/lib/api/social";
+import CompareKeys from "./CompareKeys";
+import NewMessage from "./NewMessage";
+import RecoveryCodeModal, { type CodeMode } from "./RecoveryCode";
 import type { Conversation, Message, Messaging } from "./useMessaging";
 
 const iconBtn = "grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted outline-none transition-colors hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-40";
+
+// ---------------------------------------------------------------- recovery code prompt
+
+/**
+ * The nudge to set up (first device) or enter (new device) the recovery code. Shown above the conversations
+ * and above a thread; opening it shows the code dialog. It never blocks the chat — sending works either way.
+ */
+export function KeyBanner({ m, compact = false }: { m: Messaging; compact?: boolean }) {
+  const [mode, setMode] = useState<CodeMode | null>(null);
+  if (m.keyState !== "setup" && m.keyState !== "restore" && !mode) return null;
+  const restore = m.keyState === "restore";
+  return (
+    <>
+      {(m.keyState === "setup" || restore) && (
+        <div className={`flex items-start gap-2.5 rounded-xl ${restore ? "bg-warn-bg text-warn" : "bg-primary-50 text-primary-600"} px-3 py-2.5 text-[13px] ${compact ? "mx-3 mb-2" : "mx-3 mb-2"}`}>
+          <LuLock size={15} className="mt-0.5 shrink-0" />
+          <span className="flex-1">
+            {restore ? "Enter your recovery code to see your message history on this device." : "Set a 5-digit recovery code so you can see your messages on other devices."}{" "}
+            <button onClick={() => setMode(restore ? "restore" : "setup")} className="font-semibold underline">{restore ? "Enter code" : "Set code"}</button>
+          </span>
+        </div>
+      )}
+      <RecoveryCodeModal key={mode ?? "none"} m={m} mode={mode} onClose={() => setMode(null)} />
+    </>
+  );
+}
+
+/** "New message" — opens the follows + followers people search. Personal inbox only (the endpoint is the person's). */
+export function NewMessageButton({ m, className }: { m: Messaging; className: string }) {
+  const [open, setOpen] = useState(false);
+  if (m.scope !== "personal") return null;
+  return (
+    <>
+      <button aria-label="New message" title="New message" onClick={() => setOpen(true)} className={className}><LuSquarePen size={17} /></button>
+      <NewMessage m={m} open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
 
 // ---------------------------------------------------------------- conversation list
 
@@ -28,6 +69,7 @@ export function ConversationList({ m, compact = false, onPick }: { m: Messaging;
   const [query, setQuery] = useState("");
   const [view, setView] = useState<View>("chats");
   const [people, setPeople] = useState<{ key: string; rows: FollowPerson[]; failed: boolean } | null>(null);
+  const [composing, setComposing] = useState(false);
   const q = query.trim().toLowerCase();
   const rows = q ? m.list.filter((c) => c.title.toLowerCase().includes(q)) : m.list;
   const size = compact ? 40 : 48;
@@ -59,6 +101,7 @@ export function ConversationList({ m, compact = false, onPick }: { m: Messaging;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <KeyBanner m={m} compact={compact} />
       <div className="px-3 pb-2">
         <label className="flex items-center gap-2 rounded-full bg-background px-3.5 py-2 text-muted focus-within:ring-2 focus-within:ring-primary/30">
           <LuSearch size={16} className="shrink-0" />
@@ -120,7 +163,7 @@ export function ConversationList({ m, compact = false, onPick }: { m: Messaging;
               <button onClick={() => setView("followers")} className="mt-2 inline-flex items-center gap-1.5 font-semibold text-primary"><LuMessageCircle size={16} />Message a follower</button>
             )}
             {!q && m.scope === "personal" && (
-              <Link href="/find-people" className="mt-2 flex items-center justify-center gap-1.5 font-semibold text-primary"><LuUserSearch size={16} />Find people</Link>
+              <button onClick={() => setComposing(true)} className="mt-2 flex w-full items-center justify-center gap-1.5 font-semibold text-primary"><LuSquarePen size={16} />New message</button>
             )}
           </div>
         ) : (
@@ -146,6 +189,7 @@ export function ConversationList({ m, compact = false, onPick }: { m: Messaging;
           </ul>
         )}
       </div>
+      <NewMessage m={m} open={composing} onClose={() => setComposing(false)} />
     </div>
   );
 }
@@ -184,7 +228,7 @@ const STAMP_GAP = 15 * 60_000; // a quiet spell longer than this gets a time lin
 
 const EMOJI = ["😀", "😂", "😍", "🥰", "😎", "🤔", "😢", "👍", "🙏", "💪", "🔥", "🎉", "❤️", "💯", "👏", "🏋️"];
 
-function Bubbles({ messages, title }: { messages: Message[]; title: string }) {
+function Bubbles({ messages, title, lockedNote }: { messages: Message[]; title: string; lockedNote: string }) {
   let lastMine = -1;
   for (let i = messages.length - 1; i >= 0; i--) if (messages[i].mine) { lastMine = i; break; }
 
@@ -211,7 +255,7 @@ function Bubbles({ messages, title }: { messages: Message[]; title: string }) {
               <div title={at ? stamp(at) : undefined}
                 className={`max-w-[75%] whitespace-pre-wrap break-words rounded-[18px] px-3.5 py-2 leading-snug ${shape} ${msg.mine ? "bg-primary text-white" : "bg-background text-foreground"} ${msg.pending ? "opacity-70" : ""}`}>
                 {msg.locked ? (
-                  <span className={`flex items-center gap-1.5 ${msg.mine ? "text-white/80" : "text-muted"}`}><LuLock size={14} className="shrink-0" />Encrypted by another app — can&apos;t be read here</span>
+                  <span className={`flex items-center gap-1.5 ${msg.mine ? "text-white/80" : "text-muted"}`}><LuLock size={14} className="shrink-0" />{lockedNote}</span>
                 ) : msg.text}
               </div>
             </div>
@@ -233,14 +277,28 @@ export function Thread({ m, compact = false, onBack, onClose, fullHref }: { m: M
   const box = useRef<HTMLTextAreaElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const [picking, setPicking] = useState(false);
-  // Keep the newest message in view: on opening a thread, on every message, and when "typing" appears.
-  const count = m.messages.length;
+  const [comparing, setComparing] = useState(false);
+  // Keep the newest message in view: on opening a thread, on every new message, and when "typing" appears.
+  // Older messages loading in above don't count — those keep the reader where they were.
+  const lastId = m.messages[m.messages.length - 1]?.id;
+  const firstId = m.messages[0]?.id;
   const typing = m.peerTyping;
   const openId = c?.id;
+  const heightBefore = useRef(0);
   useEffect(() => {
     const el = scroller.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [count, typing, openId]);
+  }, [lastId, typing, openId]);
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    if (heightBefore.current && el.scrollHeight > heightBefore.current) el.scrollTop += el.scrollHeight - heightBefore.current;
+    heightBefore.current = 0;
+  }, [firstId]);
+  const loadOlder = () => {
+    heightBefore.current = scroller.current?.scrollHeight ?? 0;
+    void m.loadOlder();
+  };
   if (!c) return null;
 
   const fit = (el: HTMLTextAreaElement | null) => {
@@ -258,7 +316,9 @@ export function Thread({ m, compact = false, onBack, onClose, fullHref }: { m: M
     m.setDraft(`${m.draft}${emoji}`);
     box.current?.focus();
   };
-  const ready = !!m.peerKey;
+  const ready = m.canSend;
+  const anyLocked = m.messages.some((x) => x.locked);
+  const lockedNote = m.keyState === "restore" ? "Enter your recovery code to read this" : "Can't be read on this device";
   const typed = m.draft.trim().length > 0;
 
   return (
@@ -269,14 +329,17 @@ export function Thread({ m, compact = false, onBack, onClose, fullHref }: { m: M
         <span className="min-w-0 flex-1">
           <b className={`block truncate ${compact ? "" : "text-[17px]"}`}>{c.title}</b>
           <span className="flex items-center gap-1 truncate text-xs text-muted">
-            {m.peerTyping ? "Typing…" : ready ? <><LuLock size={11} className="shrink-0" />End-to-end encrypted{m.online ? "" : " · offline"}</> : m.busy ? "Opening…" : "Waiting for their key"}
+            {m.peerTyping ? "Typing…" : ready ? <><LuLock size={11} className="shrink-0" />End-to-end encrypted</> : m.busy ? "Opening…" : "Waiting for their key"}
           </span>
         </span>
+        {m.withPerson && c.targetUserId && <button aria-label="Compare keys" title="Compare keys" onClick={() => setComparing(true)} className={iconBtn}><LuShieldCheck size={18} /></button>}
         {m.withPerson && c.targetUserId && <Link href={`/users/${c.targetUserId}`} aria-label="View profile" title="View profile" className={iconBtn}><LuUser size={18} /></Link>}
         {fullHref && <Link href={fullHref} aria-label="Open in Messages" title="Open in Messages" className={iconBtn}><LuMaximize2 size={16} /></Link>}
         {onClose && <button aria-label="Close chat" onClick={onClose} className={iconBtn}><LuX size={18} /></button>}
       </header>
 
+      {/* On the wide page the list beside the thread already shows this; the chat box and phones need it here. */}
+      {anyLocked && m.keyState === "restore" && <div className={`pt-2 ${compact ? "" : "lg:hidden"}`}><KeyBanner m={m} compact={compact} /></div>}
       {!ready && !m.busy && (
         <div className="flex items-start gap-2 bg-warn-bg px-4 py-2.5 text-[13px] text-warn">
           <span className="flex-1">{m.noKeyNote}</span>
@@ -284,7 +347,15 @@ export function Thread({ m, compact = false, onBack, onClose, fullHref }: { m: M
         </div>
       )}
 
-      <div ref={scroller} role="log" aria-label={`Messages with ${c.title}`} className={`min-h-0 flex-1 overflow-y-auto ${compact ? "px-2.5" : "px-3 sm:px-5"} pb-3`}>
+      <div ref={scroller} role="log" aria-label={`Messages with ${c.title}`} className={`min-h-0 flex-1 overflow-y-auto ${compact ? "px-2.5" : "px-3 sm:px-5"} pb-3`}
+        onScroll={(e) => { if (m.hasOlder && !m.loadingOlder && e.currentTarget.scrollTop < 40) loadOlder(); }}>
+        {m.hasOlder && (
+          <div className="flex justify-center pt-3">
+            <button onClick={loadOlder} disabled={m.loadingOlder} className="rounded-full bg-background px-3 py-1 text-xs font-semibold text-muted hover:text-foreground disabled:opacity-60">
+              {m.loadingOlder ? "Loading…" : "Load earlier messages"}
+            </button>
+          </div>
+        )}
         {m.messages.length === 0 ? (
           m.busy ? (
             <div aria-hidden className="grid gap-2 py-6">
@@ -297,7 +368,7 @@ export function Thread({ m, compact = false, onBack, onClose, fullHref }: { m: M
               <p className="text-muted">Say hello — this is the start of your conversation.</p>
             </div>
           )
-        ) : <Bubbles messages={m.messages} title={c.title} />}
+        ) : <Bubbles messages={m.messages} title={c.title} lockedNote={lockedNote} />}
         {m.peerTyping && (
           <div className="mt-2.5 flex items-end gap-2" aria-label={`${c.title} is typing`}>
             <Avatar name={c.title} size={28} />
@@ -328,6 +399,7 @@ export function Thread({ m, compact = false, onBack, onClose, fullHref }: { m: M
           )}
         </div>
       </div>
+      {m.withPerson && <CompareKeys m={m} open={comparing} onClose={() => setComparing(false)} />}
     </div>
   );
 }
