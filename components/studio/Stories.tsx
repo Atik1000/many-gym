@@ -16,7 +16,6 @@ import { useCallback, useEffect, useState } from "react";
 import { LuPlus } from "react-icons/lu";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/ui/parts";
-import { currentGymId } from "@/lib/api/http";
 import { storyTray, type Story, type StoryBucket } from "@/lib/api/stories";
 import { card } from "@/lib/ui";
 import StoryComposer from "./StoryComposer";
@@ -32,8 +31,10 @@ const mapStories = (list: StoryBucket[] | null, fn: (s: Story) => Story | null):
     .filter((b) => b.stories.length > 0);
 
 export default function Stories() {
-  const { can, user } = useAuth();
-  const gymId = currentGymId();
+  const { can, user, me } = useAuth();
+  // Read context from AuthProvider rather than directly from the token store: this rerenders and reloads the
+  // tray immediately when the account menu swaps between the personal profile and a gym.
+  const gymId = me?.gymId ?? null;
   const canPost = gymId ? can("Edit studio information") : !!user;
   const [buckets, setBuckets] = useState<StoryBucket[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -53,7 +54,7 @@ export default function Stories() {
 
   useEffect(() => {
     void Promise.resolve().then(load);
-  }, [load]);
+  }, [gymId, load]);
 
   /** A gym's moments are managed by its staff; a person's by that person. */
   const canManage = useCallback(

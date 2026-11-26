@@ -4,8 +4,8 @@
  * Sign-in against the Many Gym API.
  *
  * The server issues a JWT pair that carries the *context* it was minted in: `personal`, or `gym` with a gym id
- * and the permission scopes that gym grants this user. The admin panel needs a gym-context token, so signing in
- * is two calls — `POST /auth/login/`, then `POST /auth/switch-context/` for the first gym the account can reach.
+ * and the permission scopes that gym grants this user. Login starts in personal context; the person can choose
+ * a gym from the account menu, which calls `POST /auth/switch-context/`.
  *
  * An expired access token is renewed silently by `request()` (`POST /auth/refresh/`, which keeps the gym
  * context). Only when that refresh is refused does `setUnauthorizedHandler` send the person to /login.
@@ -35,12 +35,8 @@ const either = <X,>(feature: string, authCall: () => Promise<X>, usersCall: () =
 export const SESSION_KEY = "manygym.session.v1";
 const KNOWN_KEY = "manygym.accounts.v1";
 const ME_KEY = "manygym.me.v1";
-/** The gym that last opened successfully, tried first on the next sign-in. */
-const LAST_GYM_KEY = "manygym.lastgym.v1";
 /** Gyms that returned 404/403 on switch-context, so sign-in stops paying for them again. */
 const DEAD_GYMS_KEY = "manygym.deadgyms.v1";
-/** The user id of someone who chose their own profile over a gym, so their next sign-in doesn't undo that. */
-const STAY_PERSONAL_KEY = "manygym.personal.v1";
 
 const read = <X,>(key: string, fallback: X): X => {
   try {
@@ -138,12 +134,6 @@ export async function enterGym(gymId: string): Promise<string | null> {
     const res = await api.authSwitchContextCreate({ context_type: "gym", gym_id: gymId });
     if (!res.tokens?.access) return "The server didn't return a token for that gym.";
     setTokens(res.tokens as Tokens);
-    try {
-      localStorage.setItem(LAST_GYM_KEY, gymId);
-      localStorage.removeItem(STAY_PERSONAL_KEY);
-    } catch {
-      /* storage unavailable — sign-in just probes in list order next time */
-    }
     invalidateAll();
     await loadMe();
     notifySession();
@@ -213,13 +203,7 @@ export async function enterPersonal(): Promise<string | null> {
     if (!res.tokens?.access) return "The server didn't return a personal token.";
     setTokens(res.tokens as Tokens);
     invalidateAll();
-    const me = await loadMe();
-    try {
-      // Remembered per account: someone else signing in on this browser still lands in their gym.
-      localStorage.setItem(STAY_PERSONAL_KEY, JSON.stringify(me?.userId ?? ""));
-    } catch {
-      /* storage unavailable — the next sign-in just opens a gym first */
-    }
+    await loadMe();
     notifySession();
     return null;
   } catch (e) {
@@ -236,37 +220,9 @@ export async function enterPersonal(): Promise<string | null> {
 async function completeSignIn(tokens: Tokens): Promise<void> {
   setTokens(tokens);
   invalidateAll();
-
-  const me = await loadMe();
-  /*
-   * The admin panel is gym-scoped, so land in a gym straight away. Try them in order rather than trusting
-   * the first: `/auth/me/` keeps listing gyms that have been deleted, and switching into one of those
-   * returns 404 "Gym not found." Treating that as a login failure locks the account out of the app
-   * entirely, even though its other gyms are fine.
-   */
-  const stayPersonal = !!me?.userId && read<string | null>(STAY_PERSONAL_KEY, null) === me.userId;
-  if (!getTokens()?.gym_id && !stayPersonal) {
-    /*
-     * Order matters for how long sign-in feels. The gym that worked last time goes first, and gyms already
-     * known to 404 go last — otherwise every sign-in pays for a failed round-trip per dead gym before
-     * reaching a live one, which reads as the button doing nothing.
-     */
-    const dead = new Set(deadGyms());
-    const lastUsed = read<string | null>(LAST_GYM_KEY, null);
-    const candidates = [...(me?.accessibleGyms ?? [])].sort((a, b) => {
-      const rank = (id: string) => (id === lastUsed ? 0 : dead.has(id) ? 2 : 1);
-      return rank(a.id) - rank(b.id);
-    });
-
-    let lastProblem: string | null = null;
-    for (const candidate of candidates) {
-      lastProblem = await enterGym(candidate.id);
-      if (!lastProblem) break;
-    }
-    // Every gym failed, or the account has none: stay signed in on the personal token and let the app
-    // offer gym creation. Being signed in with no gym is a state the UI already handles.
-    if (lastProblem) await loadMe();
-  }
+  // The login endpoint issues a personal-context token. Do not replace it with a gym token here: a person
+  // should arrive at their own account first and explicitly choose a gym when they want to manage it.
+  await loadMe();
   notifySession();
 }
 
@@ -350,7 +306,7 @@ export async function signOut() {
   setTokens(null);
   localStorage.removeItem(ME_KEY);
   localStorage.removeItem(SESSION_KEY);
-  // LAST_GYM_KEY and DEAD_GYMS_KEY survive sign-out on purpose: they make the next sign-in fast.
+  // DEAD_GYMS_KEY survives sign-out so an inaccessible gym is not repeatedly offered after a failed switch.
   invalidateAll();
   notifySession();
 }
