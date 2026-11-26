@@ -12982,10 +12982,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PublicKeyBundle"
-                  }
+                  "$ref": "#/components/schemas/GymKeyBundleResponse"
                 }
               }
             },
@@ -13103,10 +13100,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PublicKeyBundle"
-                  }
+                  "$ref": "#/components/schemas/UserKeyBundleResponse"
                 }
               }
             },
@@ -30915,6 +30909,42 @@
           "one_time_prekeys",
           "signed_prekey",
           "signed_prekey_signature"
+        ]
+      },
+      "GymKeyBundleResponse": {
+        "type": "object",
+        "properties": {
+          "gym_id": {
+            "type": "string"
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicKeyBundle"
+            }
+          }
+        },
+        "required": [
+          "devices",
+          "gym_id"
+        ]
+      },
+      "UserKeyBundleResponse": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicKeyBundle"
+            }
+          }
+        },
+        "required": [
+          "devices",
+          "user_id"
         ]
       },
       "ReactionActionResponse": {

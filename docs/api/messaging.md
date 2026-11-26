@@ -337,19 +337,14 @@ Fetches public keys for recipient gym.
 
 | Status | Body | Description |
 |---|---|---|
-| `200` | array of PublicKeyBundle |  |
+| `200` | GymKeyBundleResponse |  |
 
 <details><summary>Response fields (200)</summary>
 
 | Field | Type | Notes |
 |---|---|---|
-| `device_id` | string |  |
-| `device_name` | string |  |
-| `algorithm` | string |  |
-| `identity_key` | string |  |
-| `signed_prekey` | string |  |
-| `signed_prekey_signature` | string |  |
-| `one_time_prekeys` | array of string |  |
+| `gym_id` | string |  |
+| `devices` | array of PublicKeyBundle |  |
 
 </details>
 
@@ -402,19 +397,14 @@ Fetches public keys for recipient user's registered devices.
 
 | Status | Body | Description |
 |---|---|---|
-| `200` | array of PublicKeyBundle |  |
+| `200` | UserKeyBundleResponse |  |
 
 <details><summary>Response fields (200)</summary>
 
 | Field | Type | Notes |
 |---|---|---|
-| `device_id` | string |  |
-| `device_name` | string |  |
-| `algorithm` | string |  |
-| `identity_key` | string |  |
-| `signed_prekey` | string |  |
-| `signed_prekey_signature` | string |  |
-| `one_time_prekeys` | array of string |  |
+| `user_id` | string |  |
+| `devices` | array of PublicKeyBundle |  |
 
 </details>
 

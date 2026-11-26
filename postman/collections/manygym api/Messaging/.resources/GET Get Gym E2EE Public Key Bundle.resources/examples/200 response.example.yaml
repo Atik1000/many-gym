@@ -12,16 +12,19 @@ response:
   body:
     type: json
     content: |-
-      [
-        {
-          "device_id": "string",
-          "device_name": "Example name",
-          "algorithm": "string",
-          "identity_key": "string",
-          "signed_prekey": "string",
-          "signed_prekey_signature": "string",
-          "one_time_prekeys": [
-            "string"
-          ]
-        }
-      ]
+      {
+        "gym_id": "string",
+        "devices": [
+          {
+            "device_id": "string",
+            "device_name": "Example name",
+            "algorithm": "string",
+            "identity_key": "string",
+            "signed_prekey": "string",
+            "signed_prekey_signature": "string",
+            "one_time_prekeys": [
+              "string"
+            ]
+          }
+        ]
+      }

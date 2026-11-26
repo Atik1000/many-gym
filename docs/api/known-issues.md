@@ -660,14 +660,11 @@ no `next`, `previous`, `total_pages` or `current_page`). It is the mirror image 
 
 *Client:* `lib/api/reactions.ts` accepts either shape.
 
-## 41. `messaging/keys` responses are documented as arrays
+## 41. ~~`messaging/keys` responses are documented as arrays~~ — fixed in the local contract
 
-`GET /messaging/keys/user/{user_id}/` and `/messaging/keys/gym/{gym_id}/` are typed `[PublicKeyBundle]`. The
-messaging integration found them answering an object — `{user_id, devices: [PublicKeyBundle]}` and
-`{gym_id, devices: […]}` — and the client is typed that way (`UserKeyBundleResponse` / `GymKeyBundleResponse`).
-This is the one place `scripts/check-api-conformance.mjs` still reports a mismatch, deliberately: either the
-schema or the client is wrong, and it should stay visible until someone confirms which against a signed-in
-session.
+Authenticated messaging integration confirmed that `GET /messaging/keys/user/{user_id}/` and
+`/messaging/keys/gym/{gym_id}/` answer wrapper objects containing the recipient ID and `devices`. The local
+OpenAPI contract now declares `UserKeyBundleResponse` and `GymKeyBundleResponse`, matching the client.
 
 ## 42. ~~Notifications: the spec and the deployment disagree in four places~~ — three fixed in the API
 
