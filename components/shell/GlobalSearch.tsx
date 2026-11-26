@@ -3,19 +3,32 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { LuCreditCard, LuCornerDownLeft, LuSearch, LuUserPlus, LuUsers } from "react-icons/lu";
+import { LuArrowRight, LuCreditCard, LuCornerDownLeft, LuDumbbell, LuSearch, LuUser, LuUserPlus, LuUsers } from "react-icons/lu";
 import type { IconType } from "react-icons";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/ui/parts";
 import { useResource } from "@/lib/api";
+import { mediaUrl } from "@/lib/api/http";
+import { placeLine } from "@/lib/api/discover";
+import { SEARCH_MAX_LENGTH, searchAll, searchHref, type SearchOverview } from "@/lib/api/search";
 import { LEADS_KEY, STAGE_LABEL, leadName, type Lead } from "@/lib/leads";
 import { MEMBERS_KEY, currentMembership, fullName, memberStatus, type Member } from "@/lib/members";
 import type { Plan } from "@/lib/plans";
 
 type Hit = { key: string; group: string; title: string; sub: string; href: string; icon: IconType; avatar?: { name: string; src?: string } };
-const GROUP_ICON: Record<string, IconType> = { Members: LuUsers, Leads: LuUserPlus, Plans: LuCreditCard };
+const GROUP_ICON: Record<string, IconType> = { Gyms: LuDumbbell, People: LuUser, Members: LuUsers, Leads: LuUserPlus, Plans: LuCreditCard };
+/** The row that opens the full results page — always last, always there once something is typed. */
+const SEE_ALL = "__see_all__";
+const REMOTE_MIN = 2;
+const REMOTE_LIMIT = 4;
 
-/** ⌘K / Ctrl-K palette: finds members, leads and plans the signed-in role may see. */
+/**
+ * ⌘K / Ctrl-K palette.
+ *
+ * Gyms and people come from the central search (`GET /search/?filter=all`), debounced; members, leads and plans
+ * the signed-in role may see are matched locally from data already loaded. The last row (or Enter on it) opens
+ * the dedicated results page at `/search?q=…`.
+ */
 export default function GlobalSearch() {
   const router = useRouter();
   const { can } = useAuth();
@@ -26,6 +39,7 @@ export default function GlobalSearch() {
   const [q, setQ] = useState("");
   const [cursor, setCursor] = useState(0);
   const input = useRef<HTMLInputElement>(null);
+  const [remote, setRemote] = useState<{ term: string; data: SearchOverview | null } | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -37,19 +51,39 @@ export default function GlobalSearch() {
   }, []);
   useEffect(() => { if (open) input.current?.focus(); }, [open]);
 
+  // Central search preview: a newer keystroke cancels the request an older one started.
+  const term = q.trim();
+  // Waiting whenever the newest answer isn't for what's typed now.
+  const remoteBusy = open && term.length >= REMOTE_MIN && remote?.term !== term;
+  useEffect(() => {
+    if (!open || term.length < REMOTE_MIN) return;
+    const ctl = new AbortController();
+    const t = setTimeout(() => {
+      searchAll({ q: term }, REMOTE_LIMIT, ctl.signal)
+        .then((data) => { if (!ctl.signal.aborted) setRemote({ term, data }); })
+        .catch(() => { if (!ctl.signal.aborted) setRemote({ term, data: null }); });
+    }, 250);
+    return () => { clearTimeout(t); ctl.abort(); };
+  }, [open, term]);
+
   const hits = useMemo<Hit[]>(() => {
     const term = q.trim().toLowerCase();
     if (!term) return [];
     const has = (...s: string[]) => s.some((x) => x.toLowerCase().includes(term));
     const out: Hit[] = [];
+    const r = remote && remote.term === q.trim() && remote.data ? remote.data : null;
+    r?.results.gyms.forEach((g) => out.push({ key: `g:${g.id}`, group: "Gyms", title: g.name, sub: [g.primary_type_display, g.location?.city || placeLine(g.location)].filter(Boolean).join(" · "), href: `/gyms/${g.id}`, icon: LuDumbbell, avatar: { name: g.name, src: mediaUrl(g.profile_picture_url) } }));
+    r?.results.people.forEach((p) => out.push({ key: `p:${p.id}`, group: "People", title: p.full_name || `${p.first_name} ${p.last_name}`.trim(), sub: [p.city, `${p.followers_count} follower${p.followers_count === 1 ? "" : "s"}`].filter(Boolean).join(" · "), href: `/users/${p.id}`, icon: LuUser, avatar: { name: p.full_name, src: mediaUrl(p.avatar_url) } }));
     if (can("View members")) members.filter((m) => has(fullName(m), m.email, m.phone, m.memberNo)).slice(0, 5)
       .forEach((m) => out.push({ key: m.id, group: "Members", title: fullName(m), sub: `${currentMembership(m)?.planName ?? "No plan"} · ${memberStatus(m)}`, href: `/members/${m.id}`, icon: LuUsers, avatar: { name: fullName(m), src: m.photo } }));
     if (can("View leads")) leads.filter((l) => has(leadName(l), l.email, l.phone)).slice(0, 4)
       .forEach((l) => out.push({ key: l.id, group: "Leads", title: leadName(l), sub: STAGE_LABEL[l.stage], href: "/leads", icon: LuUserPlus, avatar: { name: leadName(l), src: "" } }));
     if (can("View plans")) plans.filter((p) => has(p.name)).slice(0, 4)
       .forEach((p) => out.push({ key: p.id, group: "Plans", title: p.name, sub: `${p.status} · ${p.type === "time" ? "Time based" : "Session based"}`, href: `/plans/${p.id}`, icon: LuCreditCard }));
+    const total = r ? r.counts.gyms + r.counts.people : 0;
+    out.push({ key: SEE_ALL, group: "", title: `See all results for “${q.trim()}”`, sub: total ? `${total} gym${r!.counts.gyms === 1 ? "" : "s"} and people` : "Gyms and people", href: searchHref(q), icon: LuSearch });
     return out;
-  }, [q, members, leads, plans, can]);
+  }, [q, members, leads, plans, can, remote]);
 
   const go = (h: Hit) => { setOpen(false); setQ(""); router.push(h.href); };
   const close = () => { setOpen(false); setQ(""); setCursor(0); };
@@ -60,7 +94,7 @@ export default function GlobalSearch() {
       <motion.button whileTap={{ scale: 0.98 }} onClick={() => setOpen(true)} aria-label="Search"
         className="flex items-center gap-2 rounded-[10px] border border-line bg-background p-2 text-muted transition-colors hover:border-primary/40 md:w-[300px] md:px-3 xl:w-[340px]">
         <LuSearch size={18} />
-        <span className="hidden flex-1 text-left md:block">Search Manygym</span>
+        <span className="hidden flex-1 text-left md:block">Search gyms and people</span>
         <kbd className="hidden rounded-md border border-line bg-surface px-1.5 text-[11px] font-semibold md:block">⌘K</kbd>
       </motion.button>
 
@@ -73,7 +107,7 @@ export default function GlobalSearch() {
               initial={{ opacity: 0, y: -16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.98 }} transition={{ type: "spring", stiffness: 460, damping: 34 }}>
               <div className="flex items-center gap-3 border-b border-line px-4">
                 <LuSearch size={19} className="text-muted" />
-                <input ref={input} value={q} onChange={(e) => { setQ(e.target.value); setCursor(0); }} placeholder="Search Manygym" aria-label="Search"
+                <input ref={input} value={q} maxLength={SEARCH_MAX_LENGTH} onChange={(e) => { setQ(e.target.value); setCursor(0); }} placeholder="Search gyms, people, members…" aria-label="Search"
                   className="h-14 flex-1 bg-transparent text-base outline-none"
                   onKeyDown={(e) => {
                     if (e.key === "ArrowDown") { e.preventDefault(); setCursor(Math.min(active + 1, hits.length - 1)); }
@@ -83,17 +117,27 @@ export default function GlobalSearch() {
                 <kbd className="rounded-md border border-line px-1.5 text-[11px] font-semibold text-muted">Esc</kbd>
               </div>
               <div className="max-h-[50vh] overflow-y-auto p-2">
-                {!q.trim() && <p className="px-3 py-8 text-center text-muted">Type a name, email, phone number or plan.</p>}
-                {q.trim() && hits.length === 0 && <p className="px-3 py-8 text-center text-muted">Nothing found for “{q.trim()}”.</p>}
+                {!q.trim() && <p className="px-3 py-8 text-center text-muted">Search gyms and people{can("View members") ? ", or your members, leads and plans" : ""}.</p>}
+                {q.trim() && hits.length === 1 && (remoteBusy || term.length < REMOTE_MIN
+                  ? <p className="px-3 py-6 text-center text-muted">{remoteBusy ? "Searching…" : "Keep typing to search gyms and people."}</p>
+                  : <p className="px-3 py-6 text-center text-muted">No quick matches for “{q.trim()}”.</p>)}
                 {hits.map((h, i) => {
                   const GroupIcon = GROUP_ICON[h.group];
+                  if (h.key === SEE_ALL) return (
+                    <button key={h.key} onMouseEnter={() => setCursor(i)} onClick={() => go(h)}
+                      className={`mt-1 flex w-full items-center gap-3 rounded-xl border-t border-line px-3 py-3 text-left transition-colors ${i === active ? "bg-primary-50" : ""}`}>
+                      <span className="grid h-[34px] w-[34px] place-items-center rounded-full bg-primary-50 text-primary"><LuSearch size={17} /></span>
+                      <span className="min-w-0 flex-1"><b className="block truncate font-semibold text-primary">{h.title}</b><span className="block truncate text-[13px] text-muted">{remoteBusy ? "Searching…" : h.sub}</span></span>
+                      {i === active ? <LuCornerDownLeft size={16} className="text-primary" /> : <LuArrowRight size={16} className="text-muted" />}
+                    </button>
+                  );
                   return (
                     <div key={h.key}>
                       {(i === 0 || hits[i - 1].group !== h.group) && <p className="flex items-center gap-1.5 px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted"><GroupIcon size={13} />{h.group}</p>}
                       <button onMouseEnter={() => setCursor(i)} onClick={() => go(h)}
                         className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${i === active ? "bg-primary-50" : ""}`}>
                         {h.avatar ? <Avatar name={h.avatar.name} src={h.avatar.src} size={34} /> : <span className="grid h-[34px] w-[34px] place-items-center rounded-full bg-primary-50 text-primary"><h.icon size={17} /></span>}
-                        <span className="min-w-0 flex-1"><b className="block truncate font-semibold">{h.title}</b><span className="block truncate text-[13px] capitalize text-muted">{h.sub}</span></span>
+                        <span className="min-w-0 flex-1"><b className="block truncate font-semibold">{h.title}</b><span className={`block truncate text-[13px] text-muted ${h.key.includes(":") ? "" : "capitalize"}`}>{h.sub}</span></span>
                         {i === active && <LuCornerDownLeft size={16} className="text-primary" />}
                       </button>
                     </div>

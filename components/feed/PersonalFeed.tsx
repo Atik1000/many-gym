@@ -25,7 +25,7 @@ export default function PersonalFeed() {
           <p className="text-muted">Find a gym to join and people to follow — their posts show up here.</p>
         </div>
         <Link href="/gyms" className={btnGhost}><LuMapPin size={17} />Find gyms</Link>
-        <Link href="/find-people" className={btnGhost}><LuSearch size={17} />Find people</Link>
+        <Link href="/search?tab=people" className={btnGhost}><LuSearch size={17} />Find people</Link>
       </section>
 
       <Stories />

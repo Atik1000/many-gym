@@ -19,9 +19,9 @@ import FollowGymButton from "./FollowGymButton";
 
 const PAGE_SIZE = 10;
 type Area = "near" | "city";
-type LocationProblem = "denied" | "unavailable" | "timeout" | "unsupported";
+export type LocationProblem = "denied" | "unavailable" | "timeout" | "unsupported";
 
-const LOCATION_MESSAGE: Record<LocationProblem, string> = {
+export const LOCATION_MESSAGE: Record<LocationProblem, string> = {
   denied: "Location access was declined, so we can't search around you. You can allow it in your browser's site settings, or search by city instead.",
   unavailable: "Your device couldn't work out where you are right now. Try again in a moment, or search by city instead.",
   timeout: "Finding your location took too long. Try again, or search by city instead.",
@@ -29,7 +29,7 @@ const LOCATION_MESSAGE: Record<LocationProblem, string> = {
 };
 
 /** Asks the browser for the current position. Rejects with a `LocationProblem`. */
-function locate(): Promise<{ latitude: number; longitude: number }> {
+export function locate(): Promise<{ latitude: number; longitude: number }> {
   return new Promise((resolve, reject) => {
     if (typeof navigator === "undefined" || !("geolocation" in navigator) || !window.isSecureContext) {
       reject("unsupported" satisfies LocationProblem);
@@ -56,7 +56,7 @@ function readableError(e: unknown): string {
 
 const distance = (km: number) => (km < 1 ? `${Math.max(Math.round(km * 1000 / 50) * 50, 50)} m away` : `${km.toFixed(km < 10 ? 1 : 0)} km away`);
 
-function GymCard({ gym, onFollow }: { gym: GymSearchItem; onFollow: (following: boolean) => void }) {
+export function GymCard({ gym, onFollow }: { gym: GymSearchItem; onFollow: (following: boolean) => void }) {
   const href = `/gyms/${gym.id}`;
   const place = placeLine(gym.location);
   return (

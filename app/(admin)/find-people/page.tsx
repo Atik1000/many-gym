@@ -1,8 +1,7 @@
-import FindPeople from "@/components/users/FindPeople";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Find People · manygym" };
-
-// Like Find Gyms and Messages, this is a personal feature: any signed-in person can use it, gym or no gym.
+// Finding people moved into the central search; finding someone to message is "New message" in the inbox.
+// Kept as a redirect so old links and bookmarks still land somewhere useful.
 export default function Page() {
-  return <FindPeople />;
+  redirect("/search?tab=people");
 }

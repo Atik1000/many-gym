@@ -140,7 +140,7 @@ export default function UserProfile() {
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             {problem.icon === LuLock && !mine && <FollowButton userId={id} name="this account" initial={followState} onState={(s) => { setFollowState(s); if (s === "following") void load(); }} />}
             {problem.icon === LuUser && <MotionButton className={btnGhost} onClick={() => void load()}>Try again</MotionButton>}
-            <Link href="/find-people" className={btnGhost}><LuArrowLeft size={17} />Find people</Link>
+            <Link href="/search?tab=people" className={btnGhost}><LuArrowLeft size={17} />Find people</Link>
           </div>
         </div>
       </div>

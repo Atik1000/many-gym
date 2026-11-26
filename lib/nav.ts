@@ -22,7 +22,7 @@ export const NAV: NavItem[] = [
   { href: "/people", perm: "View people", label: "People & Roles", icon: ShieldCheck, ready: true },
   { href: "/activity", perm: "View activity log", label: "Activity Log", icon: History, ready: true },
   { href: "/gyms", label: "Find Gyms", icon: MapPin, ready: true },
-  { href: "/find-people", label: "Find People", icon: SearchIcon, ready: true },
+  { href: "/search", label: "Search", icon: SearchIcon, ready: true },
   { href: "/messages", label: "Messages", icon: MessageSquare, ready: true },
 ];
 
@@ -37,14 +37,14 @@ export const PERSONAL_HOME = "/feed";
 export const PERSONAL_NAV: NavItem[] = [
   { href: "/feed", label: "Feed", icon: Newspaper, ready: true },
   { href: "/gyms", label: "Find Gyms", icon: MapPin, ready: true },
-  { href: "/find-people", label: "Find People", icon: SearchIcon, ready: true },
+  { href: "/search", label: "Search", icon: SearchIcon, ready: true },
   { href: "/messages", label: "Messages", icon: MessageSquare, ready: true },
   { href: "/create-gym", label: "Create a gym", icon: Building, ready: true },
 ];
 
 /** Every route that works without a gym. The single source of truth for the gate in AuthProvider. */
-export const PERSONAL_PATHS = ["/feed", "/gyms", "/find-people", "/users", "/messages", "/settings", "/create-gym"];
+export const PERSONAL_PATHS = ["/feed", "/search", "/gyms", "/find-people", "/users", "/messages", "/settings", "/create-gym"];
 export const isPersonalPath = (pathname: string) => PERSONAL_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
 // pages reachable without a sidebar entry still need a title for the sidebar header
-export const EXTRA_TITLES: Record<string, string> = { "/trainers": "Trainers", "/settings": "Account Settings", "/users": "Profile", "/feed": "Feed", "/create-gym": "Create a gym" };
+export const EXTRA_TITLES: Record<string, string> = { "/trainers": "Trainers", "/settings": "Account Settings", "/users": "Profile", "/feed": "Feed", "/create-gym": "Create a gym", "/search": "Search" };

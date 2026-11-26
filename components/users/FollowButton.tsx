@@ -4,7 +4,7 @@
  * Follow → Requested (when the other person confirms followers first) → Following.
  *
  * Pressing "Requested" withdraws the request through the dedicated cancel routes; pressing "Following"
- * unfollows. Shared by the profile page and Find People.
+ * unfollows. Shared by the profile page and the search results.
  *
  * The button follows `FOLLOW_EVENT`, not just its own presses, so the same person reads the same on every
  * button on screen the moment any one of them changes.
