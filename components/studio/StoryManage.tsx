@@ -1,20 +1,27 @@
 "use client";
 
-/** Owner-side story tools: edit (`PATCH /stories/{id}/`) and the viewer list (`GET /stories/{id}/viewers/`). */
+/**
+ * Owner-side moment tools: edit (`PATCH /moments/{id}/`), the viewer list (`GET /moments/{id}/viewers/`) and the
+ * replies people sent (`GET /moments/{id}/replies/`, `DELETE …/replies/{reply_id}/`).
+ */
 import { useCallback, useEffect, useState } from "react";
-import { LuLoaderCircle, LuSave, LuX } from "react-icons/lu";
+import Link from "next/link";
+import { LuLoaderCircle, LuMessageSquare, LuSave, LuTrash2, LuX } from "react-icons/lu";
 import Modal from "@/components/ui/Modal";
 import { MotionButton } from "@/components/ui/Motion";
 import { Avatar, Select } from "@/components/ui/parts";
 import { useToast } from "@/components/ui/Toast";
 import { ApiError } from "@/lib/api/http";
-import { LIFETIMES, PRIVACY_LABEL, isHexColor, privacyChoices, storyViewers, updateStory, type Story, type StoryLifetime, type StoryPatch, type StoryPrivacy, type StoryViewer } from "@/lib/api/stories";
+import {
+  LIFETIMES, PRIVACY_LABEL, deleteStoryReply, isHexColor, privacyChoices, storyReplies, storyViewers, updateStory,
+  type Story, type StoryLifetime, type StoryPatch, type StoryPrivacy, type StoryReply, type StoryViewer,
+} from "@/lib/api/stories";
 import { timeAgo } from "@/lib/posts";
 import { btnGhost, btnPrimary, errorText, hint, input, label } from "@/lib/ui";
 
 const CAPTION_MAX = 500;
 
-/** Mounted only while open, so the form always starts from the story as it is now. */
+/** Mounted only while open, so the form always starts from the moment as it is now. */
 export function StoryEditModal({ story, onClose, onSaved }: { story: Story; onClose: () => void; onSaved: (s: Story) => void }) {
   const toast = useToast();
   const [caption, setCaption] = useState(story.caption);
@@ -43,13 +50,13 @@ export function StoryEditModal({ story, onClose, onSaved }: { story: Story; onCl
     setBusy(true); setErrors({});
     try {
       const saved = await updateStory(story.id, patch);
-      toast("Story updated");
+      toast("Moment updated");
       onSaved(saved);
       onClose();
     } catch (e) {
       const fields = e instanceof ApiError ? e.fieldErrors() : {};
       if (fields.lifetime && !fields.lifetime_hours) fields.lifetime_hours = fields.lifetime;
-      setErrors(Object.keys(fields).length ? fields : { form: e instanceof ApiError ? e.message : "Couldn't save that story." });
+      setErrors(Object.keys(fields).length ? fields : { form: e instanceof ApiError ? e.message : "Couldn't save that moment." });
       setBusy(false);
     }
   };
@@ -58,7 +65,7 @@ export function StoryEditModal({ story, onClose, onSaved }: { story: Story; onCl
   const lifetimes = LIFETIMES.includes(lifetime as StoryLifetime) ? LIFETIMES : [...LIFETIMES, lifetime as StoryLifetime];
 
   return (
-    <Modal open title="Edit story" onClose={close}
+    <Modal open title="Edit moment" onClose={close}
       footer={<>
         <MotionButton className={btnGhost} onClick={close} disabled={busy}><LuX size={17} />Cancel</MotionButton>
         <MotionButton className={btnPrimary} onClick={save} disabled={busy}>{busy ? <LuLoaderCircle size={16} className="animate-spin" /> : <LuSave size={16} />}Save</MotionButton>
@@ -97,7 +104,7 @@ export function StoryEditModal({ story, onClose, onSaved }: { story: Story; onCl
       </div>
       <label className="flex items-center gap-2.5">
         <input type="checkbox" checked={archived} disabled={busy} onChange={(e) => setArchived(e.target.checked)} />
-        <span><b className="font-semibold">Archived</b> <span className="text-muted">— hidden from everyone else, kept in My stories.</span></span>
+        <span><b className="font-semibold">Archived</b> <span className="text-muted">— hidden from everyone, and it leaves the Moments tray.</span></span>
       </label>
       {errors.is_archived && <p className={errorText}>{errors.is_archived}</p>}
       {errors.form && <p role="alert" className={errorText}>{errors.form}</p>}
@@ -121,7 +128,7 @@ export function StoryViewersModal({ story, onClose }: { story: Story; onClose: (
       setRows((prev) => (p === 1 ? r.rows : [...prev, ...r.rows]));
       setCount(r.count); setPage(r.page || p); setPages(r.pages);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn't load who viewed this story.");
+      setError(e instanceof ApiError ? e.message : "Couldn't load who viewed this moment.");
     } finally {
       setLoading(false);
     }
@@ -133,7 +140,7 @@ export function StoryViewersModal({ story, onClose }: { story: Story; onClose: (
 
   return (
     <Modal open title={`Viewed by ${count}`} onClose={onClose}>
-      {rows.length === 0 && !loading && !error && <p className="py-4 text-center text-muted">Nobody has viewed this story yet.</p>}
+      {rows.length === 0 && !loading && !error && <p className="py-4 text-center text-muted">Nobody has viewed this moment yet.</p>}
       {rows.length > 0 && (
         <ul className="grid gap-2">
           {rows.map((v) => (
@@ -141,6 +148,86 @@ export function StoryViewersModal({ story, onClose }: { story: Story; onClose: (
               <Avatar name={v.name} size={36} src={v.avatarUrl} />
               <b className="min-w-0 flex-1 truncate">{v.name}</b>
               <span className="text-[13px] text-muted">{v.viewedAt ? timeAgo(v.viewedAt) : ""}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {loading && <div className="h-16 animate-pulse rounded-xl bg-background" />}
+      {error && <p role="alert" className={errorText}>{error} <button className="font-semibold text-primary" onClick={() => void load(Math.max(1, page || 1))}>Retry</button></p>}
+      {!loading && !error && page < pages && <MotionButton className={`${btnGhost} mx-auto`} onClick={() => void load(page + 1)}>Show more</MotionButton>}
+    </Modal>
+  );
+}
+
+/** Mounted only while open. The owner sees every reply; each can be answered in Messages or deleted. */
+export function StoryRepliesModal({ story, onClose, onCount }: { story: Story; onClose: () => void; onCount: (n: number) => void }) {
+  const toast = useToast();
+  const [rows, setRows] = useState<StoryReply[]>([]);
+  const [count, setCount] = useState(story.replies);
+  const [page, setPage] = useState(0);
+  const [pages, setPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(async (p: number) => {
+    setLoading(true); setError("");
+    try {
+      const r = await storyReplies(story.id, p);
+      setRows((prev) => (p === 1 ? r.rows : [...prev, ...r.rows]));
+      setCount(r.count); setPage(r.page || p); setPages(r.pages);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Couldn't load the replies.");
+    } finally {
+      setLoading(false);
+    }
+  }, [story.id]);
+
+  useEffect(() => {
+    void Promise.resolve().then(() => load(1));
+  }, [load]);
+
+  const remove = async (r: StoryReply) => {
+    setBusy(r.id);
+    try {
+      await deleteStoryReply(story.id, r.id);
+      setRows((l) => l.filter((x) => x.id !== r.id));
+      const n = Math.max(0, count - 1);
+      setCount(n);
+      onCount(n);
+      toast("Reply deleted");
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "Couldn't delete that reply.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <Modal open title={`Replies · ${count}`} onClose={onClose}>
+      {rows.length === 0 && !loading && !error && <p className="py-4 text-center text-muted">No replies yet. When someone sends a message on this moment, it shows up here.</p>}
+      {rows.length > 0 && (
+        <ul className="grid gap-2">
+          {rows.map((r) => (
+            <li key={r.id} className="flex items-start gap-3 rounded-xl bg-background px-3 py-2.5">
+              <Avatar name={r.name} size={36} src={r.avatarUrl} />
+              <div className="min-w-0 flex-1">
+                <p className="flex items-baseline gap-2"><b className="truncate">{r.name}</b><span className="shrink-0 text-xs text-muted">{r.createdAt ? timeAgo(r.createdAt) : ""}</span></p>
+                <p className="whitespace-pre-wrap break-words">{r.message}</p>
+                {r.mediaUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={r.mediaUrl} alt="" loading="lazy" className="mt-1.5 max-h-40 rounded-lg object-cover" />
+                )}
+              </div>
+              <span className="flex shrink-0 gap-1">
+                {/* Sent as a gym: a personal chat with whichever staff member typed it would be the wrong inbox. */}
+                {r.userId && !r.asGym && (
+                  <Link href={`/messages?user=${encodeURIComponent(r.userId)}`} aria-label={`Reply to ${r.name} in Messages`} title="Reply in Messages"
+                    className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-surface hover:text-primary"><LuMessageSquare size={16} /></Link>
+                )}
+                <button aria-label={`Delete ${r.name}'s reply`} title="Delete reply" disabled={busy === r.id} onClick={() => void remove(r)}
+                  className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-surface hover:text-bad disabled:opacity-45"><LuTrash2 size={16} /></button>
+              </span>
             </li>
           ))}
         </ul>

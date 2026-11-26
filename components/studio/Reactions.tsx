@@ -20,7 +20,7 @@ import { ApiError } from "@/lib/api/http";
 import * as api from "@/lib/api/reactions";
 import type { ReactionItem, ReactionSummary, ReactionTarget, Reactor } from "@/lib/api/reactions";
 
-const NOUN = { post: "post", comment: "comment", story: "story" } as const;
+const NOUN = { post: "post", comment: "comment", story: "moment" } as const;
 /** Ids minted in the browser for a post that hasn't been saved yet are not UUIDs; nothing can react to those. */
 const isServerId = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 

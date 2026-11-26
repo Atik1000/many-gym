@@ -82,7 +82,22 @@ const react = (seg, idName) => {
     ["GET", `${base}summary/`, ...builder, 'either<unknown>("summary", t, "summary/", (p) => request("GET", p'],
   ]);
 };
+// Moments: `/moments/` first, legacy `/stories/` as the fallback, both through the `at()` helper in stories.ts.
+const moment = (m, tail, frag) => [
+  [m, `/api/v1/stories/${tail}`, "request<T>(method, `${LEGACY}${tail}`, opts)", frag],
+];
 const DECLARED = {
+  "lib/api/stories.ts": [
+    ...moment("GET", "", 'await at<unknown>("GET", "", { query })'),
+    ...moment("POST", "", 'await at<unknown>("POST", "", {'),
+    ...moment("GET", "tray/", 'at<unknown>("GET", "tray/"'),
+    ...moment("GET", "my/", 'at<unknown>("GET", "my/"'),
+    ...moment("GET", "{story_id}/", 'at<unknown>("GET", `${enc(id)}/`'),
+    ...moment("PATCH", "{story_id}/", 'at<unknown>("PATCH", `${enc(id)}/`'),
+    ...moment("DELETE", "{story_id}/", '"DELETE", `${enc(id)}/`)'),
+    ...moment("POST", "{story_id}/view/", '"POST", `${enc(id)}/view/`'),
+    ...moment("GET", "{story_id}/viewers/", 'at<unknown>("GET", `${enc(id)}/viewers/`'),
+  ],
   "lib/api/security.ts": [
     ...sec("GET", "", 'both<SecurityOverview>("overview", "GET", SECURITY)'),
     ...sec("GET", "contact-info/", '"GET", `${SECURITY}contact-info/`'),

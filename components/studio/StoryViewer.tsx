@@ -1,27 +1,30 @@
 "use client";
 
 /**
- * Full-screen story playback.
+ * Full-screen moment playback.
  *
- * Plays one owner's stories oldest → newest, then moves on to the next owner. Pictures hold for five seconds;
+ * Plays one owner's moments oldest → newest, then moves on to the next owner. Pictures hold for five seconds;
  * videos run to their end. Tap the left or right side (or ← / →) to move, hold to pause, Esc to close.
- * Each story is reported as viewed once per session (`POST /stories/{id}/view/`) when it is actually shown.
+ * Each moment is reported as viewed once per session (`POST /moments/{id}/view/`) when it is actually shown.
+ *
+ * Someone else's moment has a "Send message" box (`POST /moments/{id}/reply/`), which pauses playback while
+ * it has focus; your own shows how many replies came in and opens them.
  */
 import { useEffect, useRef, useState } from "react";
-import { LuEye, LuGlobe, LuLock, LuNewspaper, LuPencil, LuTrash2, LuUsers, LuX } from "react-icons/lu";
+import { LuEye, LuGlobe, LuLock, LuMessageCircle, LuNewspaper, LuPencil, LuSend, LuTrash2, LuUsers, LuX } from "react-icons/lu";
 import { Avatar, ConfirmModal } from "@/components/ui/parts";
 import { useToast } from "@/components/ui/Toast";
 import { ApiError } from "@/lib/api/http";
-import { PRIVACY_LABEL, deleteStory, recordStoryView, timeLeft, type Story, type StoryBucket } from "@/lib/api/stories";
+import { PRIVACY_LABEL, REPLY_MAX, deleteStory, recordStoryView, replyToStory, timeLeft, type Story, type StoryBucket } from "@/lib/api/stories";
 import { timeAgo } from "@/lib/posts";
 import Reactions from "./Reactions";
-import { StoryEditModal, StoryViewersModal } from "./StoryManage";
+import { StoryEditModal, StoryRepliesModal, StoryViewersModal } from "./StoryManage";
 
 const IMAGE_MS = 5000;
 /** A press shorter than this is a tap (navigate); longer is a hold (pause only). */
 const TAP_MS = 250;
 
-/** Stories already reported as viewed in this session, so moving back and forth doesn't re-post. */
+/** Moments already reported as viewed in this session, so moving back and forth doesn't re-post. */
 const reported = new Set<string>();
 
 const firstUnviewed = (b: StoryBucket | undefined) => Math.max(0, b ? b.stories.findIndex((s) => !s.viewed) : 0);
@@ -39,14 +42,18 @@ export default function StoryViewer({ buckets, start, canManage, onClose, onView
   const [pos, setPos] = useState(() => ({ b: start, i: firstUnviewed(buckets[start]) }));
   const [held, setHeld] = useState(false);
   const [hidden, setHidden] = useState(false);
-  const [sub, setSub] = useState<null | "edit" | "viewers" | "delete">(null);
+  const [sub, setSub] = useState<null | "edit" | "viewers" | "replies" | "delete">(null);
+  // The reply box: typing holds the moment, like the reaction picker does.
+  const [reply, setReply] = useState("");
+  const [replying, setReplying] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const bucket = buckets[pos.b];
   const story = bucket?.stories[Math.min(pos.i, (bucket?.stories.length ?? 1) - 1)];
   const index = bucket && story ? bucket.stories.indexOf(story) : 0;
   // The reaction picker or the who-reacted list is open: hold the story, and leave the keyboard to it.
   const [reacting, setReacting] = useState(false);
-  const running = !held && !hidden && !sub && !reacting;
+  const running = !held && !hidden && !sub && !reacting && !replying && !reply;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const barRef = useRef<HTMLSpanElement>(null);
@@ -102,6 +109,9 @@ export default function StoryViewer({ buckets, start, canManage, onClose, onView
   useEffect(() => {
     if (sub || reacting) return;
     const onKey = (e: KeyboardEvent) => {
+      // Arrow keys move the caret while typing a reply, not the moment.
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA") && e.key !== "Escape") return;
       if (e.key === "Escape") onClose();
       else if (e.key === "ArrowRight") nextRef.current();
       else if (e.key === "ArrowLeft") prevRef.current();
@@ -169,31 +179,47 @@ export default function StoryViewer({ buckets, start, canManage, onClose, onView
     setSub(null);
     try {
       await deleteStory(story.id);
-      toast("Story deleted");
+      toast("Moment deleted");
       onDeleted(story.id);
       onClose();
     } catch (e) {
-      toast(e instanceof ApiError ? e.message : "Couldn't delete that story.");
+      toast(e instanceof ApiError ? e.message : "Couldn't delete that moment.");
+    }
+  };
+
+  const sendReply = async () => {
+    const text = reply.trim();
+    if (!text || sending) return;
+    setSending(true);
+    try {
+      await replyToStory(story.id, text);
+      setReply("");
+      toast(`Message sent to ${bucket.ownerName}`);
+      onChanged({ ...story, replies: story.replies + 1 });
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "Couldn't send that message.");
+    } finally {
+      setSending(false);
     }
   };
 
   return (
     <>
-      <div role="dialog" aria-modal aria-label={`Stories from ${bucket.ownerName}`} className="fixed inset-0 z-40 grid place-items-center bg-black/90 p-0 sm:p-5"
+      <div role="dialog" aria-modal aria-label={`Moments from ${bucket.ownerName}`} className="fixed inset-0 z-40 grid place-items-center bg-black/90 p-0 sm:p-5"
         onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
         <div className="relative h-full max-h-[100dvh] w-full overflow-hidden bg-[#111827] sm:aspect-[9/16] sm:h-[min(92vh,820px)] sm:w-auto sm:rounded-2xl" style={{ background: story.backgroundColor || "#111827" }}>
-          {/* media, letterboxed over the story's background colour */}
+          {/* media, letterboxed over the moment's background colour */}
           {story.kind === "video" ? (
             <video key={story.id} ref={videoRef} src={story.mediaUrl} poster={story.thumbnailUrl || undefined} playsInline preload="auto"
               className="h-full w-full object-contain" onEnded={() => nextRef.current()} onError={() => { videoFailed.current = true; }} />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={story.id} src={story.mediaUrl} alt={story.caption || `Story from ${bucket.ownerName}`} className="h-full w-full object-contain" draggable={false} />
+            <img key={story.id} src={story.mediaUrl} alt={story.caption || `Moment from ${bucket.ownerName}`} className="h-full w-full object-contain" draggable={false} />
           )}
 
           {/* tap zones: left third goes back, the rest goes forward; holding either pauses */}
-          <button type="button" aria-label="Previous story" className={`${zone} left-0 w-1/3`} onPointerDown={press} onPointerUp={() => release(prev)} onPointerLeave={() => setHeld(false)} onPointerCancel={() => setHeld(false)} onContextMenu={(e) => e.preventDefault()} />
-          <button type="button" aria-label="Next story" className={`${zone} right-0 w-2/3`} onPointerDown={press} onPointerUp={() => release(next)} onPointerLeave={() => setHeld(false)} onPointerCancel={() => setHeld(false)} onContextMenu={(e) => e.preventDefault()} />
+          <button type="button" aria-label="Previous moment" className={`${zone} left-0 w-1/3`} onPointerDown={press} onPointerUp={() => release(prev)} onPointerLeave={() => setHeld(false)} onPointerCancel={() => setHeld(false)} onContextMenu={(e) => e.preventDefault()} />
+          <button type="button" aria-label="Next moment" className={`${zone} right-0 w-2/3`} onPointerDown={press} onPointerUp={() => release(next)} onPointerLeave={() => setHeld(false)} onPointerCancel={() => setHeld(false)} onContextMenu={(e) => e.preventDefault()} />
 
           {/* top: progress + owner */}
           <div className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/65 to-transparent px-3 pb-8 pt-3 text-white">
@@ -213,9 +239,9 @@ export default function StoryViewer({ buckets, start, canManage, onClose, onView
                 </small>
               </div>
               <span className={chip}>{story.privacy === "public" ? <LuGlobe size={12} /> : story.privacy === "followers" ? <LuUsers size={12} /> : <LuLock size={12} />}{PRIVACY_LABEL[story.privacy]}</span>
-              <button type="button" aria-label="Close stories" onClick={onClose} className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25"><LuX size={18} /></button>
+              <button type="button" aria-label="Close moments" onClick={onClose} className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25"><LuX size={18} /></button>
             </div>
-            <span className="sr-only" aria-live="polite">Story {index + 1} of {bucket.stories.length}{held ? ", paused" : ""}</span>
+            <span className="sr-only" aria-live="polite">Moment {index + 1} of {bucket.stories.length}{held ? ", paused" : ""}</span>
           </div>
 
           {/* bottom: source post, caption, reactions, owner tools */}
@@ -234,11 +260,24 @@ export default function StoryViewer({ buckets, start, canManage, onClose, onView
               {manage && (
                 <div className="pointer-events-auto flex flex-wrap items-center gap-2">
                   <button type="button" className={chip} onClick={() => setSub("viewers")}><LuEye size={13} />{story.views} view{story.views === 1 ? "" : "s"}</button>
+                  <button type="button" className={chip} onClick={() => setSub("replies")}><LuMessageCircle size={13} />{story.replies} repl{story.replies === 1 ? "y" : "ies"}</button>
                   {story.archived && <span className={chip}>Archived</span>}
-                  <span className="flex-1" />
-                  <button type="button" className={chip} onClick={() => setSub("edit")}><LuPencil size={13} />Edit</button>
-                  <button type="button" className={chip} onClick={() => setSub("delete")}><LuTrash2 size={13} />Delete</button>
+                  <span className="ml-auto flex gap-2">
+                    <button type="button" aria-label="Edit moment" title="Edit" className={chip} onClick={() => setSub("edit")}><LuPencil size={13} /></button>
+                    <button type="button" aria-label="Delete moment" title="Delete" className={chip} onClick={() => setSub("delete")}><LuTrash2 size={13} /></button>
+                  </span>
                 </div>
+              )}
+              {!manage && !story.expired && (
+                <form className="pointer-events-auto flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); void sendReply(); }}>
+                  <input value={reply} maxLength={REPLY_MAX} disabled={sending} aria-label={`Send a message to ${bucket.ownerName}`}
+                    placeholder={`Send message to ${bucket.ownerName}…`}
+                    onChange={(e) => setReply(e.target.value)} onFocus={() => setReplying(true)} onBlur={() => setReplying(false)}
+                    className="min-w-0 flex-1 rounded-full border border-white/40 bg-black/30 px-4 py-2.5 text-[15px] text-white outline-none backdrop-blur placeholder:text-white/70 focus:border-white disabled:opacity-60" />
+                  {reply.trim() && (
+                    <button type="submit" aria-label="Send" disabled={sending} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-[#111827] disabled:opacity-60"><LuSend size={18} /></button>
+                  )}
+                </form>
               )}
             </div>
           )}
@@ -247,8 +286,9 @@ export default function StoryViewer({ buckets, start, canManage, onClose, onView
 
       {sub === "edit" && <StoryEditModal story={story} onClose={() => setSub(null)} onSaved={onChanged} />}
       {sub === "viewers" && <StoryViewersModal story={story} onClose={() => setSub(null)} />}
-      <ConfirmModal open={sub === "delete"} title="Delete story?" onClose={() => setSub(null)} onConfirm={() => void remove()}
-        body={<>This story and its views will be removed for everyone. This can&apos;t be undone.</>} />
+      {sub === "replies" && <StoryRepliesModal story={story} onClose={() => setSub(null)} onCount={(n) => onChanged({ ...story, replies: n })} />}
+      <ConfirmModal open={sub === "delete"} title="Delete moment?" onClose={() => setSub(null)} onConfirm={() => void remove()}
+        body={<>This moment and its views will be removed for everyone. This can&apos;t be undone.</>} />
     </>
   );
 }

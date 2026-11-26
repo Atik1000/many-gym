@@ -64,7 +64,7 @@ export default function StoryComposer({ sourcePost = null, onClose, onCreated }:
 
   const pick = (files: File[]) => {
     if (!files.length) return;
-    if (files.length > 1) return setErrors((e) => ({ ...e, file: "A story takes one photo or video — choose a single file." }));
+    if (files.length > 1) return setErrors((e) => ({ ...e, file: "A moment takes one photo or video — choose a single file." }));
     const r = validateFiles(files);
     if (!r.ok.length) return setErrors((e) => ({ ...e, file: r.errors[0] ?? "That file can't be used." }));
     clearFile();
@@ -88,7 +88,7 @@ export default function StoryComposer({ sourcePost = null, onClose, onCreated }:
     try {
       if (sourcePost) await sharePostToStory(sourcePost.id, draft);
       else await createStory(draft);
-      toast(sourcePost ? "Shared to your story" : "Story published");
+      toast(sourcePost ? "Shared to your moments" : "Moment published");
       onCreated?.();
       onClose();
     } catch (e) {
@@ -101,7 +101,7 @@ export default function StoryComposer({ sourcePost = null, onClose, onCreated }:
         else if (k === "privacy" || k === "caption") out[k] = v;
         else out.form = v;
       }
-      if (!Object.keys(out).length) out.form = api?.message ?? "Couldn't publish that story.";
+      if (!Object.keys(out).length) out.form = api?.message ?? "Couldn't publish that moment.";
       // Sharing a text-only post: the server has nothing to inherit (400 with no field details).
       if (sourcePost && !picked && api?.status === 400 && !out.privacy && !out.caption && !out.lifetime && !out.color) {
         setServerWantsFile(true);
@@ -116,11 +116,11 @@ export default function StoryComposer({ sourcePost = null, onClose, onCreated }:
   const close = () => { if (!busy) onClose(); };
 
   return (
-    <Modal open title={sourcePost ? "Share to story" : "Add story"} onClose={close}
+    <Modal open title={sourcePost ? "Share to moment" : "Add moment"} onClose={close}
       footer={<>
         <MotionButton className={btnGhost} onClick={close} disabled={busy}><LuX size={17} />Cancel</MotionButton>
         <MotionButton className={btnPrimary} disabled={!canSubmit} onClick={submit}>
-          {busy ? <><LuLoaderCircle size={16} className="animate-spin" />{picked ? "Uploading…" : "Sharing…"}</> : <><LuSend size={16} />Share story</>}
+          {busy ? <><LuLoaderCircle size={16} className="animate-spin" />{picked ? "Uploading…" : "Sharing…"}</> : <><LuSend size={16} />Share moment</>}
         </MotionButton>
       </>}>
       {sourcePost && (
@@ -139,7 +139,7 @@ export default function StoryComposer({ sourcePost = null, onClose, onCreated }:
 
       {needsFile && (
         <div>
-          {sourcePost && <p className="mb-2 rounded-xl bg-warn-bg px-3.5 py-2.5 text-warn">A story needs a photo or video, and this post doesn&apos;t have one. Add one to share it.</p>}
+          {sourcePost && <p className="mb-2 rounded-xl bg-warn-bg px-3.5 py-2.5 text-warn">A moment needs a photo or video, and this post doesn&apos;t have one. Add one to share it.</p>}
           {picked ? (
             <div className="relative mx-auto aspect-[9/16] w-[180px] overflow-hidden rounded-xl" style={{ background: useColor ? color : "#111827" }}>
               {picked.kind === "video"
@@ -169,7 +169,7 @@ export default function StoryComposer({ sourcePost = null, onClose, onCreated }:
           <Select id="story-life" value={lifetime} disabled={busy} onChange={(e) => setLifetime(Number(e.target.value) as StoryLifetime)}>
             {LIFETIMES.map((h) => <option key={h} value={h}>{h} hours{h === DEFAULT_LIFETIME ? " (default)" : ""}</option>)}
           </Select>
-          {errors.lifetime ? <p className={errorText}>{errors.lifetime}</p> : <p className={hint}>The story disappears after this long.</p>}
+          {errors.lifetime ? <p className={errorText}>{errors.lifetime}</p> : <p className={hint}>The moment disappears after this long.</p>}
         </div>
         <div>
           <label htmlFor="story-privacy" className={label}>Who can see this?</label>

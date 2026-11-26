@@ -61,7 +61,7 @@ export default function RepostsModal({ postId, onClose }: { postId: string; onCl
         </p>
       )}
       {page > 0 && !error && rows.length === 0 && (
-        <EmptyState icon={LuRepeat2} title="No shares to show" hint="Shares to stories and private shares are counted but not listed here." />
+        <EmptyState icon={LuRepeat2} title="No shares to show" hint="Shares to moments and private shares are counted but not listed here." />
       )}
       {rows.length > 0 && (
         <ul className="grid gap-2">
