@@ -30,13 +30,21 @@ type DraftMedia = PostMedia & { file?: File };
 // PostPages and older call sites import the card from here.
 export { PostCard };
 
-function Composer({ editing, onClose, onSave }: { editing: Post | null; onClose: () => void; onSave: (d: { text: string; media: PostMedia[]; members: boolean; privacy: PostPrivacy }) => void }) {
+export type PostDraft = { text: string; media: PostMedia[]; members: boolean; privacy: PostPrivacy };
+
+/**
+ * The post composer — used on a gym's wall and on a person's own home feed. Under a personal token the server
+ * posts as the person, and only public / followers / private apply (no "members only").
+ * `onSave` may return a promise: the dialog then stays open, busy, until it settles, and shows its error.
+ */
+export function Composer({ editing, onClose, onSave }: { editing: Post | null; onClose: () => void; onSave: (d: PostDraft) => void | Promise<void> }) {
   // the parent remounts this (via `key`) for each open, so initial state is always fresh
   const [text, setText] = useState(editing?.text ?? "");
   const [media, setMedia] = useState<DraftMedia[]>(editing?.media ?? []);
   const [privacy, setPrivacy] = useState<PostPrivacy>(editing ? privacyOf(editing) : "public");
   // A gym may limit a post to its members; a personal profile can't (the API rejects it).
-  const choices = privacyChoices(!!currentGymId());
+  const asGym = !!currentGymId();
+  const choices = privacyChoices(asGym);
   const [errors, setErrors] = useState<string[]>([]);
   const [over, setOver] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -69,16 +77,17 @@ function Composer({ editing, onClose, onSave }: { editing: Post | null; onClose:
           final.push({ id: m.id, kind: m.kind, url: m.url });
         }
       }
+      await onSave({ text: text.trim(), media: final, members: privacy === "members_only", privacy });
+      // Only now: if saving failed, the previews are still needed for another try.
       cleanup();
-      onSave({ text: text.trim(), media: final, members: privacy === "members_only", privacy });
-    } catch (e) { setErrors([(e as Error).message]); setBusy(false); }
+    } catch (e) { setErrors([e instanceof ApiError ? e.message : (e as Error).message || "Couldn't publish that post."]); setBusy(false); }
   };
 
   return (
     <Modal open title={editing ? (editing.isRepost ? "Edit share" : "Edit post") : "Create post"} onClose={close}
       footer={<><MotionButton className={btnGhost} onClick={close} disabled={busy}><LuX size={17} />Cancel</MotionButton>
         <MotionButton className={btnPrimary} disabled={!canPublish} onClick={publish}>{busy ? <><Loader2 size={16} className="animate-spin" />{editing ? "Saving…" : "Publishing…"}</> : editing ? "Save" : "Publish"}</MotionButton></>}>
-      <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder="Share an update from your gym…"
+      <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder={asGym ? "Share an update from your gym…" : "What's on your mind?"}
         className="min-h-[110px] w-full resize-y rounded-[10px] border border-line px-3.5 py-3 outline-none focus:border-primary focus:ring-3 focus:ring-primary-50" />
       {!editing?.isRepost && <div onClick={() => fileRef.current?.click()} onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); add([...e.dataTransfer.files]); }}

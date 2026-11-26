@@ -17,7 +17,17 @@ import type { Post } from "@/lib/posts";
 import { card, input } from "@/lib/ui";
 import { PostCard } from "./Feed";
 
-export default function CommunityFeed({ feedType }: { feedType: FeedType }) {
+/**
+ * `top`: posts the reader just published, shown first straight away. Once the feed's own copy of one loads, the
+ * feed's copy is dropped so it never appears twice.
+ */
+export default function CommunityFeed({ feedType, top = [], onTopChange, onTopEdit, onTopDelete }: {
+  feedType: FeedType;
+  top?: Post[];
+  onTopChange?: (p: Post) => void;
+  onTopEdit?: (p: Post) => void;
+  onTopDelete?: (p: Post) => void;
+}) {
   const tab = FEED_TABS.find((t) => t.key === feedType) ?? FEED_TABS[0];
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
@@ -100,12 +110,13 @@ export default function CommunityFeed({ feedType }: { feedType: FeedType }) {
           <button className="mt-2 font-semibold text-primary" onClick={() => void load(Math.max(1, page + (posts.length ? 1 : 0)), posts.length === 0)}>Try again</button>
         </div>
       )}
-      {!first && !error && posts.length === 0 && !loading && (
+      {top.map((p) => <PostCard key={`top-${p.id}`} post={p} onChange={(n) => onTopChange?.(n)} onEdit={onTopEdit ? () => onTopEdit(p) : undefined} onDelete={onTopDelete ? () => onTopDelete(p) : undefined} />)}
+      {!first && !error && posts.length === 0 && top.length === 0 && !loading && (
         <div className={`${card} mt-4 p-10 text-center text-muted`}>
           <EmptyState icon={LuNewspaper} title={search ? "No posts match" : "Nothing to show"} hint={search ? "Try a different search." : tab.empty} />
         </div>
       )}
-      {posts.map((p, i) => <Reveal key={p.id} index={i % 5}><PostCard post={p} onChange={change} onFollowChange={followed} /></Reveal>)}
+      {posts.filter((p) => !top.some((t) => t.id === p.id)).map((p, i) => <Reveal key={p.id} index={i % 5}><PostCard post={p} onChange={change} onFollowChange={followed} /></Reveal>)}
       {hasMore && page > 0 && <div ref={sentinel} className="mt-4 h-16 animate-pulse rounded-xl border border-line bg-surface" aria-label="Loading more posts" />}
       {!hasMore && !error && posts.length > 5 && <p className="mt-6 text-center text-sm text-muted">You&apos;re all caught up</p>}
     </div>

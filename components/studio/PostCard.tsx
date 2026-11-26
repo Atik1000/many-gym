@@ -112,7 +112,8 @@ export function PostCard({ post, onChange, onEdit, onDelete, onFollowChange }: {
   const owner = ownerOf(post);
   // A post with no owner details is one this screen just created, before the server's copy arrives.
   const own = owner.kind === "user" ? !!user && owner.id === user.id : !owner.id || owner.id === currentGymId();
-  const canManage = own && can("Edit studio information");
+  // A person manages their own posts; a gym's need the gym permission.
+  const canManage = own && (owner.kind === "user" || can("Edit studio information"));
   const account = accountSlug(gym?.overview.name ?? "");
   const link = postPath(account, post.id);
   const [reactions, watchReactions] = useReactions({ kind: "post", id: post.id }, post.reactionsCount ?? 0);
@@ -223,7 +224,7 @@ export function PostCard({ post, onChange, onEdit, onDelete, onFollowChange }: {
             <div className="fixed inset-0 z-10" onClick={() => setShareMenu(false)} />
             <div role="menu" className="absolute bottom-12 right-0 z-20 min-w-[230px] rounded-[10px] border border-line bg-surface p-1.5 text-foreground shadow-xl" onClick={() => setShareMenu(false)}>
               <button role="menuitem" className={item} onClick={() => setSharing("profile")}><LuRepeat2 size={16} />{asGym ? "Share on your gym's page" : "Share on my profile"}</button>
-              <button role="menuitem" className={item} onClick={() => setSharing("story")}><LuCircleDashed size={16} />Share to story</button>
+              <button role="menuitem" className={item} onClick={() => setSharing("story")}><LuCircleDashed size={16} />Share to moment</button>
             </div>
           </>)}
         </div>
